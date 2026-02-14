@@ -1,7 +1,7 @@
 "use client";
 
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor } from "../utils";
+import { getGradeColor, blockNonNumericKeys } from "../utils";
 
 /**
  * Renders a subject card for a regular semester.
@@ -102,6 +102,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 value={adjustmentInput}
                 onChange={(e) => setAdjustmentInput(e.target.value)}
                 onKeyDown={(e) => {
+                  blockNonNumericKeys(e, { allowNegative: true });
                   if (e.key === "Enter") handleSaveAdjustment(activeSemester, subject);
                 }}
                 className="w-20 px-2 py-1 rounded border border-gray-300 text-sm text-center outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-900"
@@ -152,6 +153,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 step="0.5"
                 value={gradeValue}
                 onChange={(e) => setGradeValue(e.target.value)}
+                onKeyDown={(e) => blockNonNumericKeys(e)}
                 className="w-24 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
                 placeholder="5.0"
                 autoFocus
@@ -166,6 +168,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 step="0.5"
                 value={gradeWeight}
                 onChange={(e) => setGradeWeight(e.target.value)}
+                onKeyDown={(e) => blockNonNumericKeys(e)}
                 className="w-20 px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900"
               />
             </div>
@@ -225,6 +228,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       step="0.5"
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
+                      onKeyDown={(e) => blockNonNumericKeys(e)}
                       className="w-24 px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-gray-900"
                     />
                     <input
@@ -234,6 +238,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       step="0.5"
                       value={editWeight}
                       onChange={(e) => setEditWeight(e.target.value)}
+                      onKeyDown={(e) => blockNonNumericKeys(e)}
                       className="w-20 px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-gray-900"
                     />
                     <input

@@ -2,7 +2,7 @@
 
 import { FINALS_SEMESTER } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor } from "../utils";
+import { getGradeColor, blockNonNumericKeys } from "../utils";
 
 /**
  * Renders a finals subject card (e.g. "German" with Oral + Written rows).
@@ -80,6 +80,7 @@ export default function FinalsCard({
                     value={getFinalsInputValue(entry)}
                     onChange={(e) => onFinalsInputChange(entry, e.target.value)}
                     onKeyDown={(e) => {
+                      blockNonNumericKeys(e);
                       if (e.key === "Enter") {
                         const val = getFinalsInputValue(entry);
                         if (val) { saveFinalsGrade(entry, val); cancelEditingFinals(); }
