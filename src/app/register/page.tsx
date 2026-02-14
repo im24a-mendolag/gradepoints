@@ -11,10 +11,12 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
@@ -31,7 +33,13 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/login?registered=true");
+      // Show success message or redirect
+      if (res.status === 200) {
+        // Resent verification email
+        setSuccess(data.message);
+      } else {
+        router.push("/login?registered=true");
+      }
     } catch {
       setError("Something went wrong");
     } finally {
@@ -51,6 +59,12 @@ export default function RegisterPage() {
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div className="mb-4 p-3 rounded-lg bg-green-900/30 border border-green-800 text-green-300 text-sm">
+              {success}
             </div>
           )}
 

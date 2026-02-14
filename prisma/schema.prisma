@@ -7,13 +7,25 @@ datasource db {
 }
 
 model User {
-  id          String       @id @default(cuid())
-  name        String
-  email       String       @unique
-  password    String
-  createdAt   DateTime     @default(now())
-  grades      Grade[]
-  adjustments Adjustment[]
+  id            String       @id @default(cuid())
+  name          String
+  email         String       @unique
+  emailVerified Boolean      @default(false)
+  password      String
+  createdAt     DateTime     @default(now())
+  grades        Grade[]
+  adjustments   Adjustment[]
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([token])
+  @@index([email])
 }
 
 model Adjustment {

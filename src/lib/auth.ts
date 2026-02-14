@@ -24,6 +24,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         if (!user) return null;
 
+        // Reject unverified users
+        if (!user.emailVerified) {
+          throw new Error("EMAIL_NOT_VERIFIED");
+        }
+
         const passwordMatch = await bcryptjs.compare(
           credentials.password as string,
           user.password

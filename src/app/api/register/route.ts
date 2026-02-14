@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
@@ -25,6 +26,14 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
+      // If user exists but hasn't verified, resend the email
+      if (!existingUser.emailVerified) {
+        await sendVerificationEmail(email);
+        return NextResponse.json(
+          { message: "Verification email resent. Please check your inbox." },
+          { status: 200 }
+        );
+      }
       return NextResponse.json(
         { error: "An account with this email already exists" },
         { status: 400 }
@@ -33,19 +42,24 @@ export async function POST(request: Request) {
 
     const hashedPassword = await bcryptjs.hash(password, 12);
 
-    const user = await prisma.user.create({
+    await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        emailVerified: false,
       },
     });
 
+    // Send verification email
+    await sendVerificationEmail(email);
+
     return NextResponse.json(
-      { message: "User created successfully", userId: user.id },
+      { message: "Account created! Please check your email to verify your account." },
       { status: 201 }
     );
-  } catch {
+  } catch (error) {
+    console.error("Registration error:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

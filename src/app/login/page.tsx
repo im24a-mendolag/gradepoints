@@ -1,16 +1,20 @@
 "use client";
 
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const registered = searchParams.get("registered");
+  const verified = searchParams.get("verified");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,7 +29,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        setError("Invalid email or password");
+        if (result.error.includes("EMAIL_NOT_VERIFIED")) {
+          setError("Please verify your email before signing in. Check your inbox for the verification link.");
+        } else {
+          setError("Invalid email or password");
+        }
       } else {
         router.push("/dashboard");
         router.refresh();
@@ -45,6 +53,18 @@ export default function LoginPage() {
             <h1 className="text-3xl font-bold text-neutral-100">Welcome back</h1>
             <p className="text-neutral-400 mt-2">Sign in to your GradePoints account</p>
           </div>
+
+          {registered && (
+            <div className="mb-4 p-3 rounded-lg bg-blue-900/30 border border-blue-800 text-blue-300 text-sm">
+              Account created! Please check your email and click the verification link before signing in.
+            </div>
+          )}
+
+          {verified && (
+            <div className="mb-4 p-3 rounded-lg bg-green-900/30 border border-green-800 text-green-300 text-sm">
+              Email verified successfully! You can now sign in.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">
@@ -101,5 +121,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
