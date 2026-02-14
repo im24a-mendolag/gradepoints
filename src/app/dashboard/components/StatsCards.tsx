@@ -93,19 +93,27 @@ export default function StatsCards() {
           </p>
         </div>
       )}
-      {overviewStatus && (
+      {activeSemester === OVERVIEW_TAB && (
         <div
           className={`rounded-xl shadow-sm border p-5 ${
-            overviewStatus.passed ? "bg-green-900/20 border-green-800" : "bg-red-900/20 border-red-800"
+            overviewStatus
+              ? overviewStatus.passed
+                ? "bg-green-900/20 border-green-800"
+                : "bg-red-900/20 border-red-800"
+              : "bg-neutral-900 border-neutral-800"
           }`}
         >
           <p className="text-sm text-neutral-400 mb-1">Final Result</p>
           <p
             className={`text-2xl font-bold ${
-              overviewStatus.passed ? "text-green-400" : "text-red-400"
+              overviewStatus
+                ? overviewStatus.passed
+                  ? "text-green-400"
+                  : "text-red-400"
+                : "text-neutral-600"
             }`}
           >
-            {overviewStatus.passed ? "✓ Passed" : "✗ Failed"}
+            {overviewStatus ? (overviewStatus.passed ? "✓ Passed" : "✗ Failed") : "—"}
           </p>
         </div>
       )}
