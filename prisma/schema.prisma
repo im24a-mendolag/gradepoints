@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  grades    Grade[]
+}
+
+model Grade {
+  id          String   @id @default(cuid())
+  value       Float
+  weight      Float    @default(1)
+  description String   @default("")
+  date        DateTime @default(now())
+  semester    Int
+  subject     String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, semester, subject])
+}
