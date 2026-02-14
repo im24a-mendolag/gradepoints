@@ -38,6 +38,10 @@ const DARK_TOOLTIP = {
     border: "1px solid #404040",
     backgroundColor: "#171717",
     color: "#e5e5e5",
+    zIndex: 9999,
+  },
+  wrapperStyle: {
+    zIndex: 9999,
   },
   labelStyle: {
     color: "#e5e5e5",
@@ -144,16 +148,6 @@ function StatsContent() {
 
   // 7. Overview status
   const overviewStatus = getOverviewStatus();
-
-  // 8. Grades over time
-  const gradesByDate = [...regularGrades]
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .map((g, i) => ({
-      idx: i,
-      date: new Date(g.date).toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" }),
-      value: g.value,
-      subject: g.subject,
-    }));
 
   // Count stats
   const totalGrades = regularGrades.length;
@@ -422,32 +416,6 @@ function StatsContent() {
                 <p className="text-neutral-500 text-sm text-center py-12">No grades yet</p>
               )}
             </div>
-
-            {/* ─── Grades Over Time ─── */}
-            {gradesByDate.length > 0 && (
-              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-                <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">All Grades Over Time</h2>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={gradesByDate} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#a3a3a3" }} interval={Math.max(0, Math.floor(gradesByDate.length / 10))} stroke="#404040" />
-                    <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-                    <Tooltip
-                      formatter={(value?: number) => [value ?? "—", "Grade"]}
-                      {...DARK_TOOLTIP}
-                    />
-                    <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#737373"
-                      strokeWidth={1.5}
-                      dot={{ r: 3, fill: "#3b82f6", stroke: "#171717", strokeWidth: 1 }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
 
             {/* ─── Subject Grade Counts ─── */}
             <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
