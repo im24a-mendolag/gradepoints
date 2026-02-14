@@ -221,14 +221,40 @@ export default function DashboardPage() {
     return Math.round((sum / subjectAverages.length) * 2) / 2;
   };
 
+  // Calculate the finals average (average of each subject group's average)
+  const getFinalsAverage = () => {
+    const groupAverages = [
+      { name: "German", entries: ["German (Oral)", "German (Written)"] },
+      { name: "French", entries: ["French (Oral)", "French (Written)"] },
+      { name: "English", entries: ["English (Oral)", "English (Written)"] },
+      { name: "Math", entries: ["Math (Written)"] },
+      { name: "WR", entries: ["WR (Written)"] },
+      { name: "FrW", entries: ["FrW (Written)"] },
+    ].map((group) => {
+      const entryGrades = group.entries
+        .map((entry) => {
+          const g = getGradesForSubject(FINALS_SEMESTER, entry);
+          return g.length > 0 ? g[0].value : null;
+        })
+        .filter((v): v is number => v !== null);
+      if (entryGrades.length === 0) return null;
+      return Math.round((entryGrades.reduce((a, b) => a + b, 0) / entryGrades.length) * 2) / 2;
+    }).filter((avg): avg is number => avg !== null);
+
+    if (groupAverages.length === 0) return null;
+    return Math.round((groupAverages.reduce((a, b) => a + b, 0) / groupAverages.length) * 2) / 2;
+  };
+
   const getOverallAverage = () => {
-    // Exclude finals from overall average
+    // Include all semesters (1-6) and finals
     const semesterAverages = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => i + 1)
       .map((sem) => getSemesterAverage(sem))
       .filter((avg): avg is number => avg !== null);
-    if (semesterAverages.length === 0) return null;
-    const sum = semesterAverages.reduce((acc, a) => acc + a, 0);
-    return Math.round((sum / semesterAverages.length) * 2) / 2;
+    const finalsAvg = getFinalsAverage();
+    const allAverages = [...semesterAverages, ...(finalsAvg !== null ? [finalsAvg] : [])];
+    if (allAverages.length === 0) return null;
+    const sum = allAverages.reduce((acc, a) => acc + a, 0);
+    return Math.round((sum / allAverages.length) * 2) / 2;
   };
 
   const getSemesterStatus = (semester: number) => {
@@ -405,7 +431,7 @@ export default function DashboardPage() {
     );
   }
 
-  const semesterAvg = getSemesterAverage(activeSemester);
+  const semesterAvg = activeSemester === FINALS_SEMESTER ? getFinalsAverage() : getSemesterAverage(activeSemester);
   const overallAvg = getOverallAverage();
   const semesterStatus = activeSemester > 0 && activeSemester !== FINALS_SEMESTER ? getSemesterStatus(activeSemester) : null;
   const overviewStatus = activeSemester === OVERVIEW_TAB ? getOverviewStatus() : null;
@@ -453,15 +479,11 @@ export default function DashboardPage() {
               {activeSemester === FINALS_SEMESTER ? "Finals" : activeSemester === OVERVIEW_TAB ? "Final Average" : `Semester ${activeSemester} Average`}
             </p>
             <p className={`text-2xl font-bold ${
-              activeSemester === FINALS_SEMESTER
-                ? "text-purple-600"
-                : activeSemester === OVERVIEW_TAB
+              activeSemester === OVERVIEW_TAB
                 ? overviewStatus ? getAvgColor(overviewStatus.avg) : "text-gray-400"
                 : semesterAvg ? getAvgColor(semesterAvg) : "text-gray-400"
             }`}>
-              {activeSemester === FINALS_SEMESTER
-                ? "Does not count"
-                : activeSemester === OVERVIEW_TAB
+              {activeSemester === OVERVIEW_TAB
                 ? overviewStatus ? overviewStatus.avg.toFixed(2) : "—"
                 : semesterAvg ? semesterAvg.toFixed(2) : "—"}
             </p>
@@ -476,15 +498,23 @@ export default function DashboardPage() {
             <p className="text-sm text-gray-500 mb-1">Total Grades</p>
             <p className="text-2xl font-bold text-gray-900">{grades.length}</p>
           </div>
-          {semesterStatus && (
+          {activeSemester > 0 && activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && (
             <div className={`rounded-xl shadow-sm border p-5 ${
-              semesterStatus.passed
-                ? "bg-green-50 border-green-200"
-                : "bg-red-50 border-red-200"
+              semesterStatus
+                ? semesterStatus.passed
+                  ? "bg-green-50 border-green-200"
+                  : "bg-red-50 border-red-200"
+                : "bg-white border-gray-200"
             }`}>
               <p className="text-sm text-gray-500 mb-1">Semester Status</p>
-              <p className={`text-2xl font-bold ${semesterStatus.passed ? "text-green-600" : "text-red-600"}`}>
-                {semesterStatus.passed ? "✓ Passed" : "✗ Failed"}
+              <p className={`text-2xl font-bold ${
+                semesterStatus
+                  ? semesterStatus.passed ? "text-green-600" : "text-red-600"
+                  : "text-gray-400"
+              }`}>
+                {semesterStatus
+                  ? semesterStatus.passed ? "✓ Passed" : "✗ Failed"
+                  : "—"}
               </p>
             </div>
           )}
@@ -503,50 +533,60 @@ export default function DashboardPage() {
         </div>
 
         {/* Pass/Fail Rules Breakdown — Semester */}
-        {semesterStatus && (
+        {activeSemester > 0 && activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && (
           <div className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
-            semesterStatus.passed ? "border-green-200" : "border-red-200"
+            semesterStatus
+              ? semesterStatus.passed ? "border-green-200" : "border-red-200"
+              : "border-gray-200"
           }`}>
             <div className={`px-5 py-3 text-sm font-semibold ${
-              semesterStatus.passed ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+              semesterStatus
+                ? semesterStatus.passed ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+                : "bg-gray-50 text-gray-600"
             }`}>
               Pass/Fail Rules — Semester {activeSemester}
             </div>
             <div className="bg-white divide-y divide-gray-100">
               <div className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`text-lg ${semesterStatus.rule1Pass ? "text-green-500" : "text-red-500"}`}>
-                    {semesterStatus.rule1Pass ? "✓" : "✗"}
+                  <span className={`text-lg ${semesterStatus ? (semesterStatus.rule1Pass ? "text-green-500" : "text-red-500") : "text-gray-300"}`}>
+                    {semesterStatus ? (semesterStatus.rule1Pass ? "✓" : "✗") : "—"}
                   </span>
                   <span className="text-sm text-gray-700">Average ≥ 4.0</span>
                 </div>
-                <span className={`text-sm font-medium ${semesterStatus.rule1Pass ? "text-green-600" : "text-red-600"}`}>
-                  {semesterStatus.semAvg?.toFixed(2) ?? "—"}
+                <span className={`text-sm font-medium ${semesterStatus ? (semesterStatus.rule1Pass ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
+                  {semesterStatus ? (semesterStatus.semAvg?.toFixed(2) ?? "—") : "—"}
                 </span>
               </div>
               <div className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`text-lg ${semesterStatus.rule2Pass ? "text-green-500" : "text-red-500"}`}>
-                    {semesterStatus.rule2Pass ? "✓" : "✗"}
+                  <span className={`text-lg ${semesterStatus ? (semesterStatus.rule2Pass ? "text-green-500" : "text-red-500") : "text-gray-300"}`}>
+                    {semesterStatus ? (semesterStatus.rule2Pass ? "✓" : "✗") : "—"}
                   </span>
                   <span className="text-sm text-gray-700">Max 2 subjects below 4.0</span>
                 </div>
-                <span className={`text-sm font-medium ${semesterStatus.rule2Pass ? "text-green-600" : "text-red-600"}`}>
-                  {semesterStatus.subjectsBelow4Count} subject{semesterStatus.subjectsBelow4Count !== 1 ? "s" : ""}
-                  {semesterStatus.subjectsBelow4Count > 0 && (
-                    <span className="text-gray-400 font-normal"> ({semesterStatus.subjectsBelow4.join(", ")})</span>
-                  )}
+                <span className={`text-sm font-medium ${semesterStatus ? (semesterStatus.rule2Pass ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
+                  {semesterStatus
+                    ? <>
+                        {semesterStatus.subjectsBelow4Count} subject{semesterStatus.subjectsBelow4Count !== 1 ? "s" : ""}
+                        {semesterStatus.subjectsBelow4Count > 0 && (
+                          <span className="text-gray-400 font-normal"> ({semesterStatus.subjectsBelow4.join(", ")})</span>
+                        )}
+                      </>
+                    : "—"}
                 </span>
               </div>
               <div className="px-5 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className={`text-lg ${semesterStatus.rule3Pass ? "text-green-500" : "text-red-500"}`}>
-                    {semesterStatus.rule3Pass ? "✓" : "✗"}
+                  <span className={`text-lg ${semesterStatus ? (semesterStatus.rule3Pass ? "text-green-500" : "text-red-500") : "text-gray-300"}`}>
+                    {semesterStatus ? (semesterStatus.rule3Pass ? "✓" : "✗") : "—"}
                   </span>
                   <span className="text-sm text-gray-700">Max 2 negative points</span>
                 </div>
-                <span className={`text-sm font-medium ${semesterStatus.rule3Pass ? "text-green-600" : "text-red-600"}`}>
-                  {semesterStatus.negativePoints} point{semesterStatus.negativePoints !== 1 ? "s" : ""}
+                <span className={`text-sm font-medium ${semesterStatus ? (semesterStatus.rule3Pass ? "text-green-600" : "text-red-600") : "text-gray-400"}`}>
+                  {semesterStatus
+                    ? <>{semesterStatus.negativePoints} point{semesterStatus.negativePoints !== 1 ? "s" : ""}</>
+                    : "—"}
                 </span>
               </div>
             </div>
@@ -794,69 +834,117 @@ export default function DashboardPage() {
                         : entry.includes("(Written)")
                         ? "Written"
                         : "Written";
+                      const isEditingThis = editingGrade === `finals-${entry}`;
 
                       return (
                         <div
                           key={entry}
                           className="px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition"
                         >
-                          <div className="flex items-center gap-3">
-                            {currentGrade ? (
-                              <span
-                                className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}
-                              >
-                                {currentGrade.value}
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border border-gray-200 text-gray-300">
-                                —
-                              </span>
-                            )}
-                            {label && (
-                              <span className="text-sm text-gray-600">{label}</span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="number"
-                              min="1"
-                              max="6"
-                              step="any"
-                              value={getFinalsInputValue(entry)}
-                              onChange={(e) =>
-                                setFinalsInputs((prev) => ({ ...prev, [entry]: e.target.value }))
-                              }
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  const val = getFinalsInputValue(entry);
-                                  if (val) setFinalsGrade(entry, val);
+                          {isEditingThis ? (
+                            /* Edit / Add inline form */
+                            <div className="flex items-center gap-3 flex-1">
+                              <input
+                                type="number"
+                                min="1"
+                                max="6"
+                                step="any"
+                                value={getFinalsInputValue(entry)}
+                                onChange={(e) =>
+                                  setFinalsInputs((prev) => ({ ...prev, [entry]: e.target.value }))
                                 }
-                              }}
-                              className="w-24 px-3 py-2 rounded-lg border border-gray-300 text-center text-sm outline-none focus:ring-2 focus:ring-purple-400 focus:border-transparent text-gray-900"
-                              placeholder="Grade"
-                            />
-                            <button
-                              onClick={() => {
-                                const val = getFinalsInputValue(entry);
-                                if (val) setFinalsGrade(entry, val);
-                              }}
-                              disabled={!getFinalsInputValue(entry)}
-                              className="text-xs text-purple-600 hover:text-purple-700 font-medium cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
-                            >
-                              Save
-                            </button>
-                            {currentGrade && (
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    const val = getFinalsInputValue(entry);
+                                    if (val) {
+                                      setFinalsGrade(entry, val);
+                                      setEditingGrade(null);
+                                    }
+                                  }
+                                }}
+                                className="w-24 px-3 py-1.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-400 focus:border-transparent outline-none text-sm text-gray-900"
+                                placeholder="1–6"
+                                autoFocus
+                              />
+                              <span className="text-sm text-gray-600">{label}</span>
                               <button
                                 onClick={() => {
-                                  setFinalsInputs((prev) => ({ ...prev, [entry]: "" }));
-                                  deleteFinalsGrade(entry);
+                                  const val = getFinalsInputValue(entry);
+                                  if (val) {
+                                    setFinalsGrade(entry, val);
+                                    setEditingGrade(null);
+                                  }
                                 }}
-                                className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
+                                disabled={!getFinalsInputValue(entry)}
+                                className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                               >
-                                Clear
+                                Save
                               </button>
-                            )}
-                          </div>
+                              <button
+                                onClick={() => {
+                                  setEditingGrade(null);
+                                  // Reset input to saved value
+                                  setFinalsInputs((prev) => {
+                                    const next = { ...prev };
+                                    delete next[entry];
+                                    return next;
+                                  });
+                                }}
+                                className="text-sm text-gray-500 hover:text-gray-700 cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            /* View mode */
+                            <>
+                              <div className="flex items-center gap-3">
+                                {currentGrade ? (
+                                  <span
+                                    className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}
+                                  >
+                                    {currentGrade.value}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border border-gray-200 text-gray-300">
+                                    —
+                                  </span>
+                                )}
+                                <span className="text-sm text-gray-600">{label}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    setEditingGrade(`finals-${entry}`);
+                                    // Pre-fill input with current grade value
+                                    if (currentGrade) {
+                                      setFinalsInputs((prev) => ({ ...prev, [entry]: currentGrade.value.toString() }));
+                                    } else {
+                                      setFinalsInputs((prev) => ({ ...prev, [entry]: "" }));
+                                    }
+                                  }}
+                                  className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                                >
+                                  {currentGrade ? "Edit" : "+ Add Grade"}
+                                </button>
+                                {currentGrade && (
+                                  <button
+                                    onClick={() => {
+                                      setFinalsInputs((prev) => {
+                                        const next = { ...prev };
+                                        delete next[entry];
+                                        return next;
+                                      });
+                                      deleteFinalsGrade(entry);
+                                    }}
+                                    className="text-xs text-red-400 hover:text-red-600 cursor-pointer"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          )}
                         </div>
                       );
                     })}
