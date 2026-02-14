@@ -1,6 +1,7 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
+import Link from "next/link";
 import {
   SEMESTER_SUBJECTS,
   FINALS_SEMESTER,
@@ -53,6 +54,12 @@ function DashboardContent() {
             Grade<span className="text-blue-600">Points</span>
           </h1>
           <div className="flex items-center gap-4">
+            <Link
+              href="/dashboard/stats"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              📊 Statistics
+            </Link>
             <span className="text-sm text-gray-500">{session?.user?.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
