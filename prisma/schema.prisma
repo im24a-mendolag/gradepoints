@@ -33,10 +33,11 @@ model Adjustment {
   value    Float
   semester Int
   subject  String
+  school   String @default("KSH")
   userId   String
   user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, semester, subject])
+  @@unique([userId, semester, subject, school])
   @@index([userId])
 }
 
@@ -48,10 +49,11 @@ model Grade {
   date        DateTime @default(now())
   semester    Int
   subject     String
+  school      String   @default("KSH")
   userId      String
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
 
   @@index([userId])
-  @@index([userId, semester, subject])
+  @@index([userId, semester, subject, school])
 }

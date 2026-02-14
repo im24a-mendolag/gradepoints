@@ -8,8 +8,18 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const { searchParams } = new URL(request.url);
+  const school = searchParams.get("school"); // optional filter
+
+  const where: { userId: string; school?: string } = {
+    userId: session.user.id,
+  };
+  if (school) {
+    where.school = school;
+  }
+
   const adjustments = await prisma.adjustment.findMany({
-    where: { userId: session.user.id },
+    where,
   });
 
   return NextResponse.json(adjustments);
@@ -21,7 +31,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { value, semester, subject } = await request.json();
+  const { value, semester, subject, school } = await request.json();
+  const schoolValue = school || "KSH";
 
   if (value === undefined || value === null || !semester || !subject) {
     return NextResponse.json(
@@ -30,13 +41,14 @@ export async function POST(request: Request) {
     );
   }
 
-  // Upsert: create or update the adjustment for this user/semester/subject
+  // Upsert: create or update the adjustment for this user/semester/subject/school
   const adjustment = await prisma.adjustment.upsert({
     where: {
-      userId_semester_subject: {
+      userId_semester_subject_school: {
         userId: session.user.id,
         semester,
         subject,
+        school: schoolValue,
       },
     },
     update: { value: parseFloat(value) },
@@ -44,6 +56,7 @@ export async function POST(request: Request) {
       value: parseFloat(value),
       semester,
       subject,
+      school: schoolValue,
       userId: session.user.id,
     },
   });
@@ -57,7 +70,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { semester, subject } = await request.json();
+  const { semester, subject, school } = await request.json();
+  const schoolValue = school || "KSH";
 
   if (!semester || !subject) {
     return NextResponse.json(
@@ -69,10 +83,11 @@ export async function DELETE(request: Request) {
   try {
     await prisma.adjustment.delete({
       where: {
-        userId_semester_subject: {
+        userId_semester_subject_school: {
           userId: session.user.id,
           semester,
           subject,
+          school: schoolValue,
         },
       },
     });

@@ -8,8 +8,12 @@ import {
   FINALS_ENTRIES,
   IDPA_FINAL_FOR_IDAF,
   OVERVIEW_SUBJECTS,
+  BZZ_SEMESTER,
+  BZZ_NORMAL_MODULES,
+  BZZ_UK_MODULES,
+  BZZ_IPA,
 } from "@/lib/semesters";
-import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade } from "./types";
+import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
 
 // ─── Context shape ──────────────────────────────────────────────
 
@@ -17,6 +21,8 @@ interface DashboardContextType {
   // ── Core data ──
   grades: Grade[];
   activeSemester: number;
+  activeSchool: School;
+  setActiveSchool: (school: School) => void;
   error: string | null;
   loading: boolean;
 
@@ -97,6 +103,21 @@ interface DashboardContextType {
   getFinalSubjectGrade: (subject: string) => FinalSubjectGrade;
   getOverviewStatus: () => OverviewStatus | null;
   getFinalsInputValue: (entry: string) => string;
+
+  // ── BZZ computed values ──
+  getBzzModuleGrades: (mod: string) => Grade[];
+  getBzzModuleAdjustment: (mod: string) => number;
+  getBzzModuleRawAverage: (mod: string) => number | null;
+  getBzzModuleAverage: (mod: string) => number | null;
+  getBzzNormalAverage: () => number | null;
+  getBzzUkAverage: () => number | null;
+  getBzzFinalAverage: () => number | null;
+  getBzzIpaAverage: () => number | null;
+  getBzzPassFail: () => BzzPassFailStatus;
+
+  // ── BZZ CRUD ──
+  addBzzGrade: (mod: string) => Promise<void>;
+  saveBzzAdjustment: (mod: string, value: number) => Promise<void>;
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -120,6 +141,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSemester, setActiveSemester] = useState(1);
+  const [activeSchool, setActiveSchoolState] = useState<School>("KSH");
   const [error, setError] = useState<string | null>(null);
 
   // ── Add-grade form ──
@@ -171,25 +193,35 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     fetchAdjustments();
   }, [fetchGrades, fetchAdjustments]);
 
-  // ─── Helpers / computed values ────────────────────────────────
+  // ── School-filtered data helpers ──
+  const kshGrades = grades.filter((g) => !g.school || g.school === "KSH");
+  const kshAdjustments = adjustments.filter((a) => !a.school || a.school === "KSH");
+  const bzzGrades = grades.filter((g) => g.school === "BZZ");
+  const bzzAdjustments = adjustments.filter((a) => a.school === "BZZ");
+
+  /** Switches school and resets UI state. */
+  const setActiveSchool = (school: School) => {
+    setActiveSchoolState(school);
+    setActiveSemester(school === "KSH" ? 1 : BZZ_SEMESTER);
+    setAddingFor(null);
+    setEditingGrade(null);
+    setEditingAdjustment(null);
+    setExpandedSubjects(new Set());
+  };
+
+  // ─── KSH Helpers / computed values ────────────────────────────
 
   /**
-   * Filters grades by semester and subject.
-   * @param semester - Semester number (1–6, or 7 for finals).
-   * @param subject - Subject name (e.g. "Math" or "German (Oral)").
-   * @returns Array of matching Grade objects.
+   * Filters KSH grades by semester and subject.
    */
   const getGradesForSubject = (semester: number, subject: string) =>
-    grades.filter((g) => g.semester === semester && g.subject === subject);
+    kshGrades.filter((g) => g.semester === semester && g.subject === subject);
 
   /**
-   * Looks up the bonus/malus adjustment value for a subject in a semester.
-   * @param semester - Semester number (1–6).
-   * @param subject - Subject name.
-   * @returns The adjustment value, or 0 if none exists.
+   * Looks up the KSH bonus/malus adjustment value for a subject in a semester.
    */
   const getAdjustment = (semester: number, subject: string): number => {
-    const adj = adjustments.find((a) => a.semester === semester && a.subject === subject);
+    const adj = kshAdjustments.find((a) => a.semester === semester && a.subject === subject);
     return adj ? adj.value : 0;
   };
 
@@ -402,10 +434,88 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     return existing.length > 0 ? existing[0].value.toString() : "";
   };
 
+  // ─── BZZ Helpers / computed values ──────────────────────────────
+
+  /** Filters BZZ grades for a given module. */
+  const getBzzModuleGrades = (mod: string) =>
+    bzzGrades.filter((g) => g.semester === BZZ_SEMESTER && g.subject === mod);
+
+  /** Looks up the BZZ adjustment for a module. */
+  const getBzzModuleAdjustment = (mod: string): number => {
+    const adj = bzzAdjustments.find((a) => a.semester === BZZ_SEMESTER && a.subject === mod);
+    return adj ? adj.value : 0;
+  };
+
+  /** Raw (non-rounded) weighted average for a BZZ module, with bonus/malus, clamped [1,6]. */
+  const getBzzModuleRawAverage = (mod: string): number | null => {
+    const modGrades = getBzzModuleGrades(mod).filter((g) => g.weight > 0);
+    if (modGrades.length === 0) return null;
+    const totalWeight = modGrades.reduce((acc, g) => acc + g.weight, 0);
+    const weightedSum = modGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
+    const adjustment = getBzzModuleAdjustment(mod);
+    return Math.min(6, Math.max(1, weightedSum / totalWeight + adjustment));
+  };
+
+  /** Rounded (0.5) weighted average for a BZZ module. */
+  const getBzzModuleAverage = (mod: string): number | null => {
+    const raw = getBzzModuleRawAverage(mod);
+    if (raw === null) return null;
+    return Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
+  };
+
+  /** Average of all normal module averages, rounded to 0.5. */
+  const getBzzNormalAverage = (): number | null => {
+    const avgs = (BZZ_NORMAL_MODULES as readonly string[])
+      .map((m) => getBzzModuleAverage(m))
+      .filter((a): a is number => a !== null);
+    if (avgs.length === 0) return null;
+    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
+  };
+
+  /** Average of all ÜK module averages, rounded to 0.5. */
+  const getBzzUkAverage = (): number | null => {
+    const avgs = (BZZ_UK_MODULES as readonly string[])
+      .map((m) => getBzzModuleAverage(m))
+      .filter((a): a is number => a !== null);
+    if (avgs.length === 0) return null;
+    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
+  };
+
+  /** Final average: avg of normal avg + ÜK avg. NOT rounded. */
+  const getBzzFinalAverage = (): number | null => {
+    const normalAvg = getBzzNormalAverage();
+    const ukAvg = getBzzUkAverage();
+    if (normalAvg === null && ukAvg === null) return null;
+    if (normalAvg !== null && ukAvg !== null) return (normalAvg + ukAvg) / 2;
+    return normalAvg ?? ukAvg;
+  };
+
+  /** IPA grade: raw weighted average, NOT rounded. */
+  const getBzzIpaAverage = (): number | null => {
+    const ipaGrades = getBzzModuleGrades(BZZ_IPA).filter((g) => g.weight > 0);
+    if (ipaGrades.length === 0) return null;
+    const totalWeight = ipaGrades.reduce((acc, g) => acc + g.weight, 0);
+    const weightedSum = ipaGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
+    const adjustment = getBzzModuleAdjustment(BZZ_IPA);
+    return Math.min(6, Math.max(1, weightedSum / totalWeight + adjustment));
+  };
+
+  /** BZZ pass/fail status. */
+  const getBzzPassFail = (): BzzPassFailStatus => {
+    const normalAvg = getBzzNormalAverage();
+    const ukAvg = getBzzUkAverage();
+    const finalAvg = getBzzFinalAverage();
+    const ipaGrade = getBzzIpaAverage();
+    const ipaPass = ipaGrade !== null ? ipaGrade >= 4 : null;
+    const avgPass = finalAvg !== null ? finalAvg >= 4 : null;
+    const passed = avgPass === true && (ipaPass === true || ipaPass === null);
+    return { passed, normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass };
+  };
+
   // ─── CRUD actions ─────────────────────────────────────────────
 
   /**
-   * Creates a new grade for the given subject in the active semester.
+   * Creates a new grade for the given subject in the active semester (KSH).
    * Reads values from the add-grade form state.
    */
   const addGrade = async (subject: string) => {
@@ -509,7 +619,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (existing.length > 0) await deleteGrade(existing[0].id);
   };
 
-  /** Creates, updates, or deletes a bonus/malus adjustment (0 = delete). */
+  /** Creates, updates, or deletes a bonus/malus adjustment (0 = delete). KSH. */
   const saveAdjustmentAction = async (semester: number, subject: string, value: number) => {
     setError(null);
     try {
@@ -517,13 +627,70 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         await fetch("/api/adjustments", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ semester, subject }),
+          body: JSON.stringify({ semester, subject, school: "KSH" }),
         });
       } else {
         const res = await fetch("/api/adjustments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value, semester, subject }),
+          body: JSON.stringify({ value, semester, subject, school: "KSH" }),
+        });
+        if (!res.ok) { setError((await res.json()).error || "Failed to save adjustment"); return; }
+      }
+      await fetchAdjustments();
+    } catch {
+      setError("Failed to save adjustment. Please try again.");
+    }
+  };
+
+  /** Creates a new BZZ grade for a module. */
+  const addBzzGrade = async (mod: string) => {
+    if (!gradeValue) return;
+    setError(null);
+    try {
+      const res = await fetch("/api/grades", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          value: parseFloat(gradeValue),
+          weight: parseFloat(gradeWeight),
+          description: gradeDescription,
+          date: gradeDate,
+          semester: BZZ_SEMESTER,
+          subject: mod,
+          school: "BZZ",
+        }),
+      });
+      if (res.ok) {
+        setAddingFor(null);
+        setGradeValue("");
+        setGradeWeight("1");
+        setGradeDescription("");
+        setGradeDate(new Date().toISOString().split("T")[0]);
+        fetchGrades();
+      } else {
+        setError((await res.json()).error || "Failed to add grade");
+      }
+    } catch {
+      setError("Failed to add grade. Please try again.");
+    }
+  };
+
+  /** Creates, updates, or deletes a BZZ adjustment (0 = delete). */
+  const saveBzzAdjustment = async (mod: string, value: number) => {
+    setError(null);
+    try {
+      if (value === 0) {
+        await fetch("/api/adjustments", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }),
+        });
+      } else {
+        const res = await fetch("/api/adjustments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ value, semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }),
         });
         if (!res.ok) { setError((await res.json()).error || "Failed to save adjustment"); return; }
       }
@@ -627,6 +794,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const value: DashboardContextType = {
     grades,
     activeSemester,
+    activeSchool,
+    setActiveSchool,
     error,
     loading,
     addingFor,
@@ -655,6 +824,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     getSemesterAverage, getFinalsAverage, getOverallAverage,
     getSemesterStatus, getFinalsExamGrade, getSemestersForSubject,
     getFinalSubjectGrade, getOverviewStatus, getFinalsInputValue,
+    // BZZ
+    getBzzModuleGrades, getBzzModuleAdjustment,
+    getBzzModuleRawAverage, getBzzModuleAverage,
+    getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage,
+    getBzzPassFail,
+    addBzzGrade, saveBzzAdjustment,
   };
 
   return (

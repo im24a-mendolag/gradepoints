@@ -1,10 +1,16 @@
 # GradePoints
 
-A grade tracking web app for Swiss vocational school students. Track grades across 6 semesters, final exams, and see pass/fail status at a glance.
+A grade tracking web app for Swiss vocational school students. Supports two schools — **KSH** (semester-based) and **BZZ** (module-based) — with distinct grading structures and pass/fail rules. Track grades, view averages, and see pass/fail status at a glance.
 
 **Live:** [gradepoints.mendolag.ch](https://gradepoints.mendolag.ch)
 
 ## Features
+
+### Multi-school support
+
+Switch between **KSH** and **BZZ** via a pill-style toggle in the header. Each school has its own grades, adjustments, and pass/fail logic.
+
+### KSH (Kantonsschule)
 
 - **Semester-based grade tracking** — 6 semesters with predefined subjects per semester
 - **Weighted grades** — assign weights to individual grades (weight 0 = excluded)
@@ -12,7 +18,19 @@ A grade tracking web app for Swiss vocational school students. Track grades acro
 - **Finals tab** — dedicated section for final exams (oral/written for German, French, English)
 - **Overview tab** — 3-year final grades combining semester averages and finals
 - **Pass/fail logic** — per-semester and overall, based on three rules (average ≥ 4.0, max 2 subjects below 4.0, max 2 negative points)
-- **Statistics page** — charts for semester trends, subject progress, grade distribution, radar chart, and more
+
+### BZZ (Berufsfachschule)
+
+- **Module-based grade tracking** — flat list of 24 normal modules, 7 UK modules, and 1 IPA module (no semesters)
+- **Weighted grades with bonus/malus** — each module supports multiple grades with weights and optional adjustments
+- **Module averages** — rounded to 0.5 per module
+- **Two-category averages** — separate averages for Normal and UK module groups
+- **Pass/fail logic** — final average (mean of Normal avg and UK avg) must be ≥ 4.0, and IPA must be ≥ 4.0
+- **IPA module** — assessed separately; does not contribute to the Normal/UK averages
+
+### General
+
+- **Statistics page** — charts for semester trends, subject progress, grade distribution, radar chart, and more (adapts to the active school)
 - **Email verification** — new accounts must verify their email before signing in
 - **Dark mode** — full dark UI with true black background
 
@@ -89,10 +107,10 @@ src/
 │   │   ├── register/       # User registration + email verification
 │   │   └── verify/         # Email verification endpoint
 │   ├── dashboard/
-│   │   ├── components/     # SubjectCard, FinalsCard, OverviewCard, etc.
-│   │   ├── DashboardContext.tsx  # Shared state via React Context
-│   │   ├── stats/          # Statistics page with charts
-│   │   ├── types.ts        # TypeScript interfaces
+│   │   ├── components/     # SubjectCard, FinalsCard, OverviewCard, BzzModuleCard, BzzPassFail, etc.
+│   │   ├── DashboardContext.tsx  # Shared state via React Context (KSH + BZZ)
+│   │   ├── stats/          # Statistics page with charts (adapts per school)
+│   │   ├── types.ts        # TypeScript interfaces (School, Grade, BzzPassFailStatus, etc.)
 │   │   └── utils.ts        # Helper functions
 │   ├── login/              # Login page
 │   ├── register/           # Registration page
@@ -102,7 +120,7 @@ src/
 │   ├── auth.config.ts      # Auth callbacks & middleware config
 │   ├── email.ts            # Resend email + token verification
 │   ├── prisma.ts           # Prisma client initialization
-│   └── semesters.ts        # Semester/subject definitions
+│   └── semesters.ts        # Semester/subject definitions + BZZ module lists
 └── proxy.ts                # Auth middleware
 ```
 

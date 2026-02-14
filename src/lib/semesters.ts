@@ -67,6 +67,36 @@ export const FINALS_SUBJECT_KEYS = [
   "Math (Written)", "WR (Written)", "FrW (Written)",
 ] as const;
 
+// ─── BZZ Configuration ──────────────────────────────────────────
+
+export const BZZ_SEMESTER = 1; // BZZ uses a single flat "semester" internally
+
+export const BZZ_NORMAL_MODULES = [
+  "431", "117", "319", "162", "114", "164", "293", "231",
+  "320", "165", "322", "122", "254", "346", "426", "347",
+  "323", "450", "306", "183", "324", "321", "241", "245",
+] as const;
+
+export const BZZ_UK_MODULES = [
+  "187", "106", "294", "295", "210", "335", "223",
+] as const;
+
+export const BZZ_IPA = "IPA" as const;
+
+export const BZZ_ALL_MODULES = [
+  ...BZZ_NORMAL_MODULES,
+  ...BZZ_UK_MODULES,
+  BZZ_IPA,
+] as const;
+
+export type BzzModule = (typeof BZZ_ALL_MODULES)[number];
+
+export function isBzzModule(subject: string): boolean {
+  return (BZZ_ALL_MODULES as readonly string[]).includes(subject);
+}
+
+// ─── Shared helpers ─────────────────────────────────────────────
+
 export function getSubjectsForSemester(semester: number): string[] {
   if (semester === FINALS_SEMESTER) {
     return [...FINALS_SUBJECT_KEYS];
@@ -76,4 +106,8 @@ export function getSubjectsForSemester(semester: number): string[] {
 
 export function isValidSubjectForSemester(semester: number, subject: string): boolean {
   return getSubjectsForSemester(semester).includes(subject);
+}
+
+export function isValidBzzSubject(subject: string): boolean {
+  return (BZZ_ALL_MODULES as readonly string[]).includes(subject);
 }

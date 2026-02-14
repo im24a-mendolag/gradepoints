@@ -1,3 +1,5 @@
+export type School = "KSH" | "BZZ";
+
 export interface Grade {
   id: string;
   value: number;
@@ -6,6 +8,7 @@ export interface Grade {
   date: string;
   semester: number;
   subject: string;
+  school: string;
 }
 
 export interface Adjustment {
@@ -13,6 +16,7 @@ export interface Adjustment {
   value: number;
   semester: number;
   subject: string;
+  school: string;
 }
 
 export interface SemesterStatus {
@@ -42,4 +46,13 @@ export interface FinalSubjectGrade {
   semesterAvg: number | null;
   finalsGrade: number | null;
   finalGrade: number | null;
+}
+
+export interface BzzPassFailStatus {
+  passed: boolean;
+  normalAvg: number | null;
+  ukAvg: number | null;
+  finalAvg: number | null;
+  ipaGrade: number | null;
+  ipaPass: boolean | null;
 }
