@@ -21,12 +21,12 @@ export default function SemesterTabs() {
             className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
               activeSemester === sem
                 ? "bg-blue-600 text-white shadow-sm"
-                : "bg-gray-900 text-gray-300 border border-gray-700 hover:bg-gray-800"
+                : "bg-neutral-900 text-neutral-300 border border-neutral-700 hover:bg-neutral-800"
             }`}
           >
             Semester {sem}
             {avg !== null && (
-              <span className={`ml-2 ${activeSemester === sem ? "text-blue-200" : "text-gray-500"}`}>
+              <span className={`ml-2 ${activeSemester === sem ? "text-blue-200" : "text-neutral-500"}`}>
                 {avg.toFixed(1)}
               </span>
             )}
@@ -38,7 +38,7 @@ export default function SemesterTabs() {
         className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
           activeSemester === FINALS_SEMESTER
             ? "bg-purple-600 text-white shadow-sm"
-            : "bg-gray-900 text-purple-400 border border-purple-800 hover:bg-purple-900/30"
+            : "bg-neutral-900 text-purple-400 border border-purple-800 hover:bg-purple-900/30"
         }`}
       >
         Finals
@@ -48,7 +48,7 @@ export default function SemesterTabs() {
         className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
           activeSemester === OVERVIEW_TAB
             ? "bg-amber-600 text-white shadow-sm"
-            : "bg-gray-900 text-amber-400 border border-amber-800 hover:bg-amber-900/30"
+            : "bg-neutral-900 text-amber-400 border border-amber-800 hover:bg-amber-900/30"
         }`}
       >
         Overview

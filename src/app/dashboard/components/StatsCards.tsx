@@ -31,8 +31,8 @@ export default function StatsCards() {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-        <p className="text-sm text-gray-400 mb-1">
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+        <p className="text-sm text-neutral-400 mb-1">
           {activeSemester === FINALS_SEMESTER
             ? "Finals"
             : activeSemester === OVERVIEW_TAB
@@ -44,10 +44,10 @@ export default function StatsCards() {
             activeSemester === OVERVIEW_TAB
               ? overviewStatus
                 ? getAvgColor(overviewStatus.avg)
-                : "text-gray-600"
+                : "text-neutral-600"
               : semesterAvg
               ? getAvgColor(semesterAvg)
-              : "text-gray-600"
+              : "text-neutral-600"
           }`}
         >
           {activeSemester === OVERVIEW_TAB
@@ -59,15 +59,15 @@ export default function StatsCards() {
             : "—"}
         </p>
       </div>
-      <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-        <p className="text-sm text-gray-400 mb-1">Overall Average</p>
-        <p className={`text-2xl font-bold ${overallAvg ? getAvgColor(overallAvg) : "text-gray-600"}`}>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+        <p className="text-sm text-neutral-400 mb-1">Overall Average</p>
+        <p className={`text-2xl font-bold ${overallAvg ? getAvgColor(overallAvg) : "text-neutral-600"}`}>
           {overallAvg ? overallAvg.toFixed(2) : "—"}
         </p>
       </div>
-      <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-        <p className="text-sm text-gray-400 mb-1">Total Grades</p>
-        <p className="text-2xl font-bold text-gray-100">{grades.length}</p>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+        <p className="text-sm text-neutral-400 mb-1">Total Grades</p>
+        <p className="text-2xl font-bold text-neutral-100">{grades.length}</p>
       </div>
       {activeSemester > 0 && activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && (
         <div
@@ -76,17 +76,17 @@ export default function StatsCards() {
               ? semesterStatus.passed
                 ? "bg-green-900/20 border-green-800"
                 : "bg-red-900/20 border-red-800"
-              : "bg-gray-900 border-gray-800"
+              : "bg-neutral-900 border-neutral-800"
           }`}
         >
-          <p className="text-sm text-gray-400 mb-1">Semester Status</p>
+          <p className="text-sm text-neutral-400 mb-1">Semester Status</p>
           <p
             className={`text-2xl font-bold ${
               semesterStatus
                 ? semesterStatus.passed
                   ? "text-green-400"
                   : "text-red-400"
-                : "text-gray-600"
+                : "text-neutral-600"
             }`}
           >
             {semesterStatus ? (semesterStatus.passed ? "✓ Passed" : "✗ Failed") : "—"}
@@ -99,7 +99,7 @@ export default function StatsCards() {
             overviewStatus.passed ? "bg-green-900/20 border-green-800" : "bg-red-900/20 border-red-800"
           }`}
         >
-          <p className="text-sm text-gray-400 mb-1">Final Result</p>
+          <p className="text-sm text-neutral-400 mb-1">Final Result</p>
           <p
             className={`text-2xl font-bold ${
               overviewStatus.passed ? "text-green-400" : "text-red-400"

@@ -20,10 +20,10 @@ export default function OverviewCard({ subject }: { subject: string }) {
   const semesters = getSemestersForSubject(subject);
 
   return (
-    <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 overflow-hidden">
+    <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       <div className="px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-gray-100">{subject}</h3>
+          <h3 className="text-lg font-semibold text-neutral-100">{subject}</h3>
           {finalGrade !== null && (
             <span
               className={`text-sm font-bold px-3 py-1 rounded-full border ${getGradeColor(finalGrade)}`}
@@ -32,7 +32,7 @@ export default function OverviewCard({ subject }: { subject: string }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-4 text-xs text-gray-400">
+        <div className="flex items-center gap-4 text-xs text-neutral-400">
           <span>Semesters: {semesters.join(", ")}</span>
           <span>
             Sem. Avg:{" "}
@@ -41,7 +41,7 @@ export default function OverviewCard({ subject }: { subject: string }) {
                 {semesterAvg.toFixed(1)}
               </span>
             ) : (
-              <span className="text-gray-600">—</span>
+              <span className="text-neutral-600">—</span>
             )}
           </span>
           {hasAnyFinal && (
@@ -52,7 +52,7 @@ export default function OverviewCard({ subject }: { subject: string }) {
                   {finalsGrade.toFixed(1)}
                 </span>
               ) : (
-                <span className="text-gray-600">—</span>
+                <span className="text-neutral-600">—</span>
               )}
             </span>
           )}
@@ -64,10 +64,10 @@ export default function OverviewCard({ subject }: { subject: string }) {
           const avg = getSubjectAverage(sem, subject);
           return (
             <div key={sem} className="flex flex-col items-center">
-              <span className="text-[10px] text-gray-500 mb-0.5">S{sem}</span>
+              <span className="text-[10px] text-neutral-500 mb-0.5">S{sem}</span>
               <span
                 className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-xs font-bold border ${
-                  avg !== null ? getGradeColor(avg) : "border-gray-700 text-gray-600"
+                  avg !== null ? getGradeColor(avg) : "border-neutral-700 text-neutral-600"
                 }`}
               >
                 {avg !== null ? avg.toFixed(1) : "—"}
@@ -84,7 +84,7 @@ export default function OverviewCard({ subject }: { subject: string }) {
             </span>
             <span
               className={`inline-flex items-center justify-center w-9 h-9 rounded-lg text-xs font-bold border ${
-                finalsGrade !== null ? getGradeColor(finalsGrade) : "border-gray-700 text-gray-600"
+                finalsGrade !== null ? getGradeColor(finalsGrade) : "border-neutral-700 text-neutral-600"
               }`}
             >
               {finalsGrade !== null ? finalsGrade.toFixed(1) : "—"}

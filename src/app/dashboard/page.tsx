@@ -39,18 +39,18 @@ function DashboardContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-neutral-950">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-10">
+      <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-gray-100">
+          <h1 className="text-xl font-bold text-neutral-100">
             Grade<span className="text-blue-500">Points</span>
           </h1>
           <div className="flex items-center gap-4">
@@ -60,7 +60,7 @@ function DashboardContent() {
             >
             Statistics
             </Link>
-            <span className="text-sm text-gray-400">{session?.user?.name}</span>
+            <span className="text-sm text-neutral-400">{session?.user?.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"

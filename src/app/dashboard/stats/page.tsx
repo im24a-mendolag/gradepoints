@@ -35,9 +35,9 @@ const SUBJECT_COLORS: Record<string, string> = {
 const DARK_TOOLTIP = {
   contentStyle: {
     borderRadius: 8,
-    border: "1px solid #374151",
-    backgroundColor: "#1f2937",
-    color: "#e5e7eb",
+    border: "1px solid #404040",
+    backgroundColor: "#262626",
+    color: "#e5e5e5",
   },
 };
 
@@ -55,7 +55,7 @@ function StatsContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -162,15 +162,15 @@ function StatsContent() {
   const hasData = grades.length > 0;
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-neutral-950">
       {/* Header */}
-      <header className="bg-gray-900 border-b border-gray-800 sticky top-0 z-10">
+      <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-xl font-bold text-gray-100 hover:opacity-80 transition">
+            <Link href="/dashboard" className="text-xl font-bold text-neutral-100 hover:opacity-80 transition">
               Grade<span className="text-blue-500">Points</span>
             </Link>
-            <span className="text-sm text-gray-500">/ Statistics</span>
+            <span className="text-sm text-neutral-500">/ Statistics</span>
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -179,7 +179,7 @@ function StatsContent() {
             >
               ← Back to Dashboard
             </Link>
-            <span className="text-sm text-gray-400">{session?.user?.name}</span>
+            <span className="text-sm text-neutral-400">{session?.user?.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
@@ -193,7 +193,7 @@ function StatsContent() {
       <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {!hasData ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 text-lg">No grades yet. Add some grades to see your statistics!</p>
+            <p className="text-neutral-500 text-lg">No grades yet. Add some grades to see your statistics!</p>
             <Link href="/dashboard" className="mt-4 inline-block text-blue-400 hover:text-blue-300 font-medium">
               Go to Dashboard →
             </Link>
@@ -202,22 +202,22 @@ function StatsContent() {
           <>
             {/* ─── Quick Stats ─── */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-                <p className="text-sm text-gray-400 mb-1">Total Grades</p>
-                <p className="text-2xl font-bold text-gray-100">{totalGrades}</p>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+                <p className="text-sm text-neutral-400 mb-1">Total Grades</p>
+                <p className="text-2xl font-bold text-neutral-100">{totalGrades}</p>
               </div>
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-                <p className="text-sm text-gray-400 mb-1">Average Grade</p>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+                <p className="text-sm text-neutral-400 mb-1">Average Grade</p>
                 <p className={`text-2xl font-bold ${avgGrade >= 4 ? "text-blue-400" : "text-red-400"}`}>
                   {avgGrade.toFixed(2)}
                 </p>
               </div>
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-                <p className="text-sm text-gray-400 mb-1">Highest Grade</p>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+                <p className="text-sm text-neutral-400 mb-1">Highest Grade</p>
                 <p className="text-2xl font-bold text-green-400">{highestGrade}</p>
               </div>
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-5">
-                <p className="text-sm text-gray-400 mb-1">Lowest Grade</p>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
+                <p className="text-sm text-neutral-400 mb-1">Lowest Grade</p>
                 <p className={`text-2xl font-bold ${lowestGrade >= 4 ? "text-yellow-400" : "text-red-400"}`}>
                   {lowestGrade}
                 </p>
@@ -225,19 +225,19 @@ function StatsContent() {
             </div>
 
             {/* ─── Pass/Fail Timeline ─── */}
-            <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Semester Pass/Fail</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Semester Pass/Fail</h2>
               <div className="flex items-center gap-3 flex-wrap">
                 {semesterPassFail.map(({ semester, status }) => (
                   <div key={semester} className="flex flex-col items-center gap-1">
-                    <span className="text-xs text-gray-500">Sem {semester}</span>
+                    <span className="text-xs text-neutral-500">Sem {semester}</span>
                     <div
                       className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
                         status
                           ? status.passed
                             ? "bg-green-900/30 border-green-700 text-green-400"
                             : "bg-red-900/30 border-red-700 text-red-400"
-                          : "bg-gray-800 border-gray-700 text-gray-600"
+                          : "bg-neutral-800 border-neutral-700 text-neutral-600"
                       }`}
                     >
                       {status ? (status.passed ? "✓" : "✗") : "—"}
@@ -249,15 +249,15 @@ function StatsContent() {
                     )}
                   </div>
                 ))}
-                <div className="flex flex-col items-center gap-1 ml-4 pl-4 border-l-2 border-gray-700">
-                  <span className="text-xs text-gray-500 font-medium">Final</span>
+                <div className="flex flex-col items-center gap-1 ml-4 pl-4 border-l-2 border-neutral-700">
+                  <span className="text-xs text-neutral-500 font-medium">Final</span>
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
                       overviewStatus
                         ? overviewStatus.passed
                           ? "bg-green-900/30 border-green-700 text-green-400"
                           : "bg-red-900/30 border-red-700 text-red-400"
-                        : "bg-gray-800 border-gray-700 text-gray-600"
+                        : "bg-neutral-800 border-neutral-700 text-neutral-600"
                     }`}
                   >
                     {overviewStatus ? (overviewStatus.passed ? "✓" : "✗") : "—"}
@@ -272,8 +272,8 @@ function StatsContent() {
             </div>
 
             {/* ─── Semester Average Trend ─── */}
-            <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Semester Average Trend</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Semester Average Trend</h2>
               <ResponsiveContainer width="100%" height={300}>
                 <AreaChart data={semesterTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <defs>
@@ -282,9 +282,9 @@ function StatsContent() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
-                  <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                  <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
+                  <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
                   <Tooltip
                     formatter={(value?: number) => [value?.toFixed(2) ?? "—", "Average"]}
                     {...DARK_TOOLTIP}
@@ -296,7 +296,7 @@ function StatsContent() {
                     stroke="#3b82f6"
                     strokeWidth={3}
                     fill="url(#avgGradient)"
-                    dot={{ r: 5, fill: "#3b82f6", stroke: "#111827", strokeWidth: 2 }}
+                    dot={{ r: 5, fill: "#3b82f6", stroke: "#171717", strokeWidth: 2 }}
                     connectNulls
                   />
                 </AreaChart>
@@ -304,22 +304,22 @@ function StatsContent() {
             </div>
 
             {/* ─── Subject Progress ─── */}
-            <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Subject Progress Across Semesters</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Subject Progress Across Semesters</h2>
               <ResponsiveContainer width="100%" height={400}>
                 <LineChart data={subjectProgressData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                  <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
-                  <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                  <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
+                  <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
                   <Tooltip {...DARK_TOOLTIP} />
-                  <Legend wrapperStyle={{ color: "#d1d5db" }} />
+                  <Legend wrapperStyle={{ color: "#d4d4d4" }} />
                   <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
                   {allSubjects.map((subject) => (
                     <Line
                       key={subject}
                       type="monotone"
                       dataKey={subject}
-                      stroke={SUBJECT_COLORS[subject] || "#6b7280"}
+                      stroke={SUBJECT_COLORS[subject] || "#737373"}
                       strokeWidth={2}
                       dot={{ r: 4 }}
                       connectNulls
@@ -332,14 +332,14 @@ function StatsContent() {
             {/* ─── Row: Final Grades Bar + Radar ─── */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Final subject grades bar */}
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Final Subject Grades</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+                <h2 className="text-lg font-semibold text-neutral-100 mb-4">Final Subject Grades</h2>
                 {finalGradesData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={finalGradesData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                      <XAxis dataKey="subject" tick={{ fontSize: 11, fill: "#9ca3af" }} interval={0} angle={-30} textAnchor="end" height={60} stroke="#374151" />
-                      <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                      <XAxis dataKey="subject" tick={{ fontSize: 11, fill: "#a3a3a3" }} interval={0} angle={-30} textAnchor="end" height={60} stroke="#404040" />
+                      <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
                       <Tooltip
                         formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]}
                         {...DARK_TOOLTIP}
@@ -360,19 +360,19 @@ function StatsContent() {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-gray-500 text-sm text-center py-12">Not enough data yet</p>
+                  <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
                 )}
               </div>
 
               {/* Radar chart */}
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">Subject Strengths</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+                <h2 className="text-lg font-semibold text-neutral-100 mb-4">Subject Strengths</h2>
                 {radarData.some((d) => d.grade > 0) ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                      <PolarGrid stroke="#374151" />
-                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#d1d5db" }} />
-                      <PolarRadiusAxis domain={[0, 6]} tick={{ fontSize: 10, fill: "#9ca3af" }} />
+                      <PolarGrid stroke="#404040" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#d4d4d4" }} />
+                      <PolarRadiusAxis domain={[0, 6]} tick={{ fontSize: 10, fill: "#a3a3a3" }} />
                       <Radar
                         dataKey="grade"
                         stroke="#3b82f6"
@@ -384,20 +384,20 @@ function StatsContent() {
                     </RadarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <p className="text-gray-500 text-sm text-center py-12">Not enough data yet</p>
+                  <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
                 )}
               </div>
             </div>
 
             {/* ─── Grade Distribution ─── */}
-            <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Grade Distribution</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Grade Distribution</h2>
               {distributionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={distributionData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                    <XAxis dataKey="range" tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                    <XAxis dataKey="range" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
                     <Tooltip
                       formatter={(value?: number) => [value ?? 0, "Grades"]}
                       {...DARK_TOOLTIP}
@@ -410,19 +410,19 @@ function StatsContent() {
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-gray-500 text-sm text-center py-12">No grades yet</p>
+                <p className="text-neutral-500 text-sm text-center py-12">No grades yet</p>
               )}
             </div>
 
             {/* ─── Grades Over Time ─── */}
             {gradesByDate.length > 0 && (
-              <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-                <h2 className="text-lg font-semibold text-gray-100 mb-4">All Grades Over Time</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+                <h2 className="text-lg font-semibold text-neutral-100 mb-4">All Grades Over Time</h2>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={gradesByDate} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#9ca3af" }} interval={Math.max(0, Math.floor(gradesByDate.length / 10))} stroke="#374151" />
-                    <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#9ca3af" }} stroke="#374151" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#a3a3a3" }} interval={Math.max(0, Math.floor(gradesByDate.length / 10))} stroke="#404040" />
+                    <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
                     <Tooltip
                       formatter={(value?: number) => [value ?? "—", "Grade"]}
                       {...DARK_TOOLTIP}
@@ -431,9 +431,9 @@ function StatsContent() {
                     <Line
                       type="monotone"
                       dataKey="value"
-                      stroke="#6b7280"
+                      stroke="#737373"
                       strokeWidth={1.5}
-                      dot={{ r: 3, fill: "#3b82f6", stroke: "#111827", strokeWidth: 1 }}
+                      dot={{ r: 3, fill: "#3b82f6", stroke: "#171717", strokeWidth: 1 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -441,22 +441,22 @@ function StatsContent() {
             )}
 
             {/* ─── Subject Grade Counts ─── */}
-            <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 p-6">
-              <h2 className="text-lg font-semibold text-gray-100 mb-4">Grades per Subject</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
+              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Grades per Subject</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {Object.entries(gradeCountBySubject)
                   .sort((a, b) => b[1] - a[1])
                   .map(([subject, count]) => (
                     <div
                       key={subject}
-                      className="rounded-lg border border-gray-700 bg-gray-800/50 p-3 text-center"
+                      className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center"
                     >
                       <div
                         className="w-3 h-3 rounded-full mx-auto mb-1.5"
-                        style={{ backgroundColor: SUBJECT_COLORS[subject] || "#6b7280" }}
+                        style={{ backgroundColor: SUBJECT_COLORS[subject] || "#737373" }}
                       />
-                      <p className="text-sm font-medium text-gray-200">{subject}</p>
-                      <p className="text-xs text-gray-500">{count} grade{count !== 1 ? "s" : ""}</p>
+                      <p className="text-sm font-medium text-neutral-200">{subject}</p>
+                      <p className="text-xs text-neutral-500">{count} grade{count !== 1 ? "s" : ""}</p>
                     </div>
                   ))}
               </div>

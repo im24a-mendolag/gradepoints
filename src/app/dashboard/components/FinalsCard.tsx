@@ -41,11 +41,11 @@ export default function FinalsCard({
       : null;
 
   return (
-    <div className="bg-gray-900 rounded-xl shadow-sm border border-gray-800 overflow-hidden">
+    <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       {/* Subject Header */}
-      <div className="px-6 py-4 border-b border-gray-800">
+      <div className="px-6 py-4 border-b border-neutral-800">
         <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-gray-100">{groupName}</h3>
+          <h3 className="text-lg font-semibold text-neutral-100">{groupName}</h3>
           {groupAvg !== null && (
             <span
               className={`text-sm font-medium px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}
@@ -57,7 +57,7 @@ export default function FinalsCard({
       </div>
 
       {/* Grade rows */}
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-neutral-800">
         {entries.map((entry) => {
           const existing = getGradesForSubject(FINALS_SEMESTER, entry);
           const currentGrade = existing.length > 0 ? existing[0] : null;
@@ -67,7 +67,7 @@ export default function FinalsCard({
           return (
             <div
               key={entry}
-              className="px-6 py-3 flex items-center justify-between hover:bg-gray-800/50 transition"
+              className="px-6 py-3 flex items-center justify-between hover:bg-neutral-800/50 transition"
             >
               {isEditingThis ? (
                 /* Edit / Add inline form */
@@ -86,11 +86,11 @@ export default function FinalsCard({
                         if (val) { saveFinalsGrade(entry, val); cancelEditingFinals(); }
                       }
                     }}
-                    className="w-24 px-3 py-1.5 rounded-lg border border-gray-600 bg-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm text-gray-100"
+                    className="w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm text-neutral-100"
                     placeholder="1–6"
                     autoFocus
                   />
-                  <span className="text-sm text-gray-400">{label}</span>
+                  <span className="text-sm text-neutral-400">{label}</span>
                   <button
                     onClick={() => {
                       const val = getFinalsInputValue(entry);
@@ -103,7 +103,7 @@ export default function FinalsCard({
                   </button>
                   <button
                     onClick={cancelEditingFinals}
-                    className="text-sm text-gray-400 hover:text-gray-300 cursor-pointer"
+                    className="text-sm text-neutral-400 hover:text-neutral-300 cursor-pointer"
                   >
                     Cancel
                   </button>
@@ -119,16 +119,16 @@ export default function FinalsCard({
                         {currentGrade.value}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border border-gray-700 text-gray-600">
+                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border border-neutral-700 text-neutral-600">
                         —
                       </span>
                     )}
-                    <span className="text-sm text-gray-400">{label}</span>
+                    <span className="text-sm text-neutral-400">{label}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => startEditingFinals(entry, currentGrade)}
-                      className="text-xs text-gray-500 hover:text-gray-300 cursor-pointer"
+                      className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
                     >
                       {currentGrade ? "Edit" : "+ Add Grade"}
                     </button>

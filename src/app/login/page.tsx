@@ -38,12 +38,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 to-gray-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900 px-4">
       <div className="w-full max-w-md">
-        <div className="bg-gray-900 rounded-2xl shadow-xl shadow-black/20 border border-gray-800 p-8">
+        <div className="bg-neutral-900 rounded-2xl shadow-xl shadow-black/20 border border-neutral-800 p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-100">Welcome back</h1>
-            <p className="text-gray-400 mt-2">Sign in to your GradePoints account</p>
+            <h1 className="text-3xl font-bold text-neutral-100">Welcome back</h1>
+            <p className="text-neutral-400 mt-2">Sign in to your GradePoints account</p>
           </div>
 
           {error && (
@@ -54,7 +54,7 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-1">
                 Email
               </label>
               <input
@@ -62,14 +62,14 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-100 placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-neutral-100 placeholder-neutral-500"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-1">
+              <label htmlFor="password" className="block text-sm font-medium text-neutral-300 mb-1">
                 Password
               </label>
               <input
@@ -77,7 +77,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-700 bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-gray-100 placeholder-gray-500"
+                className="w-full px-4 py-3 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition text-neutral-100 placeholder-neutral-500"
                 placeholder="Enter your password"
                 required
               />
@@ -92,7 +92,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-6">
+          <p className="text-center text-sm text-neutral-400 mt-6">
             Don&apos;t have an account?{" "}
             <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium">
               Create one

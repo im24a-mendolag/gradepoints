@@ -10,12 +10,12 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-gray-950 to-gray-900 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900 px-4">
       <div className="text-center max-w-2xl">
-        <h1 className="text-5xl font-bold text-gray-100 mb-4">
+        <h1 className="text-5xl font-bold text-neutral-100 mb-4">
           Grade<span className="text-blue-500">Points</span>
         </h1>
-        <p className="text-xl text-gray-400 mb-8">
+        <p className="text-xl text-neutral-400 mb-8">
           Track all your school grades in one place. Add subjects, log grades,
           and see your averages at a glance.
         </p>
@@ -28,7 +28,7 @@ export default async function Home() {
           </Link>
           <Link
             href="/login"
-            className="px-8 py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium rounded-lg transition shadow-lg shadow-black/20 border border-gray-700"
+            className="px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium rounded-lg transition shadow-lg shadow-black/20 border border-neutral-700"
           >
             Sign In
           </Link>
