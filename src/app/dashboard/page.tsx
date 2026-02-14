@@ -36,6 +36,9 @@ export default function DashboardPage() {
   const [editDescription, setEditDescription] = useState("");
   const [editDate, setEditDate] = useState("");
 
+  // Expanded subjects (grades hidden by default)
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+
   // Finals grade inputs (controlled)
   const [finalsInputs, setFinalsInputs] = useState<Record<string, string>>({});
 
@@ -967,6 +970,22 @@ export default function DashboardPage() {
                   {/* Subject Header */}
                   <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100">
                     <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          setExpandedSubjects((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(subject)) next.delete(subject);
+                            else next.add(subject);
+                            return next;
+                          });
+                        }}
+                        className="text-gray-400 hover:text-gray-600 cursor-pointer transition"
+                        title={expandedSubjects.has(subject) ? "Hide grades" : "Show grades"}
+                      >
+                        <span className={`inline-block transition-transform ${expandedSubjects.has(subject) ? "rotate-90" : ""}`}>
+                          ▶
+                        </span>
+                      </button>
                       <h3 className="text-lg font-semibold text-gray-900">
                         {subject}
                       </h3>
@@ -987,6 +1006,7 @@ export default function DashboardPage() {
                           setAddingFor(null);
                         } else {
                           setAddingFor(subject);
+                          setExpandedSubjects((prev) => new Set(prev).add(subject));
                           setGradeValue("");
                           setGradeWeight("1");
                           setGradeDescription("");
@@ -999,8 +1019,8 @@ export default function DashboardPage() {
                     </button>
                   </div>
 
-                  {/* Add Grade Form */}
-                  {addingFor === subject && (
+                  {/* Add Grade Form + Grades List (collapsible) */}
+                  {expandedSubjects.has(subject) && addingFor === subject && (
                     <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
                       <div className="flex flex-wrap gap-3 items-end">
                         <div>
@@ -1074,7 +1094,7 @@ export default function DashboardPage() {
                   )}
 
                   {/* Grades List */}
-                  {subjectGrades.length > 0 ? (
+                  {expandedSubjects.has(subject) && (subjectGrades.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                       {subjectGrades.map((grade) => (
                         <div
@@ -1182,7 +1202,7 @@ export default function DashboardPage() {
                     <div className="px-6 py-4 text-center text-sm text-gray-400">
                       No grades yet
                     </div>
-                  )}
+                  ))}
                 </div>
               );
             })
