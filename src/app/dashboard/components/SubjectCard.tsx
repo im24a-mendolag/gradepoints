@@ -54,8 +54,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
   return (
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       {/* Subject Header */}
-      <div className="px-6 py-4 flex items-center justify-between border-b border-neutral-800">
-        <div className="flex items-center gap-3">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-neutral-800">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
             onClick={() => toggleExpand(subject)}
             className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition"
@@ -65,10 +65,10 @@ export default function SubjectCard({ subject }: { subject: string }) {
               ▶
             </span>
           </button>
-          <h3 className="text-lg font-semibold text-neutral-100">{subject}</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
           {avg !== null && (
             <span
-              className={`text-sm font-medium px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}
+              className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}
             >
               Ø {avg.toFixed(1)}
               {rawAvg !== null && (
@@ -92,7 +92,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
             {subjectGrades.length} grade{subjectGrades.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-6 sm:ml-0">
           {/* Adjustment button */}
           {isEditingAdj ? (
             <div className="flex items-center gap-2">
@@ -142,8 +142,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
 
       {/* Add Grade Form */}
       {isExpanded && isAdding && (
-        <div className="px-6 py-4 bg-blue-900/20 border-b border-blue-900/40">
-          <div className="flex flex-wrap gap-3 items-end">
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-blue-900/20 border-b border-blue-900/40">
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 items-end">
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-1">Grade (1–6)</label>
               <input
@@ -154,7 +154,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 value={gradeValue}
                 onChange={(e) => setGradeValue(e.target.value)}
                 onKeyDown={(e) => blockNonNumericKeys(e)}
-                className="w-24 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
+                className="w-full sm:w-24 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
                 placeholder="5.0"
                 autoFocus
               />
@@ -169,10 +169,10 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 value={gradeWeight}
                 onChange={(e) => setGradeWeight(e.target.value)}
                 onKeyDown={(e) => blockNonNumericKeys(e)}
-                className="w-20 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
+                className="w-full sm:w-20 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
+            <div className="col-span-2 sm:flex-1 sm:min-w-[200px]">
               <label className="block text-xs font-medium text-neutral-400 mb-1">
                 Description (optional)
               </label>
@@ -184,28 +184,30 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 placeholder="e.g. Midterm exam"
               />
             </div>
-            <div>
+            <div className="col-span-2">
               <label className="block text-xs font-medium text-neutral-400 mb-1">Date</label>
               <input
                 type="date"
                 value={gradeDate}
                 onChange={(e) => setGradeDate(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
+                className="w-full sm:w-auto px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
               />
             </div>
-            <button
-              onClick={() => addGrade(subject)}
-              disabled={!gradeValue}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
-              Add
-            </button>
-            <button
-              onClick={cancelAdding}
-              className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
-            >
-              Cancel
-            </button>
+            <div className="col-span-2 flex gap-2 sm:gap-3">
+              <button
+                onClick={() => addGrade(subject)}
+                disabled={!gradeValue}
+                className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                Add
+              </button>
+              <button
+                onClick={cancelAdding}
+                className="flex-1 sm:flex-none px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -217,10 +219,10 @@ export default function SubjectCard({ subject }: { subject: string }) {
             {subjectGrades.map((grade) => (
               <div
                 key={grade.id}
-                className="px-6 py-3 flex items-center justify-between hover:bg-neutral-800/50 transition"
+                className="px-4 sm:px-6 py-3 hover:bg-neutral-800/50 transition"
               >
                 {editingGrade === grade.id ? (
-                  <div className="flex flex-wrap gap-3 items-end flex-1">
+                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 items-end">
                     <input
                       type="number"
                       min="1"
@@ -229,7 +231,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={(e) => blockNonNumericKeys(e)}
-                      className="w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                      className="w-full sm:w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
                     />
                     <input
                       type="number"
@@ -239,45 +241,47 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       value={editWeight}
                       onChange={(e) => setEditWeight(e.target.value)}
                       onKeyDown={(e) => blockNonNumericKeys(e)}
-                      className="w-20 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                      className="w-full sm:w-20 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
                     />
                     <input
                       type="text"
                       value={editDescription}
                       onChange={(e) => setEditDescription(e.target.value)}
-                      className="flex-1 min-w-[150px] px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                      className="col-span-2 sm:flex-1 sm:min-w-[150px] px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
                       placeholder="Description"
                     />
                     <input
                       type="date"
                       value={editDate}
                       onChange={(e) => setEditDate(e.target.value)}
-                      className="px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                      className="col-span-2 w-full sm:w-auto px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
                     />
-                    <button
-                      onClick={() => updateGrade(grade.id)}
-                      className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={cancelEditing}
-                      className="text-sm text-neutral-400 hover:text-neutral-300 cursor-pointer"
-                    >
-                      Cancel
-                    </button>
+                    <div className="col-span-2 flex gap-2">
+                      <button
+                        onClick={() => updateGrade(grade.id)}
+                        className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                      >
+                        Save
+                      </button>
+                      <button
+                        onClick={cancelEditing}
+                        className="text-sm text-neutral-400 hover:text-neutral-300 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <>
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                       <span
-                        className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border ${getGradeColor(grade.value)}`}
+                        className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}
                       >
                         {grade.value}
                       </span>
-                      <span className="text-xs text-neutral-500 font-medium">×{grade.weight}</span>
-                      <div>
-                        <p className="text-sm text-neutral-200">
+                      <span className="text-xs text-neutral-500 font-medium shrink-0">×{grade.weight}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm text-neutral-200 truncate">
                           {grade.description || "No description"}
                         </p>
                         <p className="text-xs text-neutral-500">
@@ -285,7 +289,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
                       <button
                         onClick={() => startEditing(grade)}
                         className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
@@ -299,13 +303,13 @@ export default function SubjectCard({ subject }: { subject: string }) {
                         Delete
                       </button>
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         ) : (
-          <div className="px-6 py-4 text-center text-sm text-neutral-500">No grades yet</div>
+          <div className="px-4 sm:px-6 py-4 text-center text-sm text-neutral-500">No grades yet</div>
         ))}
     </div>
   );

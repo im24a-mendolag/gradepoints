@@ -49,18 +49,18 @@ function DashboardContent() {
     <div className="min-h-screen bg-neutral-950">
       {/* Header */}
       <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
-              <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-bold text-neutral-100">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <h1 className="text-xl font-bold text-neutral-100 shrink-0">
             Grade<span className="text-blue-500">Points</span>
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <Link
               href="/dashboard/stats"
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
-            Statistics
+              Statistics
             </Link>
-            <span className="text-sm text-neutral-400">{session?.user?.name}</span>
+            <span className="text-sm text-neutral-400 hidden sm:inline">{session?.user?.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
@@ -71,7 +71,7 @@ function DashboardContent() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
         {/* Error Banner */}
         {error && (
           <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">

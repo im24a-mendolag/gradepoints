@@ -174,21 +174,21 @@ function StatsContent() {
     <div className="min-h-screen bg-neutral-950">
       {/* Header */}
       <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="text-xl font-bold text-neutral-100 hover:opacity-80 transition">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Link href="/dashboard" className="text-xl font-bold text-neutral-100 hover:opacity-80 transition shrink-0">
               Grade<span className="text-blue-500">Points</span>
             </Link>
-            <span className="text-sm text-neutral-500">/ Statistics</span>
+            <span className="text-sm text-neutral-500 hidden sm:inline">/ Statistics</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <Link
               href="/dashboard"
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
-              ← Back to Dashboard
+              ← Back
             </Link>
-            <span className="text-sm text-neutral-400">{session?.user?.name}</span>
+            <span className="text-sm text-neutral-400 hidden sm:inline">{session?.user?.name}</span>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
@@ -199,7 +199,7 @@ function StatsContent() {
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
         {!hasData ? (
           <div className="text-center py-20">
             <p className="text-neutral-500 text-lg">No grades yet. Add some grades to see your statistics!</p>
@@ -234,9 +234,9 @@ function StatsContent() {
             </div>
 
             {/* ─── Pass/Fail Timeline ─── */}
-            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Semester Pass/Fail</h2>
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Semester Pass/Fail</h2>
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                 {semesterPassFail.map(({ semester, status }) => (
                   <div key={semester} className="flex flex-col items-center gap-1">
                     <span className="text-xs text-neutral-500">Sem {semester}</span>
@@ -258,7 +258,7 @@ function StatsContent() {
                     )}
                   </div>
                 ))}
-                <div className="flex flex-col items-center gap-1 ml-4 pl-4 border-l-2 border-neutral-700">
+                <div className="flex flex-col items-center gap-1 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l-2 border-neutral-700">
                   <span className="text-xs text-neutral-500 font-medium">Final</span>
                   <div
                     className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
@@ -281,9 +281,9 @@ function StatsContent() {
             </div>
 
             {/* ─── Semester Average Trend ─── */}
-            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Semester Average Trend</h2>
-              <ResponsiveContainer width="100%" height={300}>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Semester Average Trend</h2>
+              <ResponsiveContainer width="100%" height={250}>
                 <AreaChart data={semesterTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <defs>
                     <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
@@ -313,9 +313,9 @@ function StatsContent() {
             </div>
 
             {/* ─── Subject Progress ─── */}
-            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Subject Progress Across Semesters</h2>
-              <ResponsiveContainer width="100%" height={400}>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Subject Progress Across Semesters</h2>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={subjectProgressData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                   <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
@@ -339,10 +339,10 @@ function StatsContent() {
             </div>
 
             {/* ─── Row: Final Grades Bar + Radar ─── */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Final subject grades bar */}
-              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-                <h2 className="text-lg font-semibold text-neutral-100 mb-4">Final Subject Grades</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Final Subject Grades</h2>
                 {finalGradesData.length > 0 ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart data={finalGradesData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -374,8 +374,8 @@ function StatsContent() {
               </div>
 
               {/* Radar chart */}
-              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-                <h2 className="text-lg font-semibold text-neutral-100 mb-4">Subject Strengths</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Subject Strengths</h2>
                 {radarData.some((d) => d.grade > 0) ? (
                   <ResponsiveContainer width="100%" height={300}>
                     <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
@@ -399,8 +399,8 @@ function StatsContent() {
             </div>
 
             {/* ─── Grade Distribution ─── */}
-            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Grade Distribution</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grade Distribution</h2>
               {distributionData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={distributionData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -425,8 +425,8 @@ function StatsContent() {
 
             {/* ─── Grades Over Time ─── */}
             {gradesByDate.length > 0 && (
-              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-                <h2 className="text-lg font-semibold text-neutral-100 mb-4">All Grades Over Time</h2>
+              <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">All Grades Over Time</h2>
                 <ResponsiveContainer width="100%" height={250}>
                   <LineChart data={gradesByDate} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
@@ -450,8 +450,8 @@ function StatsContent() {
             )}
 
             {/* ─── Subject Grade Counts ─── */}
-            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-4">Grades per Subject</h2>
+            <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grades per Subject</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                 {Object.entries(gradeCountBySubject)
                   .sort((a, b) => b[1] - a[1])

@@ -43,12 +43,12 @@ export default function FinalsCard({
   return (
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       {/* Subject Header */}
-      <div className="px-6 py-4 border-b border-neutral-800">
-        <div className="flex items-center gap-3">
-          <h3 className="text-lg font-semibold text-neutral-100">{groupName}</h3>
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-800">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{groupName}</h3>
           {groupAvg !== null && (
             <span
-              className={`text-sm font-medium px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}
+              className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}
             >
               Ø {groupAvg.toFixed(2)}
             </span>
@@ -67,11 +67,11 @@ export default function FinalsCard({
           return (
             <div
               key={entry}
-              className="px-6 py-3 flex items-center justify-between hover:bg-neutral-800/50 transition"
+              className="px-4 sm:px-6 py-3 flex items-center justify-between hover:bg-neutral-800/50 transition"
             >
               {isEditingThis ? (
                 /* Edit / Add inline form */
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap">
                   <input
                     type="number"
                     min="1"
@@ -86,7 +86,7 @@ export default function FinalsCard({
                         if (val) { saveFinalsGrade(entry, val); cancelEditingFinals(); }
                       }
                     }}
-                    className="w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                    className="w-20 sm:w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm text-neutral-100"
                     placeholder="1–6"
                     autoFocus
                   />
@@ -111,15 +111,15 @@ export default function FinalsCard({
               ) : (
                 /* View mode */
                 <>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     {currentGrade ? (
                       <span
-                        className={`inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}
+                        className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}
                       >
                         {currentGrade.value}
                       </span>
                     ) : (
-                      <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg font-bold text-sm border border-neutral-700 text-neutral-600">
+                      <span className="inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border border-neutral-700 text-neutral-600">
                         —
                       </span>
                     )}
@@ -130,7 +130,7 @@ export default function FinalsCard({
                       onClick={() => startEditingFinals(entry, currentGrade)}
                       className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
                     >
-                      {currentGrade ? "Edit" : "+ Add Grade"}
+                      {currentGrade ? "Edit" : "+ Add"}
                     </button>
                     {currentGrade && (
                       <button
