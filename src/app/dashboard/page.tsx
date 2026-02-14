@@ -14,9 +14,17 @@ interface Grade {
   subject: string;
 }
 
+interface Adjustment {
+  id: string;
+  value: number;
+  semester: number;
+  subject: string;
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [grades, setGrades] = useState<Grade[]>([]);
+  const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSemester, setActiveSemester] = useState(1);
 
@@ -39,6 +47,10 @@ export default function DashboardPage() {
   // Expanded subjects (grades hidden by default)
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
 
+  // Adjustment editing
+  const [editingAdjustment, setEditingAdjustment] = useState<string | null>(null);
+  const [adjustmentInput, setAdjustmentInput] = useState("");
+
   // Finals grade inputs (controlled)
   const [finalsInputs, setFinalsInputs] = useState<Record<string, string>>({});
 
@@ -59,9 +71,22 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const fetchAdjustments = useCallback(async () => {
+    try {
+      const res = await fetch("/api/adjustments");
+      if (res.ok) {
+        const data = await res.json();
+        setAdjustments(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch adjustments", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchGrades();
-  }, [fetchGrades]);
+    fetchAdjustments();
+  }, [fetchGrades, fetchAdjustments]);
 
   const addGrade = async (subject: string) => {
     if (!gradeValue) return;
@@ -205,13 +230,55 @@ export default function DashboardPage() {
   const getGradesForSubject = (semester: number, subject: string) =>
     grades.filter((g) => g.semester === semester && g.subject === subject);
 
-  const getSubjectAverage = (semester: number, subject: string) => {
+  const getAdjustment = (semester: number, subject: string): number => {
+    const adj = adjustments.find((a) => a.semester === semester && a.subject === subject);
+    return adj ? adj.value : 0;
+  };
+
+  const saveAdjustment = async (semester: number, subject: string, value: number) => {
+    setError(null);
+    try {
+      if (value === 0) {
+        // Delete the adjustment
+        await fetch("/api/adjustments", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ semester, subject }),
+        });
+      } else {
+        // Create or update
+        const res = await fetch("/api/adjustments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ value, semester, subject }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Failed to save adjustment");
+          return;
+        }
+      }
+      await fetchAdjustments();
+    } catch (err) {
+      console.error("Failed to save adjustment", err);
+      setError("Failed to save adjustment. Please try again.");
+    }
+  };
+
+  const getRawSubjectAverage = (semester: number, subject: string) => {
     const subjectGrades = getGradesForSubject(semester, subject).filter((g) => g.weight > 0);
     if (subjectGrades.length === 0) return null;
     const totalWeight = subjectGrades.reduce((acc, g) => acc + g.weight, 0);
     const weightedSum = subjectGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-    const avg = weightedSum / totalWeight;
-    return Math.round(avg * 2) / 2;
+    const rawAvg = weightedSum / totalWeight;
+    const adjustment = getAdjustment(semester, subject);
+    return Math.min(6, Math.max(1, rawAvg + adjustment));
+  };
+
+  const getSubjectAverage = (semester: number, subject: string) => {
+    const raw = getRawSubjectAverage(semester, subject);
+    if (raw === null) return null;
+    return Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
   };
 
   const getSemesterAverage = (semester: number) => {
@@ -263,7 +330,7 @@ export default function DashboardPage() {
   const getSemesterStatus = (semester: number) => {
     const semesterSubjects = SEMESTER_SUBJECTS[semester] ?? [];
     const subjectAverages = semesterSubjects
-      .map((s) => ({ subject: s, avg: getSubjectAverage(semester, s) }))
+      .map((s) => ({ subject: s as string, avg: getSubjectAverage(semester, s) }))
       .filter((s): s is { subject: string; avg: number } => s.avg !== null);
 
     if (subjectAverages.length === 0) return null;
@@ -961,6 +1028,9 @@ export default function DashboardPage() {
             subjects.map((subject) => {
               const subjectGrades = getGradesForSubject(activeSemester, subject);
               const avg = getSubjectAverage(activeSemester, subject);
+              const rawAvg = getRawSubjectAverage(activeSemester, subject);
+              const adj = getAdjustment(activeSemester, subject);
+              const adjKey = `${activeSemester}-${subject}`;
 
               return (
                 <div
@@ -993,30 +1063,88 @@ export default function DashboardPage() {
                         <span
                           className={`text-sm font-medium px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}
                         >
-                          Ø {avg.toFixed(2)}
+                          Ø {avg.toFixed(1)}
+                          {rawAvg !== null && (
+                            <span className="text-gray-400 font-normal ml-1">({rawAvg.toFixed(2)})</span>
+                          )}
+                        </span>
+                      )}
+                      {adj !== 0 && (
+                        <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${adj > 0 ? "text-green-600 bg-green-50 border-green-200" : "text-red-600 bg-red-50 border-red-200"}`}>
+                          {adj > 0 ? "+" : ""}{adj}
                         </span>
                       )}
                       <span className="text-xs text-gray-400">
                         {subjectGrades.length} grade{subjectGrades.length !== 1 ? "s" : ""}
                       </span>
                     </div>
-                    <button
-                      onClick={() => {
-                        if (addingFor === subject) {
-                          setAddingFor(null);
-                        } else {
-                          setAddingFor(subject);
-                          setExpandedSubjects((prev) => new Set(prev).add(subject));
-                          setGradeValue("");
-                          setGradeWeight("1");
-                          setGradeDescription("");
-                          setGradeDate(new Date().toISOString().split("T")[0]);
-                        }
-                      }}
-                      className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-                    >
-                      + Add Grade
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {/* Adjustment button */}
+                      {editingAdjustment === adjKey ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            step="any"
+                            value={adjustmentInput}
+                            onChange={(e) => setAdjustmentInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                const val = parseFloat(adjustmentInput);
+                                saveAdjustment(activeSemester, subject, isNaN(val) ? 0 : val);
+                                setEditingAdjustment(null);
+                              }
+                            }}
+                            className="w-20 px-2 py-1 rounded border border-gray-300 text-sm text-center outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-gray-900"
+                            placeholder="±0.0"
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => {
+                              const val = parseFloat(adjustmentInput);
+                              saveAdjustment(activeSemester, subject, isNaN(val) ? 0 : val);
+                              setEditingAdjustment(null);
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingAdjustment(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setEditingAdjustment(adjKey);
+                            setAdjustmentInput(adj !== 0 ? adj.toString() : "");
+                          }}
+                          className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                          title="Set bonus/malus"
+                        >
+                          ±
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          if (addingFor === subject) {
+                            setAddingFor(null);
+                          } else {
+                            setAddingFor(subject);
+                            setExpandedSubjects((prev) => new Set(prev).add(subject));
+                            setGradeValue("");
+                            setGradeWeight("1");
+                            setGradeDescription("");
+                            setGradeDate(new Date().toISOString().split("T")[0]);
+                          }
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
+                      >
+                        + Add Grade
+                      </button>
+                    </div>
                   </div>
 
                   {/* Add Grade Form + Grades List (collapsible) */}

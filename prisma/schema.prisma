@@ -7,12 +7,25 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  grades    Grade[]
+  id          String       @id @default(cuid())
+  name        String
+  email       String       @unique
+  password    String
+  createdAt   DateTime     @default(now())
+  grades      Grade[]
+  adjustments Adjustment[]
+}
+
+model Adjustment {
+  id       String @id @default(cuid())
+  value    Float
+  semester Int
+  subject  String
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, semester, subject])
+  @@index([userId])
 }
 
 model Grade {
