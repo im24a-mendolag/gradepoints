@@ -49,7 +49,7 @@ function DashboardContent() {
     <div className="min-h-screen bg-neutral-950">
       {/* Header */}
       <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+              <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-xl font-bold text-neutral-100">
             Grade<span className="text-blue-500">Points</span>
           </h1>
@@ -71,7 +71,7 @@ function DashboardContent() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {/* Error Banner */}
         {error && (
           <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">

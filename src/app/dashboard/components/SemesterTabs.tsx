@@ -11,22 +11,22 @@ export default function SemesterTabs() {
   const { activeSemester, selectSemester, getSemesterAverage } = useDashboard();
 
   return (
-    <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
+    <div className="flex flex-wrap gap-2 mb-6">
       {Array.from({ length: TOTAL_SEMESTERS }, (_, i) => i + 1).map((sem) => {
         const avg = getSemesterAverage(sem);
         return (
           <button
             key={sem}
             onClick={() => selectSemester(sem)}
-            className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
+            className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
               activeSemester === sem
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-neutral-900 text-neutral-300 border border-neutral-700 hover:bg-neutral-800"
             }`}
           >
-            Semester {sem}
+            Sem {sem}
             {avg !== null && (
-              <span className={`ml-2 ${activeSemester === sem ? "text-blue-200" : "text-neutral-500"}`}>
+              <span className={`ml-1.5 ${activeSemester === sem ? "text-blue-200" : "text-neutral-500"}`}>
                 {avg.toFixed(1)}
               </span>
             )}
@@ -35,7 +35,7 @@ export default function SemesterTabs() {
       })}
       <button
         onClick={() => selectSemester(FINALS_SEMESTER)}
-        className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
+        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
           activeSemester === FINALS_SEMESTER
             ? "bg-purple-600 text-white shadow-sm"
             : "bg-neutral-900 text-purple-400 border border-purple-800 hover:bg-purple-900/30"
@@ -45,7 +45,7 @@ export default function SemesterTabs() {
       </button>
       <button
         onClick={() => selectSemester(OVERVIEW_TAB)}
-        className={`px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
+        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
           activeSemester === OVERVIEW_TAB
             ? "bg-amber-600 text-white shadow-sm"
             : "bg-neutral-900 text-amber-400 border border-amber-800 hover:bg-amber-900/30"

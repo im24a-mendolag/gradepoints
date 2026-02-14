@@ -36,9 +36,18 @@ const DARK_TOOLTIP = {
   contentStyle: {
     borderRadius: 8,
     border: "1px solid #404040",
-    backgroundColor: "#262626",
+    backgroundColor: "#171717",
     color: "#e5e5e5",
   },
+  labelStyle: {
+    color: "#e5e5e5",
+    fontWeight: 600,
+    marginBottom: 4,
+  },
+  itemStyle: {
+    color: "#d4d4d4",
+  },
+  cursor: { stroke: "#525252" },
 };
 
 function StatsContent() {
