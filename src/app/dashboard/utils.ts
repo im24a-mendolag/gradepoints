@@ -26,25 +26,25 @@ export function blockNonNumericKeys(
 }
 
 /**
- * Returns Tailwind CSS classes for a grade badge (text, background, border colors).
+ * Returns Tailwind CSS classes for a grade badge (text, background, border colors) — dark mode.
  * @param value - The grade value (1–6 scale).
- * @returns A string of Tailwind CSS classes: green for ≥5.5, blue for ≥4.5, yellow for ≥4, red otherwise.
+ * @returns A string of Tailwind CSS classes.
  */
 export function getGradeColor(value: number): string {
-  if (value >= 5.5) return "text-green-600 bg-green-50 border-green-200";
-  if (value >= 4.5) return "text-blue-600 bg-blue-50 border-blue-200";
-  if (value >= 4) return "text-yellow-600 bg-yellow-50 border-yellow-200";
-  return "text-red-600 bg-red-50 border-red-200";
+  if (value >= 5.5) return "text-green-400 bg-green-900/30 border-green-700";
+  if (value >= 4.5) return "text-blue-400 bg-blue-900/30 border-blue-700";
+  if (value >= 4) return "text-yellow-400 bg-yellow-900/30 border-yellow-700";
+  return "text-red-400 bg-red-900/30 border-red-700";
 }
 
 /**
- * Returns a Tailwind CSS text-color class for an average value.
+ * Returns a Tailwind CSS text-color class for an average value — dark mode.
  * @param value - The average value (1–6 scale).
- * @returns A Tailwind text-color class: green for ≥5.5, blue for ≥4.5, yellow for ≥4, red otherwise.
+ * @returns A Tailwind text-color class.
  */
 export function getAvgColor(value: number): string {
-  if (value >= 5.5) return "text-green-600";
-  if (value >= 4.5) return "text-blue-600";
-  if (value >= 4) return "text-yellow-600";
-  return "text-red-600";
+  if (value >= 5.5) return "text-green-400";
+  if (value >= 4.5) return "text-blue-400";
+  if (value >= 4) return "text-yellow-400";
+  return "text-red-400";
 }

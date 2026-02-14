@@ -15,38 +15,38 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
       className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
         status
           ? status.passed
-            ? "border-green-200"
-            : "border-red-200"
-          : "border-gray-200"
+            ? "border-green-800"
+            : "border-red-800"
+          : "border-gray-800"
       }`}
     >
       <div
         className={`px-5 py-3 text-sm font-semibold ${
           status
             ? status.passed
-              ? "bg-green-50 text-green-800"
-              : "bg-red-50 text-red-800"
-            : "bg-gray-50 text-gray-600"
+              ? "bg-green-900/30 text-green-300"
+              : "bg-red-900/30 text-red-300"
+            : "bg-gray-900 text-gray-400"
         }`}
       >
         Pass/Fail Rules — Semester {semester}
       </div>
-      <div className="bg-white divide-y divide-gray-100">
+      <div className="bg-gray-900 divide-y divide-gray-800">
         {/* Rule 1: Average ≥ 4.0 */}
         <div className="px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span
               className={`text-lg ${
-                status ? (status.rule1Pass ? "text-green-500" : "text-red-500") : "text-gray-300"
+                status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
               }`}
             >
               {status ? (status.rule1Pass ? "✓" : "✗") : "—"}
             </span>
-            <span className="text-sm text-gray-700">Average ≥ 4.0</span>
+            <span className="text-sm text-gray-300">Average ≥ 4.0</span>
           </div>
           <span
             className={`text-sm font-medium ${
-              status ? (status.rule1Pass ? "text-green-600" : "text-red-600") : "text-gray-400"
+              status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
             }`}
           >
             {status ? (status.semAvg?.toFixed(2) ?? "—") : "—"}
@@ -57,16 +57,16 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
           <div className="flex items-center gap-2">
             <span
               className={`text-lg ${
-                status ? (status.rule2Pass ? "text-green-500" : "text-red-500") : "text-gray-300"
+                status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
               }`}
             >
               {status ? (status.rule2Pass ? "✓" : "✗") : "—"}
             </span>
-            <span className="text-sm text-gray-700">Max 2 subjects below 4.0</span>
+            <span className="text-sm text-gray-300">Max 2 subjects below 4.0</span>
           </div>
           <span
             className={`text-sm font-medium ${
-              status ? (status.rule2Pass ? "text-green-600" : "text-red-600") : "text-gray-400"
+              status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
             }`}
           >
             {status ? (
@@ -74,7 +74,7 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
                 {status.subjectsBelow4Count} subject
                 {status.subjectsBelow4Count !== 1 ? "s" : ""}
                 {status.subjectsBelow4Count > 0 && (
-                  <span className="text-gray-400 font-normal">
+                  <span className="text-gray-500 font-normal">
                     {" "}
                     ({status.subjectsBelow4.join(", ")})
                   </span>
@@ -90,16 +90,16 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
           <div className="flex items-center gap-2">
             <span
               className={`text-lg ${
-                status ? (status.rule3Pass ? "text-green-500" : "text-red-500") : "text-gray-300"
+                status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
               }`}
             >
               {status ? (status.rule3Pass ? "✓" : "✗") : "—"}
             </span>
-            <span className="text-sm text-gray-700">Max 2 negative points</span>
+            <span className="text-sm text-gray-300">Max 2 negative points</span>
           </div>
           <span
             className={`text-sm font-medium ${
-              status ? (status.rule3Pass ? "text-green-600" : "text-red-600") : "text-gray-400"
+              status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-gray-600"
             }`}
           >
             {status ? (
@@ -129,27 +129,27 @@ export function OverviewPassFailRules() {
   return (
     <div
       className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
-        status.passed ? "border-green-200" : "border-red-200"
+        status.passed ? "border-green-800" : "border-red-800"
       }`}
     >
       <div
         className={`px-5 py-3 text-sm font-semibold ${
-          status.passed ? "bg-green-50 text-green-800" : "bg-red-50 text-red-800"
+          status.passed ? "bg-green-900/30 text-green-300" : "bg-red-900/30 text-red-300"
         }`}
       >
         Pass/Fail Rules — 3-Year Final
       </div>
-      <div className="bg-white divide-y divide-gray-100">
+      <div className="bg-gray-900 divide-y divide-gray-800">
         {/* Rule 1 */}
         <div className="px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`text-lg ${status.rule1Pass ? "text-green-500" : "text-red-500"}`}>
+            <span className={`text-lg ${status.rule1Pass ? "text-green-400" : "text-red-400"}`}>
               {status.rule1Pass ? "✓" : "✗"}
             </span>
-            <span className="text-sm text-gray-700">Average ≥ 4.0</span>
+            <span className="text-sm text-gray-300">Average ≥ 4.0</span>
           </div>
           <span
-            className={`text-sm font-medium ${status.rule1Pass ? "text-green-600" : "text-red-600"}`}
+            className={`text-sm font-medium ${status.rule1Pass ? "text-green-400" : "text-red-400"}`}
           >
             {status.avg.toFixed(2)}
           </span>
@@ -157,17 +157,17 @@ export function OverviewPassFailRules() {
         {/* Rule 2 */}
         <div className="px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`text-lg ${status.rule2Pass ? "text-green-500" : "text-red-500"}`}>
+            <span className={`text-lg ${status.rule2Pass ? "text-green-400" : "text-red-400"}`}>
               {status.rule2Pass ? "✓" : "✗"}
             </span>
-            <span className="text-sm text-gray-700">Max 2 subjects below 4.0</span>
+            <span className="text-sm text-gray-300">Max 2 subjects below 4.0</span>
           </div>
           <span
-            className={`text-sm font-medium ${status.rule2Pass ? "text-green-600" : "text-red-600"}`}
+            className={`text-sm font-medium ${status.rule2Pass ? "text-green-400" : "text-red-400"}`}
           >
             {status.subjectsBelow4Count} subject{status.subjectsBelow4Count !== 1 ? "s" : ""}
             {status.subjectsBelow4Count > 0 && (
-              <span className="text-gray-400 font-normal">
+              <span className="text-gray-500 font-normal">
                 {" "}
                 ({status.subjectsBelow4.join(", ")})
               </span>
@@ -177,13 +177,13 @@ export function OverviewPassFailRules() {
         {/* Rule 3 */}
         <div className="px-5 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className={`text-lg ${status.rule3Pass ? "text-green-500" : "text-red-500"}`}>
+            <span className={`text-lg ${status.rule3Pass ? "text-green-400" : "text-red-400"}`}>
               {status.rule3Pass ? "✓" : "✗"}
             </span>
-            <span className="text-sm text-gray-700">Max 2 negative points</span>
+            <span className="text-sm text-gray-300">Max 2 negative points</span>
           </div>
           <span
-            className={`text-sm font-medium ${status.rule3Pass ? "text-green-600" : "text-red-600"}`}
+            className={`text-sm font-medium ${status.rule3Pass ? "text-green-400" : "text-red-400"}`}
           >
             {status.negativePoints} point{status.negativePoints !== 1 ? "s" : ""}
           </span>
