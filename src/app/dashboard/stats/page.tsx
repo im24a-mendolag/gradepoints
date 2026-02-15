@@ -242,11 +242,9 @@ function KshStatsContent() {
               >
                 {status ? (status.passed ? "✓" : "✗") : "—"}
               </div>
-              {status?.semAvg !== undefined && status.semAvg !== null && (
-                <span className={`text-xs font-medium ${getAvgColor(status.semAvg)}`}>
-                  {status.semAvg.toFixed(1)}
-                </span>
-              )}
+              <span className={`text-xs font-medium ${status?.semAvg != null ? getAvgColor(status.semAvg) : "text-neutral-600"}`}>
+                {status?.semAvg != null ? status.semAvg.toFixed(1) : "—"}
+              </span>
             </div>
           ))}
           <div className="flex flex-col items-center gap-1 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l-2 border-neutral-700">
