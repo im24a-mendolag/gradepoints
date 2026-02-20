@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import {
   SEMESTER_SUBJECTS,
   FINALS_SEMESTER,
@@ -131,6 +131,38 @@ function BzzStatsCards() {
   );
 }
 
+function BzzCollapsibleSection({
+  title,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="mb-6">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2 mb-3 cursor-pointer group"
+      >
+        <h2 className="text-lg font-semibold text-neutral-100 group-hover:text-neutral-300 transition">
+          {title}
+        </h2>
+        <span
+          className={`text-neutral-500 group-hover:text-neutral-300 transition-transform inline-block ${
+            open ? "rotate-90" : ""
+          }`}
+        >
+          ▶
+        </span>
+      </button>
+      {open && <div className="space-y-4">{children}</div>}
+    </div>
+  );
+}
+
 /**
  * The inner dashboard content that consumes DashboardContext.
  * Handles layout, header, error banner, and tab-based content rendering.
@@ -162,6 +194,7 @@ function DashboardContent() {
               Grade<span className="text-blue-500">Points</span>
             </h1>
             <SchoolSelector />
+            <span className="text-sm text-neutral-500 hidden sm:inline">/ Dashboard</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <Link
@@ -242,33 +275,21 @@ function DashboardContent() {
             {/* BZZ: Pass/Fail */}
             <BzzPassFail />
 
-            {/* Normal Modules */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-3">Normal Modules</h2>
-              <div className="space-y-4">
-                {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
-                  <BzzModuleCard key={mod} mod={mod} />
-                ))}
-              </div>
-            </div>
+            <BzzCollapsibleSection title="Normal Modules" defaultOpen>
+              {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
+                <BzzModuleCard key={mod} mod={mod} />
+              ))}
+            </BzzCollapsibleSection>
 
-            {/* ÜK Modules */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-3">ÜK Modules</h2>
-              <div className="space-y-4">
-                {(BZZ_UK_MODULES as readonly string[]).map((mod) => (
-                  <BzzModuleCard key={mod} mod={mod} />
-                ))}
-              </div>
-            </div>
+            <BzzCollapsibleSection title="ÜK Modules" defaultOpen>
+              {(BZZ_UK_MODULES as readonly string[]).map((mod) => (
+                <BzzModuleCard key={mod} mod={mod} />
+              ))}
+            </BzzCollapsibleSection>
 
-            {/* IPA */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-neutral-100 mb-3">IPA</h2>
-              <div className="space-y-4">
-                <BzzModuleCard mod={BZZ_IPA} />
-              </div>
-            </div>
+            <BzzCollapsibleSection title="IPA" defaultOpen>
+              <BzzModuleCard mod={BZZ_IPA} />
+            </BzzCollapsibleSection>
           </>
         )}
       </main>

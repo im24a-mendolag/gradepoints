@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import { DashboardProvider, useDashboard } from "../DashboardContext";
 import {
   SEMESTER_SUBJECTS,
@@ -89,6 +89,7 @@ function StatsSchoolSelector() {
  * KSH-specific statistics content (existing charts).
  */
 function KshStatsContent() {
+  const [hiddenSubjects, setHiddenSubjects] = useState<Set<string>>(new Set());
   const {
     grades,
     getSubjectAverage,
@@ -106,6 +107,9 @@ function KshStatsContent() {
     const avg = getSemesterAverage(sem);
     return { semester: `Sem ${sem}`, avg, semNum: sem };
   });
+
+  const trendAvgs = semesterTrendData.map((d) => d.avg).filter((a): a is number => a !== null);
+  const trendYMin = trendAvgs.length > 0 ? Math.max(1, Math.floor(Math.min(...trendAvgs) - 0.5)) : 1;
 
   const allSubjects = Array.from(
     new Set(
@@ -126,6 +130,11 @@ function KshStatsContent() {
     }
     return point;
   });
+
+  const subjectAvgs = subjectProgressData.flatMap((d) =>
+    allSubjects.map((s) => d[s]).filter((v): v is number => typeof v === "number")
+  );
+  const subjectYMin = subjectAvgs.length > 0 ? Math.max(1, Math.floor(Math.min(...subjectAvgs) - 0.5)) : 1;
 
   const finalGradesData = OVERVIEW_SUBJECTS
     .map((subject) => {
@@ -277,14 +286,14 @@ function KshStatsContent() {
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
             <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
+            <YAxis domain={[trendYMin, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
             <Tooltip
               formatter={(value?: number) => [value?.toFixed(2) ?? "—", "Average"]}
               {...DARK_TOOLTIP}
             />
-            <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Pass: 4.0", position: "insideTopLeft", fontSize: 11, fill: "#eab308", offset: 6 }} />
+            {trendYMin <= 4 && <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Pass: 4.0", position: "insideTopLeft", fontSize: 11, fill: "#eab308", offset: 6 }} />}
             <Area
-              type="monotone"
+              type="linear"
               dataKey="avg"
               stroke="#3b82f6"
               strokeWidth={3}
@@ -303,10 +312,25 @@ function KshStatsContent() {
           <LineChart data={subjectProgressData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
             <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <YAxis domain={[1, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
+            <YAxis domain={[subjectYMin, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
             <Tooltip {...DARK_TOOLTIP} />
-            <Legend wrapperStyle={{ color: "#d4d4d4" }} />
-            <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
+            <Legend
+              wrapperStyle={{ color: "#d4d4d4" }}
+              onClick={(e) => {
+                const key = e.dataKey as string;
+                setHiddenSubjects((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(key)) next.delete(key); else next.add(key);
+                  return next;
+                });
+              }}
+              formatter={(value: string) => (
+                <span style={{ color: hiddenSubjects.has(value) ? "#525252" : "#d4d4d4", cursor: "pointer" }}>
+                  {value}
+                </span>
+              )}
+            />
+            {subjectYMin <= 4 && <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />}
             {allSubjects.map((subject) => (
               <Line
                 key={subject}
@@ -316,6 +340,7 @@ function KshStatsContent() {
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 connectNulls
+                hide={hiddenSubjects.has(subject)}
               />
             ))}
           </LineChart>
