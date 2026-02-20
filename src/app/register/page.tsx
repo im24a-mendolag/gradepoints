@@ -33,13 +33,7 @@ export default function RegisterPage() {
         return;
       }
 
-      // Show success message or redirect
-      if (res.status === 200) {
-        // Resent verification email
-        setSuccess(data.message);
-      } else {
-        router.push("/login?registered=true");
-      }
+      setSuccess("Please check your email and click the verification link to activate your account.");
     } catch {
       setError("Something went wrong");
     } finally {

@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     await sendVerificationEmail(email);
 
     return NextResponse.json(
-      { message: "Account created! Please check your email to verify your account." },
+      { message: "Please check your email and click the verification link to activate your account." },
       { status: 201 }
     );
   } catch (error) {
