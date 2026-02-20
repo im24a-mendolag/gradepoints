@@ -89,7 +89,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
             >
               Ø {avg.toFixed(1)}
               {rawAvg !== null && (
-                <span className="text-neutral-500 font-normal ml-1">({rawAvg.toFixed(2)})</span>
+                <span className="text-neutral-500 font-normal ml-1">({rawAvg.toFixed(3)})</span>
               )}
             </span>
           )}
