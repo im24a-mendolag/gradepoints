@@ -683,9 +683,14 @@ function StatsContent() {
               href={`/dashboard?school=${activeSchool}`}
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
-              ← Back
+              &larr; Back
             </Link>
-            <span className="text-sm text-neutral-400 hidden sm:inline">{session?.user?.name}</span>
+            <Link
+              href="/dashboard/account"
+              className="text-sm text-neutral-400 hover:text-neutral-200 hidden sm:inline transition"
+            >
+              {session?.user?.name}
+            </Link>
             <button
               onClick={() => signOut({ callbackUrl: "/" })}
               className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
