@@ -13,11 +13,7 @@ const FROM_EMAIL = process.env.EMAIL_FROM || "GradePoints <onboarding@resend.dev
  * @returns The created verification token record.
  */
 export async function sendVerificationEmail(email: string) {
-  // Delete any existing tokens for this email (one by one to avoid transactions)
-  const existingTokens = await prisma.verificationToken.findMany({ where: { email } });
-  for (const t of existingTokens) {
-    await prisma.verificationToken.delete({ where: { id: t.id } });
-  }
+  await prisma.verificationToken.deleteMany({ where: { email } });
 
   // Create a new token that expires in 24 hours
   const token = randomBytes(32).toString("hex");

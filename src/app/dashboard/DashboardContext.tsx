@@ -135,13 +135,13 @@ export function useDashboard(): DashboardContextType {
 
 // ─── Provider ───────────────────────────────────────────────────
 
-export function DashboardProvider({ children }: { children: ReactNode }) {
+export function DashboardProvider({ children, initialSchool = "KSH" }: { children: ReactNode; initialSchool?: School }) {
   // ── Core state ──
   const [grades, setGrades] = useState<Grade[]>([]);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeSemester, setActiveSemester] = useState(1);
-  const [activeSchool, setActiveSchoolState] = useState<School>("KSH");
+  const [activeSemester, setActiveSemester] = useState(initialSchool === "KSH" ? 1 : BZZ_SEMESTER);
+  const [activeSchool, setActiveSchoolState] = useState<School>(initialSchool);
   const [error, setError] = useState<string | null>(null);
 
   // ── Add-grade form ──
@@ -207,6 +207,14 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     setEditingGrade(null);
     setEditingAdjustment(null);
     setExpandedSubjects(new Set());
+    setGradeValue("");
+    setGradeWeight("1");
+    setGradeDescription("");
+    setGradeDate(new Date().toISOString().split("T")[0]);
+    setEditValue("");
+    setEditWeight("1");
+    setEditDescription("");
+    setEditDate("");
   };
 
   // ─── KSH Helpers / computed values ────────────────────────────
@@ -250,7 +258,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Averages all subject averages in a semester, rounded to 0.5.
+   * Averages all subject averages in a semester (not rounded).
    * @returns The semester average, or null if no subjects have grades.
    */
   const getSemesterAverage = (semester: number) => {
@@ -258,7 +266,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       .map((s) => getSubjectAverage(semester, s))
       .filter((a): a is number => a !== null);
     if (avgs.length === 0) return null;
-    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
+    return avgs.reduce((a, b) => a + b, 0) / avgs.length;
   };
 
   /**
@@ -289,7 +297,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   };
 
   /**
-   * Calculates the overall average across semesters 1–6 and finals, rounded to 0.5.
+   * Calculates the overall average across semesters 1–6 and finals (not rounded).
    * @returns The overall average, or null if no data.
    */
   const getOverallAverage = () => {
@@ -298,7 +306,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const finalsAvg = getFinalsAverage();
     const all = [...semAvgs, ...(finalsAvg !== null ? [finalsAvg] : [])];
     if (all.length === 0) return null;
-    return Math.round((all.reduce((a, b) => a + b, 0) / all.length) * 2) / 2;
+    return all.reduce((a, b) => a + b, 0) / all.length;
   };
 
   /**
@@ -481,7 +489,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
   };
 
-  /** Final average: avg of normal avg + ÜK avg. NOT rounded. */
+  /** Final average: mean of the rounded Normal avg and rounded ÜK avg. Result is NOT additionally rounded. */
   const getBzzFinalAverage = (): number | null => {
     const normalAvg = getBzzNormalAverage();
     const ukAvg = getBzzUkAverage();
@@ -742,7 +750,12 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const toggleExpand = (subject: string) => {
     setExpandedSubjects((prev) => {
       const next = new Set(prev);
-      if (next.has(subject)) next.delete(subject); else next.add(subject);
+      if (next.has(subject)) {
+        next.delete(subject);
+        if (addingFor === subject) setAddingFor(null);
+      } else {
+        next.add(subject);
+      }
       return next;
     });
   };

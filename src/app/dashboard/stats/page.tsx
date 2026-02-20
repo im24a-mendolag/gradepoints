@@ -2,6 +2,8 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { DashboardProvider, useDashboard } from "../DashboardContext";
 import {
   SEMESTER_SUBJECTS,
@@ -12,7 +14,7 @@ import {
   BZZ_UK_MODULES,
   BZZ_IPA,
 } from "@/lib/semesters";
-import { getAvgColor } from "../utils";
+import { getAvgColor, getGradeHex } from "../utils";
 import type { School } from "../types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -134,21 +136,14 @@ function KshStatsContent() {
 
   const kshGrades = grades.filter((g) => !g.school || g.school === "KSH");
   const regularGrades = kshGrades.filter((g) => g.semester !== FINALS_SEMESTER);
-  const distribution = [
-    { range: "6.0", count: 0, color: "#16a34a" },
-    { range: "5.5", count: 0, color: "#22c55e" },
-    { range: "5.0", count: 0, color: "#3b82f6" },
-    { range: "4.5", count: 0, color: "#60a5fa" },
-    { range: "4.0", count: 0, color: "#eab308" },
-    { range: "3.5", count: 0, color: "#f97316" },
-    { range: "3.0", count: 0, color: "#ef4444" },
-    { range: "2.5", count: 0, color: "#dc2626" },
-    { range: "2.0", count: 0, color: "#b91c1c" },
-    { range: "1.5", count: 0, color: "#991b1b" },
-    { range: "1.0", count: 0, color: "#7f1d1d" },
-  ];
+  const distribution = [6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((v) => ({
+    range: v.toFixed(1),
+    count: 0,
+    color: getGradeHex(v),
+  }));
   for (const g of regularGrades) {
-    const bucket = distribution.find((d) => parseFloat(d.range) === g.value);
+    const rounded = Math.round(g.value * 2) / 2;
+    const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
     if (bucket) bucket.count++;
   }
   const distributionData = distribution.filter((d) => d.count > 0);
@@ -202,23 +197,23 @@ function KshStatsContent() {
         </div>
         <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
           <p className="text-sm text-neutral-400 mb-1">Average Grade</p>
-          <p className={`text-2xl font-bold ${avgGrade >= 4 ? "text-blue-400" : "text-red-400"}`}>
+          <p className={`text-2xl font-bold ${getAvgColor(avgGrade)}`}>
             {avgGrade.toFixed(2)}
           </p>
         </div>
         <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
           <p className="text-sm text-neutral-400 mb-1">Finals Avg</p>
-          <p className={`text-2xl font-bold ${finalsAvg !== null ? (finalsAvg >= 4 ? "text-blue-400" : "text-red-400") : "text-neutral-600"}`}>
+          <p className={`text-2xl font-bold ${finalsAvg !== null ? getAvgColor(finalsAvg) : "text-neutral-600"}`}>
             {finalsAvg !== null ? finalsAvg.toFixed(2) : "—"}
           </p>
         </div>
         <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
           <p className="text-sm text-neutral-400 mb-1">Highest Grade</p>
-          <p className="text-2xl font-bold text-green-400">{highestGrade}</p>
+          <p className={`text-2xl font-bold ${getAvgColor(highestGrade)}`}>{highestGrade}</p>
         </div>
         <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
           <p className="text-sm text-neutral-400 mb-1">Lowest Grade</p>
-          <p className={`text-2xl font-bold ${lowestGrade >= 4 ? "text-yellow-400" : "text-red-400"}`}>
+          <p className={`text-2xl font-bold ${getAvgColor(lowestGrade)}`}>
             {lowestGrade}
           </p>
         </div>
@@ -344,14 +339,7 @@ function KshStatsContent() {
                 <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
                   {finalGradesData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        (entry.grade ?? 0) >= 5 ? "#22c55e"
-                        : (entry.grade ?? 0) >= 4 ? "#3b82f6"
-                        : "#ef4444"
-                      }
-                    />
+                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -446,7 +434,6 @@ function BzzStatsContent() {
     getBzzUkAverage,
     getBzzFinalAverage,
     getBzzIpaAverage,
-    getBzzPassFail,
   } = useDashboard();
 
   const bzzGrades = grades.filter((g) => g.school === "BZZ");
@@ -466,7 +453,6 @@ function BzzStatsContent() {
   const ukAvg = getBzzUkAverage();
   const finalAvg = getBzzFinalAverage();
   const ipaGrade = getBzzIpaAverage();
-  const passFail = getBzzPassFail();
 
   // Module grades bar chart (Normal)
   const normalModuleData = (BZZ_NORMAL_MODULES as readonly string[])
@@ -479,21 +465,14 @@ function BzzStatsContent() {
     .filter((d) => d.grade !== null);
 
   // Grade distribution
-  const distribution = [
-    { range: "6.0", count: 0, color: "#16a34a" },
-    { range: "5.5", count: 0, color: "#22c55e" },
-    { range: "5.0", count: 0, color: "#3b82f6" },
-    { range: "4.5", count: 0, color: "#60a5fa" },
-    { range: "4.0", count: 0, color: "#eab308" },
-    { range: "3.5", count: 0, color: "#f97316" },
-    { range: "3.0", count: 0, color: "#ef4444" },
-    { range: "2.5", count: 0, color: "#dc2626" },
-    { range: "2.0", count: 0, color: "#b91c1c" },
-    { range: "1.5", count: 0, color: "#991b1b" },
-    { range: "1.0", count: 0, color: "#7f1d1d" },
-  ];
+  const distribution = [6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((v) => ({
+    range: v.toFixed(1),
+    count: 0,
+    color: getGradeHex(v),
+  }));
   for (const g of bzzGrades) {
-    const bucket = distribution.find((d) => parseFloat(d.range) === g.value);
+    const rounded = Math.round(g.value * 2) / 2;
+    const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
     if (bucket) bucket.count++;
   }
   const distributionData = distribution.filter((d) => d.count > 0);
@@ -504,13 +483,8 @@ function BzzStatsContent() {
     gradeCountByModule[g.subject] = (gradeCountByModule[g.subject] || 0) + 1;
   }
 
-  const avgColor = (v: number | null) => {
-    if (v === null) return "text-neutral-600";
-    if (v >= 5.5) return "text-green-400";
-    if (v >= 4.5) return "text-blue-400";
-    if (v >= 4) return "text-yellow-400";
-    return "text-red-400";
-  };
+  const avgColor = (v: number | null) =>
+    v === null ? "text-neutral-600" : getAvgColor(v);
 
   return (
     <>
@@ -572,14 +546,7 @@ function BzzStatsContent() {
                 <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
                   {normalModuleData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        (entry.grade ?? 0) >= 5 ? "#22c55e"
-                        : (entry.grade ?? 0) >= 4 ? "#3b82f6"
-                        : "#ef4444"
-                      }
-                    />
+                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -605,14 +572,7 @@ function BzzStatsContent() {
                 <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
                   {ukModuleData.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={
-                        (entry.grade ?? 0) >= 5 ? "#22c55e"
-                        : (entry.grade ?? 0) >= 4 ? "#3b82f6"
-                        : "#ef4444"
-                      }
-                    />
+                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
                   ))}
                 </Bar>
               </BarChart>
@@ -687,7 +647,7 @@ function StatsContent() {
       <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Link href="/dashboard" className="text-xl font-bold text-neutral-100 hover:opacity-80 transition shrink-0">
+            <Link href={`/dashboard?school=${activeSchool}`} className="text-xl font-bold text-neutral-100 hover:opacity-80 transition shrink-0">
               Grade<span className="text-blue-500">Points</span>
             </Link>
             <StatsSchoolSelector />
@@ -695,7 +655,7 @@ function StatsContent() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <Link
-              href="/dashboard"
+              href={`/dashboard?school=${activeSchool}`}
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
               ← Back
@@ -718,10 +678,24 @@ function StatsContent() {
   );
 }
 
-export default function StatsPage() {
+function StatsWrapper() {
+  const searchParams = useSearchParams();
+  const initialSchool: School = searchParams.get("school") === "BZZ" ? "BZZ" : "KSH";
   return (
-    <DashboardProvider>
+    <DashboardProvider initialSchool={initialSchool}>
       <StatsContent />
     </DashboardProvider>
+  );
+}
+
+export default function StatsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <StatsWrapper />
+    </Suspense>
   );
 }

@@ -2,9 +2,12 @@
 
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import {
   SEMESTER_SUBJECTS,
   FINALS_SEMESTER,
+  FINALS_ENTRIES,
   OVERVIEW_TAB,
   OVERVIEW_SUBJECTS,
   BZZ_NORMAL_MODULES,
@@ -139,14 +142,7 @@ function DashboardContent() {
   const subjects =
     activeSemester === FINALS_SEMESTER ? [] : (SEMESTER_SUBJECTS[activeSemester] ?? []);
 
-  const finalsSubjects = [
-    { name: "German", entries: ["German (Oral)", "German (Written)"] },
-    { name: "French", entries: ["French (Oral)", "French (Written)"] },
-    { name: "English", entries: ["English (Oral)", "English (Written)"] },
-    { name: "Math", entries: ["Math (Written)"] },
-    { name: "WR", entries: ["WR (Written)"] },
-    { name: "FrW", entries: ["FrW (Written)"] },
-  ];
+  const finalsSubjects = Object.entries(FINALS_ENTRIES).map(([name, entries]) => ({ name, entries }));
 
   if (loading) {
     return (
@@ -169,7 +165,7 @@ function DashboardContent() {
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <Link
-              href="/dashboard/stats"
+              href={`/dashboard/stats?school=${activeSchool}`}
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
             >
               Statistics
@@ -284,10 +280,24 @@ function DashboardContent() {
  * Dashboard page component — wraps the content in DashboardProvider
  * so all children can access shared state via useDashboard().
  */
-export default function DashboardPage() {
+function DashboardWrapper() {
+  const searchParams = useSearchParams();
+  const initialSchool: School = searchParams.get("school") === "BZZ" ? "BZZ" : "KSH";
   return (
-    <DashboardProvider>
+    <DashboardProvider initialSchool={initialSchool}>
       <DashboardContent />
     </DashboardProvider>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    }>
+      <DashboardWrapper />
+    </Suspense>
   );
 }

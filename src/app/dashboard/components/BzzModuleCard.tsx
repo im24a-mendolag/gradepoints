@@ -47,7 +47,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
   const rawAvg = getBzzModuleRawAverage(mod);
   const adj = getBzzModuleAdjustment(mod);
   // Must match the pattern startEditingAdjustment produces: "${semester}-${subject}"
-  const adjKey = `${BZZ_SEMESTER}-bzz-${mod}`;
+  const adjKey = `${BZZ_SEMESTER}-${mod}`;
   const expandKey = `bzz-${mod}`;
   const addKey = `bzz-${mod}`;
   const isExpanded = expandedSubjects.has(expandKey);
@@ -59,7 +59,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
 
   const handleStartEditingAdj = () => {
     // Manually trigger adjustment editing with a BZZ-specific key
-    startEditingAdjustment(BZZ_SEMESTER, `bzz-${mod}`);
+    startEditingAdjustment(BZZ_SEMESTER, mod);
   };
 
   const handleSaveAdj = () => {

@@ -26,17 +26,12 @@ export async function POST(request: Request) {
     });
 
     if (existingUser) {
-      // If user exists but hasn't verified, resend the email
       if (!existingUser.emailVerified) {
         await sendVerificationEmail(email);
-        return NextResponse.json(
-          { message: "Verification email resent. Please check your inbox." },
-          { status: 200 }
-        );
       }
       return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 400 }
+        { message: "If this email is not already registered, you will receive a verification email shortly." },
+        { status: 200 }
       );
     }
 
