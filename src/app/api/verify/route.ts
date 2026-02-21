@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifyToken } from "@/lib/email";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 /**
  * GET /api/verify?token=xxx
@@ -7,6 +8,11 @@ import { verifyToken } from "@/lib/email";
  * Redirects to /verify page with success or error status.
  */
 export async function GET(request: Request) {
+  const { allowed } = rateLimitByIp(request, { maxRequests: 10, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.redirect(new URL("/verify?status=error&message=Too+many+requests", request.url));
+  }
+
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token");
 

@@ -14,6 +14,13 @@ export async function PUT(
   const { id } = await params;
   const { value, weight, description, date } = await request.json();
 
+  if (value !== undefined && (isNaN(parseFloat(value)) || parseFloat(value) < 1 || parseFloat(value) > 6)) {
+    return NextResponse.json({ error: "Grade must be between 1 and 6" }, { status: 400 });
+  }
+  if (weight !== undefined && (isNaN(parseFloat(weight)) || parseFloat(weight) < 0)) {
+    return NextResponse.json({ error: "Weight must be a non-negative number" }, { status: 400 });
+  }
+
   const grade = await prisma.grade.findFirst({
     where: { id, userId: session.user.id },
   });

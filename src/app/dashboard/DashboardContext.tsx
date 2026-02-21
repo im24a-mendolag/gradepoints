@@ -489,13 +489,16 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
   };
 
-  /** Final average: mean of the rounded Normal avg and rounded ÜK avg. Result is NOT additionally rounded. */
+  /**
+   * Final average: mean of the rounded Normal avg and rounded ÜK avg.
+   * Returns null until both categories have data to avoid a misleading
+   * pass/fail status based on only half the curriculum.
+   */
   const getBzzFinalAverage = (): number | null => {
     const normalAvg = getBzzNormalAverage();
     const ukAvg = getBzzUkAverage();
-    if (normalAvg === null && ukAvg === null) return null;
-    if (normalAvg !== null && ukAvg !== null) return (normalAvg + ukAvg) / 2;
-    return normalAvg ?? ukAvg;
+    if (normalAvg === null || ukAvg === null) return null;
+    return (normalAvg + ukAvg) / 2;
   };
 
   /** IPA grade: raw weighted average, NOT rounded. */
@@ -527,15 +530,17 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
    * Reads values from the add-grade form state.
    */
   const addGrade = async (subject: string) => {
-    if (!gradeValue) return;
+    const parsedValue = parseFloat(gradeValue);
+    const parsedWeight = parseFloat(gradeWeight);
+    if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
     setError(null);
     try {
       const res = await fetch("/api/grades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          value: parseFloat(gradeValue),
-          weight: parseFloat(gradeWeight),
+          value: parsedValue,
+          weight: parsedWeight,
           description: gradeDescription,
           date: gradeDate,
           semester: activeSemester,
@@ -548,7 +553,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
-        fetchGrades();
+        await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
       }
@@ -562,7 +567,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setError(null);
     try {
       const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
-      if (res.ok) fetchGrades();
+      if (res.ok) await fetchGrades();
       else setError((await res.json()).error || "Failed to delete grade");
     } catch {
       setError("Failed to delete grade. Please try again.");
@@ -571,19 +576,25 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
 
   /** Updates a grade by ID using the edit-form state. */
   const updateGrade = async (id: string) => {
+    const parsedValue = parseFloat(editValue);
+    const parsedWeight = parseFloat(editWeight);
+    if (isNaN(parsedValue) || isNaN(parsedWeight)) {
+      setError("Grade value and weight must be valid numbers");
+      return;
+    }
     setError(null);
     try {
       const res = await fetch(`/api/grades/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          value: parseFloat(editValue),
-          weight: parseFloat(editWeight),
+          value: parsedValue,
+          weight: parsedWeight,
           description: editDescription,
           date: editDate,
         }),
       });
-      if (res.ok) { setEditingGrade(null); fetchGrades(); }
+      if (res.ok) { setEditingGrade(null); await fetchGrades(); }
       else setError((await res.json()).error || "Failed to update grade");
     } catch {
       setError("Failed to update grade. Please try again.");
@@ -632,11 +643,12 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setError(null);
     try {
       if (value === 0) {
-        await fetch("/api/adjustments", {
+        const res = await fetch("/api/adjustments", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ semester, subject, school: "KSH" }),
         });
+        if (!res.ok) { setError("Failed to delete adjustment"); return; }
       } else {
         const res = await fetch("/api/adjustments", {
           method: "POST",
@@ -653,15 +665,17 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
 
   /** Creates a new BZZ grade for a module. */
   const addBzzGrade = async (mod: string) => {
-    if (!gradeValue) return;
+    const parsedValue = parseFloat(gradeValue);
+    const parsedWeight = parseFloat(gradeWeight);
+    if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
     setError(null);
     try {
       const res = await fetch("/api/grades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          value: parseFloat(gradeValue),
-          weight: parseFloat(gradeWeight),
+          value: parsedValue,
+          weight: parsedWeight,
           description: gradeDescription,
           date: gradeDate,
           semester: BZZ_SEMESTER,
@@ -675,7 +689,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
-        fetchGrades();
+        await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
       }
@@ -689,11 +703,12 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setError(null);
     try {
       if (value === 0) {
-        await fetch("/api/adjustments", {
+        const res = await fetch("/api/adjustments", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }),
         });
+        if (!res.ok) { setError("Failed to delete adjustment"); return; }
       } else {
         const res = await fetch("/api/adjustments", {
           method: "POST",

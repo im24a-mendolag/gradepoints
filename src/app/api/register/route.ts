@@ -2,8 +2,14 @@ import { NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
+import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  const { allowed } = rateLimitByIp(request, { maxRequests: 5, windowMs: 60_000 });
+  if (!allowed) {
+    return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
+  }
+
   try {
     const { name, email, password } = await request.json();
 

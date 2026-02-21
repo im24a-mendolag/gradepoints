@@ -48,9 +48,16 @@ export async function POST(request: Request) {
     );
   }
 
-  if (value < 1 || value > 6) {
+  if (isNaN(value) || value < 1 || value > 6) {
     return NextResponse.json(
       { error: "Grade must be between 1 and 6" },
+      { status: 400 }
+    );
+  }
+
+  if (weight !== undefined && (isNaN(parseFloat(weight)) || parseFloat(weight) < 0)) {
+    return NextResponse.json(
+      { error: "Weight must be a non-negative number" },
       { status: 400 }
     );
   }
