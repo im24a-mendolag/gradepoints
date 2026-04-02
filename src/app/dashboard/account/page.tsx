@@ -3,6 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useState } from "react";
+import Btn from "../components/Btn";
 
 function AccountContent() {
   const { data: session, update: updateSession } = useSession();
@@ -133,12 +134,7 @@ function AccountContent() {
             <span className="text-sm text-neutral-400 hidden sm:inline">
               {session?.user?.name}
             </span>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
-            >
-              Sign out
-            </button>
+            <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
           </div>
         </div>
       </header>
@@ -173,13 +169,9 @@ function AccountContent() {
                 required
               />
             </div>
-            <button
-              type="submit"
-              disabled={nameLoading || name.trim() === session?.user?.name}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
+            <Btn type="submit" variant="primary" disabled={nameLoading || name.trim() === session?.user?.name}>
               {nameLoading ? "Saving..." : "Save"}
-            </button>
+            </Btn>
           </form>
         </div>
 
@@ -240,13 +232,9 @@ function AccountContent() {
                 required
               />
             </div>
-            <button
-              type="submit"
-              disabled={pwLoading || !currentPassword || !newPassword || !confirmPassword}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            >
+            <Btn type="submit" variant="primary" disabled={pwLoading || !currentPassword || !newPassword || !confirmPassword}>
               {pwLoading ? "Updating..." : "Update Password"}
-            </button>
+            </Btn>
           </form>
         </div>
 
@@ -262,12 +250,7 @@ function AccountContent() {
             </div>
           )}
           {!confirmDelete ? (
-            <button
-              onClick={() => setConfirmDelete(true)}
-              className="px-5 py-2.5 bg-red-600/20 hover:bg-red-600/40 text-red-400 text-sm font-medium rounded-lg border border-red-800 transition cursor-pointer"
-            >
-              Delete Account
-            </button>
+            <Btn variant="danger" onClick={() => setConfirmDelete(true)}>Delete Account</Btn>
           ) : (
             <div className="space-y-4">
               <div>
@@ -285,23 +268,10 @@ function AccountContent() {
                 />
               </div>
               <div className="flex gap-3">
-                <button
-                  onClick={handleDeleteAccount}
-                  disabled={deleteLoading || !deletePassword}
-                  className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
+                <Btn variant="dangerFilled" disabled={deleteLoading || !deletePassword} onClick={handleDeleteAccount}>
                   {deleteLoading ? "Deleting..." : "Confirm Delete"}
-                </button>
-                <button
-                  onClick={() => {
-                    setConfirmDelete(false);
-                    setDeletePassword("");
-                    setDeleteMsg(null);
-                  }}
-                  className="px-5 py-2.5 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
-                >
-                  Cancel
-                </button>
+                </Btn>
+                <Btn onClick={() => { setConfirmDelete(false); setDeletePassword(""); setDeleteMsg(null); }}>Cancel</Btn>
               </div>
             </div>
           )}

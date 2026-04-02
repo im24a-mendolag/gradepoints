@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
+import Btn from "./Btn";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
@@ -204,7 +205,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
             {subjectGrades.length} grade{subjectGrades.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-3 ml-6 sm:ml-0">
+        <div className="flex items-center gap-2 ml-6 sm:ml-0">
           {isEditingAdj ? (
             <div className="flex items-center gap-2">
               <input
@@ -220,25 +221,16 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 placeholder="±0.0"
                 autoFocus
               />
-              <button onClick={() => handleSaveAdjustment(activeSemester, subject)} className="px-2.5 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition cursor-pointer">Save</button>
-              <button onClick={cancelEditingAdjustment} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Cancel</button>
+              <Btn size="sm" variant="primary" onClick={() => handleSaveAdjustment(activeSemester, subject)}>Save</Btn>
+              <Btn size="sm" onClick={cancelEditingAdjustment}>Cancel</Btn>
             </div>
           ) : (
-            <button onClick={() => startEditingAdjustment(activeSemester, subject)} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer" title="Set bonus/malus">±</button>
+            <Btn size="sm" onClick={() => startEditingAdjustment(activeSemester, subject)} title="Set bonus/malus">±</Btn>
           )}
-          <button
-            onClick={() => { setIsPasting(true); setPasteText(""); }}
-            className="px-3 py-1.5 text-sm font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-lg transition cursor-pointer"
-            title="Paste grades from school website"
-          >
-            Paste
-          </button>
-          <button
-            onClick={() => startAdding(subject)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
-          >
+          <Btn size="sm" onClick={() => { setIsPasting(true); setPasteText(""); }} title="Paste grades from school website">Paste</Btn>
+          <Btn variant="primary" onClick={() => startAdding(subject)} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
-          </button>
+          </Btn>
         </div>
       </div>
 
@@ -277,19 +269,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => addGrade(subject)}
-                disabled={!gradeValue}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Add Grade
-              </button>
-              <button
-                onClick={cancelAdding}
-                className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
-              >
-                Cancel
-              </button>
+              <Btn variant="primary" disabled={!gradeValue} onClick={() => addGrade(subject)}>Add Grade</Btn>
+              <Btn onClick={cancelAdding}>Cancel</Btn>
             </div>
           </div>
         </div>
@@ -322,19 +303,10 @@ export default function SubjectCard({ subject }: { subject: string }) {
             </div>
           )}
           <div className="flex gap-2 mt-3">
-            <button
-              onClick={handleImport}
-              disabled={parsedGrades.length === 0 || isImporting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-            >
+            <Btn variant="primary" disabled={parsedGrades.length === 0 || isImporting} onClick={handleImport}>
               {isImporting ? "Importing…" : `Import ${parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}`}
-            </button>
-            <button
-              onClick={() => { setIsPasting(false); setPasteText(""); }}
-              className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
-            >
-              Cancel
-            </button>
+            </Btn>
+            <Btn onClick={() => { setIsPasting(false); setPasteText(""); }}>Cancel</Btn>
           </div>
         </div>
       )}
@@ -371,18 +343,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => updateGrade(grade.id)}
-                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={cancelEditing}
-                        className="px-3 py-1.5 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                      <Btn size="sm" variant="primary" onClick={() => updateGrade(grade.id)}>Save</Btn>
+                      <Btn size="sm" onClick={cancelEditing}>Cancel</Btn>
                     </div>
                   </div>
                 ) : (
@@ -398,8 +360,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <button onClick={() => startEditing(grade)} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Edit</button>
-                      <button onClick={() => deleteGrade(grade.id)} className="px-2.5 py-1 text-xs font-medium border border-red-900 hover:border-red-700 text-red-500 hover:text-red-400 rounded-md transition cursor-pointer">Delete</button>
+                      <Btn size="sm" onClick={() => startEditing(grade)}>Edit</Btn>
+                      <Btn size="sm" variant="danger" onClick={() => deleteGrade(grade.id)}>Delete</Btn>
                     </div>
                   </div>
                 )}

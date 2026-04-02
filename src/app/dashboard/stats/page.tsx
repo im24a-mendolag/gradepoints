@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { DashboardProvider, useDashboard } from "../DashboardContext";
+import Btn from "../components/Btn";
 import {
   SEMESTER_SUBJECTS,
   TOTAL_SEMESTERS,
@@ -691,12 +692,7 @@ function StatsContent() {
             >
               {session?.user?.name}
             </Link>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
-            >
-              Sign out
-            </button>
+            <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
           </div>
         </div>
       </header>

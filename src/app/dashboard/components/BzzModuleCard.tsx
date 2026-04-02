@@ -3,6 +3,7 @@
 import { useDashboard } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
 import { BZZ_SEMESTER } from "@/lib/semesters";
+import Btn from "./Btn";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
@@ -37,7 +38,7 @@ function GradePicker({ value, onChange }: { value: string; onChange: (v: string)
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => blockNonNumericKeys(e)}
         className={`w-20 px-2 h-9 rounded-lg border text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
-          ${!isNaN(parsed) && parsed >= 1 && parsed <= 6 && !GRADE_VALUES.includes(parsed)
+          ${!isNaN(parsed) && parsed >= 1 && parsed <= 6
             ? `${getGradeColor(parsed)} border-blue-400`
             : "border-neutral-700 bg-neutral-800 text-neutral-300"
           }`}
@@ -174,7 +175,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
             {modGrades.length} grade{modGrades.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-3 ml-6 sm:ml-0">
+        <div className="flex items-center gap-2 ml-6 sm:ml-0">
           {isEditingAdj ? (
             <div className="flex items-center gap-2">
               <input
@@ -190,18 +191,15 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                 placeholder="±0.0"
                 autoFocus
               />
-              <button onClick={handleSaveAdj} className="px-2.5 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition cursor-pointer">Save</button>
-              <button onClick={cancelEditingAdjustment} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Cancel</button>
+              <Btn size="sm" variant="primary" onClick={handleSaveAdj}>Save</Btn>
+              <Btn size="sm" onClick={cancelEditingAdjustment}>Cancel</Btn>
             </div>
           ) : (
-            <button onClick={handleStartEditingAdj} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer" title="Set bonus/malus">±</button>
+            <Btn size="sm" onClick={handleStartEditingAdj} title="Set bonus/malus">±</Btn>
           )}
-          <button
-            onClick={handleStartAdding}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
-          >
+          <Btn variant="primary" onClick={handleStartAdding} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
-          </button>
+          </Btn>
         </div>
       </div>
 
@@ -240,19 +238,8 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => addBzzGrade(mod)}
-                disabled={!gradeValue}
-                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Add Grade
-              </button>
-              <button
-                onClick={cancelAdding}
-                className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
-              >
-                Cancel
-              </button>
+              <Btn variant="primary" disabled={!gradeValue} onClick={() => addBzzGrade(mod)}>Add Grade</Btn>
+              <Btn onClick={cancelAdding}>Cancel</Btn>
             </div>
           </div>
         </div>
@@ -290,18 +277,8 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => updateGrade(grade.id)}
-                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={cancelEditing}
-                        className="px-3 py-1.5 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
-                      >
-                        Cancel
-                      </button>
+                      <Btn size="sm" variant="primary" onClick={() => updateGrade(grade.id)}>Save</Btn>
+                      <Btn size="sm" onClick={cancelEditing}>Cancel</Btn>
                     </div>
                   </div>
                 ) : (
@@ -317,8 +294,8 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <button onClick={() => startEditing(grade)} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Edit</button>
-                      <button onClick={() => deleteGrade(grade.id)} className="px-2.5 py-1 text-xs font-medium border border-red-900 hover:border-red-700 text-red-500 hover:text-red-400 rounded-md transition cursor-pointer">Delete</button>
+                      <Btn size="sm" onClick={() => startEditing(grade)}>Edit</Btn>
+                      <Btn size="sm" variant="danger" onClick={() => deleteGrade(grade.id)}>Delete</Btn>
                     </div>
                   </div>
                 )}

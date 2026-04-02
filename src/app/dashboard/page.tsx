@@ -16,6 +16,7 @@ import {
 } from "@/lib/semesters";
 
 import { DashboardProvider, useDashboard } from "./DashboardContext";
+import Btn from "./components/Btn";
 import SemesterTabs from "./components/SemesterTabs";
 import StatsCards from "./components/StatsCards";
 import { SemesterPassFailRules, OverviewPassFailRules } from "./components/PassFailRules";
@@ -209,12 +210,7 @@ function DashboardContent() {
             >
               {session?.user?.name}
             </Link>
-            <button
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-sm text-red-400 hover:text-red-300 font-medium cursor-pointer"
-            >
-              Sign out
-            </button>
+            <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
           </div>
         </div>
       </header>

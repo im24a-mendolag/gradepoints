@@ -3,6 +3,7 @@
 import { FINALS_SEMESTER } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
+import Btn from "./Btn";
 
 /**
  * Renders a finals subject card (e.g. "German" with Oral + Written rows).
@@ -28,7 +29,6 @@ export default function FinalsCard({
     cancelEditingFinals,
   } = useDashboard();
 
-  // Calculate group average
   const groupGrades = entries
     .map((entry) => {
       const g = getGradesForSubject(FINALS_SEMESTER, entry);
@@ -47,9 +47,7 @@ export default function FinalsCard({
         <div className="flex items-center gap-2 sm:gap-3">
           <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{groupName}</h3>
           {groupAvg !== null && (
-            <span
-              className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}
-            >
+            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}>
               Ø {groupAvg.toFixed(2)}
             </span>
           )}
@@ -70,7 +68,6 @@ export default function FinalsCard({
               className="px-4 sm:px-6 py-3 flex items-center justify-between hover:bg-neutral-800/50 transition"
             >
               {isEditingThis ? (
-                /* Edit / Add inline form */
                 <div className="flex items-center gap-2 sm:gap-3 flex-1 flex-wrap">
                   <input
                     type="number"
@@ -91,31 +88,24 @@ export default function FinalsCard({
                     autoFocus
                   />
                   <span className="text-sm text-neutral-400">{label}</span>
-                  <button
+                  <Btn
+                    size="sm"
+                    variant="primary"
+                    disabled={!getFinalsInputValue(entry)}
                     onClick={() => {
                       const val = getFinalsInputValue(entry);
                       if (val) { saveFinalsGrade(entry, val); cancelEditingFinals(); }
                     }}
-                    disabled={!getFinalsInputValue(entry)}
-                    className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Save
-                  </button>
-                  <button
-                    onClick={cancelEditingFinals}
-                    className="text-sm text-neutral-400 hover:text-neutral-300 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+                  </Btn>
+                  <Btn size="sm" onClick={cancelEditingFinals}>Cancel</Btn>
                 </div>
               ) : (
-                /* View mode */
                 <>
                   <div className="flex items-center gap-2 sm:gap-3">
                     {currentGrade ? (
-                      <span
-                        className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}
-                      >
+                      <span className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border ${getGradeColor(currentGrade.value)}`}>
                         {currentGrade.value}
                       </span>
                     ) : (
@@ -126,19 +116,11 @@ export default function FinalsCard({
                     <span className="text-sm text-neutral-400">{label}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => startEditingFinals(entry, currentGrade)}
-                      className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
-                    >
+                    <Btn size="sm" onClick={() => startEditingFinals(entry, currentGrade)}>
                       {currentGrade ? "Edit" : "+ Add"}
-                    </button>
+                    </Btn>
                     {currentGrade && (
-                      <button
-                        onClick={() => handleDeleteFinalsEntry(entry)}
-                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                      <Btn size="sm" variant="danger" onClick={() => handleDeleteFinalsEntry(entry)}>Delete</Btn>
                     )}
                   </div>
                 </>
