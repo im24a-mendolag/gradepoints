@@ -118,6 +118,16 @@ interface DashboardContextType {
   // ── BZZ CRUD ──
   addBzzGrade: (mod: string) => Promise<void>;
   saveBzzAdjustment: (mod: string, value: number) => Promise<void>;
+
+  // ── Bulk import ──
+  bulkImportGrades: (subject: string, entries: BulkGradeEntry[]) => Promise<void>;
+}
+
+export interface BulkGradeEntry {
+  value: number;
+  weight: number;
+  description: string;
+  date: string; // YYYY-MM-DD
 }
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
@@ -817,6 +827,33 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setFinalsInputs((prev) => ({ ...prev, [entry]: value }));
   };
 
+  const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
+    setError(null);
+    try {
+      for (const entry of entries) {
+        const res = await fetch("/api/grades", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            value: entry.value,
+            weight: entry.weight,
+            description: entry.description,
+            date: entry.date,
+            semester: activeSemester,
+            subject,
+          }),
+        });
+        if (!res.ok) {
+          setError((await res.json()).error || "Failed to import a grade");
+          return;
+        }
+      }
+      await fetchGrades();
+    } catch {
+      setError("Failed to import grades. Please try again.");
+    }
+  };
+
   // ─── Context value ────────────────────────────────────────────
 
   const value: DashboardContextType = {
@@ -858,6 +895,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage,
     getBzzPassFail,
     addBzzGrade, saveBzzAdjustment,
+    bulkImportGrades,
   };
 
   return (

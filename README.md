@@ -45,6 +45,13 @@ Switch between **KSH** and **BZZ** via a pill-style toggle in the header. Each s
 - **Styling:** [Tailwind CSS v4](https://tailwindcss.com)
 - **Deployment:** [Vercel](https://vercel.com)
 
+## Demo Account
+
+A pre-seeded demo account is available on the live site:
+
+- **Email:** `demo@gradepoints.ch`
+- **Password:** `demo123`
+
 ## Getting Started
 
 ### Prerequisites

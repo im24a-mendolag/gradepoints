@@ -1,7 +1,37 @@
 "use client";
 
-import { useDashboard } from "../DashboardContext";
+import { useState } from "react";
+import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
+
+function parsePastedGrades(text: string): BulkGradeEntry[] {
+  return text
+    .split("\n")
+    .map((line) => line.trimEnd())
+    .filter((line) => line.trim().length > 0)
+    .flatMap((line) => {
+      const fields = line.split("\t");
+      if (fields.length < 2) return [];
+      const description = fields[0].trim();
+      const rawValue = fields[1].trim().replace(",", ".");
+      const value = parseFloat(rawValue);
+      if (isNaN(value) || value < 1 || value > 6) return [];
+
+      // Date: DD.MM.YYYY → YYYY-MM-DD, fallback to today
+      let date = new Date().toISOString().split("T")[0];
+      if (fields[2]) {
+        const parts = fields[2].trim().split(".");
+        if (parts.length === 3) {
+          date = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
+        }
+      }
+
+      const rawWeight = fields[3]?.trim().replace(",", ".");
+      const weight = rawWeight ? parseFloat(rawWeight) : 1;
+
+      return [{ description, value, date, weight: isNaN(weight) ? 1 : weight }];
+    });
+}
 
 /**
  * Renders a subject card for a regular semester.
@@ -9,6 +39,9 @@ import { getGradeColor, blockNonNumericKeys } from "../utils";
  * @param subject - The subject name (e.g. "Math").
  */
 export default function SubjectCard({ subject }: { subject: string }) {
+  const [isPasting, setIsPasting] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+
   const {
     activeSemester,
     getGradesForSubject,
@@ -40,7 +73,17 @@ export default function SubjectCard({ subject }: { subject: string }) {
     adjustmentInput,
     setAdjustmentInput,
     handleSaveAdjustment,
+    bulkImportGrades,
   } = useDashboard();
+
+  const parsedGrades = isPasting ? parsePastedGrades(pasteText) : [];
+
+  const handleImport = async () => {
+    if (parsedGrades.length === 0) return;
+    await bulkImportGrades(subject, parsedGrades);
+    setIsPasting(false);
+    setPasteText("");
+  };
 
   const subjectGrades = getGradesForSubject(activeSemester, subject);
   const avg = getSubjectAverage(activeSemester, subject);
@@ -132,6 +175,13 @@ export default function SubjectCard({ subject }: { subject: string }) {
             </button>
           )}
           <button
+            onClick={() => { setIsPasting(true); setPasteText(""); }}
+            className="text-sm text-neutral-400 hover:text-neutral-200 font-medium cursor-pointer"
+            title="Paste grades from school website"
+          >
+            Paste
+          </button>
+          <button
             onClick={() => startAdding(subject)}
             className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
           >
@@ -208,6 +258,52 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 Cancel
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paste Grades Form */}
+      {isPasting && (
+        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-neutral-800/60 border-b border-neutral-700">
+          <p className="text-xs text-neutral-400 mb-2">
+            Paste grades from the school website (tab-separated: Name, Grade, Date, Weight)
+          </p>
+          <textarea
+            autoFocus
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            rows={4}
+            className="w-full px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-900 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y font-mono"
+            placeholder={"Prüfung 1\t4.4\t15.09.2025\t1\nPolitik-Podcast\t4.7\t24.09.2025\t1"}
+          />
+          {parsedGrades.length > 0 && (
+            <div className="mt-2 space-y-1">
+              {parsedGrades.map((g, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-neutral-300">
+                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded font-bold border shrink-0 ${getGradeColor(g.value)}`}>
+                    {g.value}
+                  </span>
+                  <span className="text-neutral-500">×{g.weight}</span>
+                  <span>{g.description || <em className="text-neutral-500">no description</em>}</span>
+                  <span className="text-neutral-500 ml-auto">{g.date}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2 mt-3">
+            <button
+              onClick={handleImport}
+              disabled={parsedGrades.length === 0}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Import {parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}
+            </button>
+            <button
+              onClick={() => { setIsPasting(false); setPasteText(""); }}
+              className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}
