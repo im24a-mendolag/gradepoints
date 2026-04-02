@@ -18,6 +18,15 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Hide number input spinners */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+}
+input[type="number"] {
+  appearance: textfield;
+}
+
 /* Dark mode date input icon */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.7);

@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
 
+const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
+const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
+
 function parsePastedGrades(text: string): BulkGradeEntry[] {
   return text
     .split("\n")
@@ -17,7 +20,6 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
       const value = parseFloat(rawValue);
       if (isNaN(value) || value < 1 || value > 6) return [];
 
-      // Date: DD.MM.YYYY → YYYY-MM-DD, fallback to today
       let date = new Date().toISOString().split("T")[0];
       if (fields[2]) {
         const parts = fields[2].trim().split(".");
@@ -33,6 +35,81 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
     });
 }
 
+function GradePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const parsed = parseFloat(value);
+  return (
+    <div className="flex flex-wrap gap-1.5 items-center">
+      {GRADE_VALUES.map((v) => {
+        const selected = value === String(v);
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onChange(String(v))}
+            className={`w-10 h-9 rounded-lg text-sm font-bold border transition cursor-pointer select-none
+              ${selected
+                ? `${getGradeColor(v)} ring-2 ring-blue-400 ring-offset-1 ring-offset-neutral-900`
+                : "border-neutral-700 bg-neutral-800 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+              }`}
+          >
+            {v}
+          </button>
+        );
+      })}
+      <input
+        type="number"
+        min="1"
+        max="6"
+        step="any"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => blockNonNumericKeys(e)}
+        className={`w-20 px-2 h-9 rounded-lg border text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
+          ${!isNaN(parsed) && parsed >= 1 && parsed <= 6
+            ? `${getGradeColor(parsed)} border-blue-400`
+            : "border-neutral-700 bg-neutral-800 text-neutral-300"
+          }`}
+        placeholder="custom"
+      />
+    </div>
+  );
+}
+
+function WeightPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      {WEIGHT_VALUES.map((w) => {
+        const selected = value === String(w);
+        return (
+          <button
+            key={w}
+            type="button"
+            onClick={() => onChange(String(w))}
+            className={`px-3 h-9 rounded-lg text-sm font-medium border transition cursor-pointer select-none
+              ${selected
+                ? "bg-blue-600 border-blue-500 text-white"
+                : "border-neutral-700 bg-neutral-800 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
+              }`}
+          >
+            ×{w}
+          </button>
+        );
+      })}
+      <input
+        type="number"
+        min="0"
+        max="10"
+        step="any"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => blockNonNumericKeys(e)}
+        className="w-20 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm font-bold text-neutral-300 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+        placeholder="custom"
+      />
+    </div>
+  );
+}
+
 /**
  * Renders a subject card for a regular semester.
  * Pulls all state and actions from DashboardContext.
@@ -41,6 +118,7 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
 export default function SubjectCard({ subject }: { subject: string }) {
   const [isPasting, setIsPasting] = useState(false);
   const [pasteText, setPasteText] = useState("");
+  const [isImporting, setIsImporting] = useState(false);
 
   const {
     activeSemester,
@@ -79,10 +157,12 @@ export default function SubjectCard({ subject }: { subject: string }) {
   const parsedGrades = isPasting ? parsePastedGrades(pasteText) : [];
 
   const handleImport = async () => {
-    if (parsedGrades.length === 0) return;
+    if (parsedGrades.length === 0 || isImporting) return;
+    setIsImporting(true);
     await bulkImportGrades(subject, parsedGrades);
     setIsPasting(false);
     setPasteText("");
+    setIsImporting(false);
   };
 
   const subjectGrades = getGradesForSubject(activeSemester, subject);
@@ -104,15 +184,11 @@ export default function SubjectCard({ subject }: { subject: string }) {
             className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition"
             title={isExpanded ? "Hide grades" : "Show grades"}
           >
-            <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>
-              ▶
-            </span>
+            <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
           </button>
           <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
           {avg !== null && (
-            <span
-              className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}
-            >
+            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}>
               Ø {avg.toFixed(1)}
               {rawAvg !== null && (
                 <span className="text-neutral-500 font-normal ml-1">({rawAvg.toFixed(3)})</span>
@@ -120,15 +196,8 @@ export default function SubjectCard({ subject }: { subject: string }) {
             </span>
           )}
           {adj !== 0 && (
-            <span
-              className={`text-xs font-medium px-1.5 py-0.5 rounded border ${
-                adj > 0
-                  ? "text-green-400 bg-green-900/30 border-green-700"
-                  : "text-red-400 bg-red-900/30 border-red-700"
-              }`}
-            >
-              {adj > 0 ? "+" : ""}
-              {adj}
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
+              {adj > 0 ? "+" : ""}{adj}
             </span>
           )}
           <span className="text-xs text-neutral-500">
@@ -136,7 +205,6 @@ export default function SubjectCard({ subject }: { subject: string }) {
           </span>
         </div>
         <div className="flex items-center gap-3 ml-6 sm:ml-0">
-          {/* Adjustment button */}
           {isEditingAdj ? (
             <div className="flex items-center gap-2">
               <input
@@ -152,108 +220,73 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 placeholder="±0.0"
                 autoFocus
               />
-              <button
-                onClick={() => handleSaveAdjustment(activeSemester, subject)}
-                className="text-xs text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
-              >
-                Save
-              </button>
-              <button
-                onClick={cancelEditingAdjustment}
-                className="text-xs text-neutral-400 hover:text-neutral-300 cursor-pointer"
-              >
-                Cancel
-              </button>
+              <button onClick={() => handleSaveAdjustment(activeSemester, subject)} className="px-2.5 py-1 text-xs font-medium bg-blue-600 hover:bg-blue-500 text-white rounded-md transition cursor-pointer">Save</button>
+              <button onClick={cancelEditingAdjustment} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Cancel</button>
             </div>
           ) : (
-            <button
-              onClick={() => startEditingAdjustment(activeSemester, subject)}
-              className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
-              title="Set bonus/malus"
-            >
-              ±
-            </button>
+            <button onClick={() => startEditingAdjustment(activeSemester, subject)} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer" title="Set bonus/malus">±</button>
           )}
           <button
             onClick={() => { setIsPasting(true); setPasteText(""); }}
-            className="text-sm text-neutral-400 hover:text-neutral-200 font-medium cursor-pointer"
+            className="px-3 py-1.5 text-sm font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-lg transition cursor-pointer"
             title="Paste grades from school website"
           >
             Paste
           </button>
           <button
             onClick={() => startAdding(subject)}
-            className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
           >
-            + Add Grade
+            <span className="text-base leading-none">+</span> Add Grade
           </button>
         </div>
       </div>
 
       {/* Add Grade Form */}
       {isExpanded && isAdding && (
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-blue-900/20 border-b border-blue-900/40">
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 items-end">
+        <div className="px-4 sm:px-6 py-4 bg-blue-950/30 border-b border-blue-900/30">
+          <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">Grade (1–6)</label>
-              <input
-                type="number"
-                min="1"
-                max="6"
-                step="0.5"
-                value={gradeValue}
-                onChange={(e) => setGradeValue(e.target.value)}
-                onKeyDown={(e) => blockNonNumericKeys(e)}
-                className="w-full sm:w-24 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
-                placeholder="5.0"
-                autoFocus
-              />
+              <label className="block text-xs font-medium text-neutral-400 mb-2">Grade</label>
+              <GradePicker value={gradeValue} onChange={setGradeValue} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-1">Weight</label>
-              <input
-                type="number"
-                min="0"
-                max="10"
-                step="0.5"
-                value={gradeWeight}
-                onChange={(e) => setGradeWeight(e.target.value)}
-                onKeyDown={(e) => blockNonNumericKeys(e)}
-                className="w-full sm:w-20 px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
-              />
+              <label className="block text-xs font-medium text-neutral-400 mb-2">Weight</label>
+              <WeightPicker value={gradeWeight} onChange={setGradeWeight} />
             </div>
-            <div className="col-span-2 sm:flex-1 sm:min-w-[200px]">
-              <label className="block text-xs font-medium text-neutral-400 mb-1">
-                Description (optional)
-              </label>
-              <input
-                type="text"
-                value={gradeDescription}
-                onChange={(e) => setGradeDescription(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
-                placeholder="e.g. Midterm exam"
-              />
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-neutral-400 mb-2">Description (optional)</label>
+                <input
+                  type="text"
+                  value={gradeDescription}
+                  onChange={(e) => setGradeDescription(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter" && gradeValue) addGrade(subject); }}
+                  className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100 text-sm"
+                  placeholder="e.g. Midterm exam"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-400 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={gradeDate}
+                  onChange={(e) => setGradeDate(e.target.value)}
+                  className="w-full sm:w-auto px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100 text-sm"
+                />
+              </div>
             </div>
-            <div className="col-span-2">
-              <label className="block text-xs font-medium text-neutral-400 mb-1">Date</label>
-              <input
-                type="date"
-                value={gradeDate}
-                onChange={(e) => setGradeDate(e.target.value)}
-                className="w-full sm:w-auto px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100"
-              />
-            </div>
-            <div className="col-span-2 flex gap-2 sm:gap-3">
+            <div className="flex gap-2 pt-1">
               <button
                 onClick={() => addGrade(subject)}
                 disabled={!gradeValue}
-                className="flex-1 sm:flex-none px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
-                Add
+                Add Grade
               </button>
               <button
                 onClick={cancelAdding}
-                className="flex-1 sm:flex-none px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
+                className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
               >
                 Cancel
               </button>
@@ -264,7 +297,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
 
       {/* Paste Grades Form */}
       {isPasting && (
-        <div className="px-4 sm:px-6 py-3 sm:py-4 bg-neutral-800/60 border-b border-neutral-700">
+        <div className="px-4 sm:px-6 py-4 bg-neutral-800/60 border-b border-neutral-700">
           <p className="text-xs text-neutral-400 mb-2">
             Paste grades from the school website (tab-separated: Name, Grade, Date, Weight)
           </p>
@@ -280,9 +313,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
             <div className="mt-2 space-y-1">
               {parsedGrades.map((g, i) => (
                 <div key={i} className="flex items-center gap-2 text-xs text-neutral-300">
-                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded font-bold border shrink-0 ${getGradeColor(g.value)}`}>
-                    {g.value}
-                  </span>
+                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded font-bold border shrink-0 ${getGradeColor(g.value)}`}>{g.value}</span>
                   <span className="text-neutral-500">×{g.weight}</span>
                   <span>{g.description || <em className="text-neutral-500">no description</em>}</span>
                   <span className="text-neutral-500 ml-auto">{g.date}</span>
@@ -293,14 +324,14 @@ export default function SubjectCard({ subject }: { subject: string }) {
           <div className="flex gap-2 mt-3">
             <button
               onClick={handleImport}
-              disabled={parsedGrades.length === 0}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              disabled={parsedGrades.length === 0 || isImporting}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
             >
-              Import {parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}
+              {isImporting ? "Importing…" : `Import ${parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}`}
             </button>
             <button
               onClick={() => { setIsPasting(false); setPasteText(""); }}
-              className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium cursor-pointer"
+              className="px-4 py-2 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
             >
               Cancel
             </button>
@@ -313,55 +344,42 @@ export default function SubjectCard({ subject }: { subject: string }) {
         (subjectGrades.length > 0 ? (
           <div className="divide-y divide-neutral-800">
             {subjectGrades.map((grade) => (
-              <div
-                key={grade.id}
-                className="px-4 sm:px-6 py-3 hover:bg-neutral-800/50 transition"
-              >
+              <div key={grade.id} className="px-4 sm:px-6 py-3 hover:bg-neutral-800/50 transition">
                 {editingGrade === grade.id ? (
-                  <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3 items-end">
-                    <input
-                      type="number"
-                      min="1"
-                      max="6"
-                      step="0.5"
-                      value={editValue}
-                      onChange={(e) => setEditValue(e.target.value)}
-                      onKeyDown={(e) => blockNonNumericKeys(e)}
-                      className="w-full sm:w-24 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="10"
-                      step="0.5"
-                      value={editWeight}
-                      onChange={(e) => setEditWeight(e.target.value)}
-                      onKeyDown={(e) => blockNonNumericKeys(e)}
-                      className="w-full sm:w-20 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
-                    />
-                    <input
-                      type="text"
-                      value={editDescription}
-                      onChange={(e) => setEditDescription(e.target.value)}
-                      className="col-span-2 sm:flex-1 sm:min-w-[150px] px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
-                      placeholder="Description"
-                    />
-                    <input
-                      type="date"
-                      value={editDate}
-                      onChange={(e) => setEditDate(e.target.value)}
-                      className="col-span-2 w-full sm:w-auto px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
-                    />
-                    <div className="col-span-2 flex gap-2">
+                  <div className="space-y-3 py-1">
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1.5">Grade</label>
+                      <GradePicker value={editValue} onChange={setEditValue} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-500 mb-1.5">Weight</label>
+                      <WeightPicker value={editWeight} onChange={setEditWeight} />
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={editDescription}
+                        onChange={(e) => setEditDescription(e.target.value)}
+                        className="flex-1 px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                        placeholder="Description"
+                      />
+                      <input
+                        type="date"
+                        value={editDate}
+                        onChange={(e) => setEditDate(e.target.value)}
+                        className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-neutral-600 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100"
+                      />
+                    </div>
+                    <div className="flex gap-2">
                       <button
                         onClick={() => updateGrade(grade.id)}
-                        className="text-sm text-blue-400 hover:text-blue-300 font-medium cursor-pointer"
+                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition cursor-pointer"
                       >
                         Save
                       </button>
                       <button
                         onClick={cancelEditing}
-                        className="text-sm text-neutral-400 hover:text-neutral-300 cursor-pointer"
+                        className="px-3 py-1.5 text-neutral-400 hover:text-neutral-200 text-sm font-medium rounded-lg border border-neutral-700 hover:border-neutral-600 transition cursor-pointer"
                       >
                         Cancel
                       </button>
@@ -370,34 +388,18 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <span
-                        className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}
-                      >
+                      <span className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}>
                         {grade.value}
                       </span>
                       <span className="text-xs text-neutral-500 font-medium shrink-0">×{grade.weight}</span>
                       <div className="min-w-0">
-                        <p className="text-sm text-neutral-200 truncate">
-                          {grade.description || "No description"}
-                        </p>
-                        <p className="text-xs text-neutral-500">
-                          {new Date(grade.date).toLocaleDateString()}
-                        </p>
+                        <p className="text-sm text-neutral-200 truncate">{grade.description || "No description"}</p>
+                        <p className="text-xs text-neutral-500">{new Date(grade.date).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 ml-2">
-                      <button
-                        onClick={() => startEditing(grade)}
-                        className="text-xs text-neutral-500 hover:text-neutral-300 cursor-pointer"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteGrade(grade.id)}
-                        className="text-xs text-red-400 hover:text-red-300 cursor-pointer"
-                      >
-                        Delete
-                      </button>
+                      <button onClick={() => startEditing(grade)} className="px-2.5 py-1 text-xs font-medium border border-neutral-700 hover:border-neutral-500 text-neutral-400 hover:text-neutral-200 rounded-md transition cursor-pointer">Edit</button>
+                      <button onClick={() => deleteGrade(grade.id)} className="px-2.5 py-1 text-xs font-medium border border-red-900 hover:border-red-700 text-red-500 hover:text-red-400 rounded-md transition cursor-pointer">Delete</button>
                     </div>
                   </div>
                 )}
