@@ -9,6 +9,7 @@ export const SUBJECTS = [
   "Science",
   "IDAF",
   "IDPA",
+  "PrWr",
 ] as const;
 
 export type Subject = (typeof SUBJECTS)[number];
@@ -16,8 +17,8 @@ export type Subject = (typeof SUBJECTS)[number];
 export const SEMESTER_SUBJECTS: Record<number, Subject[]> = {
   1: ["German", "French", "English", "Math", "WR", "FrW", "History"],
   2: ["German", "French", "English", "Math", "WR", "FrW", "History"],
-  3: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF"],
-  4: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF"],
+  3: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF", "PrWr"],
+  4: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF", "PrWr"],
   5: ["German", "French", "English", "Math", "WR", "FrW", "Science"],
   6: ["German", "French", "English", "Math", "WR", "FrW", "Science", "IDPA"],
 };

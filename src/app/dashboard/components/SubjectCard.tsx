@@ -118,10 +118,9 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
  * @param subject - The subject name (e.g. "Math").
  */
 export default function SubjectCard({ subject }: { subject: string }) {
-  const [isPasting, setIsPasting] = useState(false);
+  const [activePanel, setActivePanel] = useState<"add" | "paste" | "target" | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
-  const [isTargeting, setIsTargeting] = useState(false);
   const [targetAvg, setTargetAvg] = useState("");
   const [targetWeight, setTargetWeight] = useState("1");
 
@@ -133,7 +132,6 @@ export default function SubjectCard({ subject }: { subject: string }) {
     getAdjustment,
     expandedSubjects,
     toggleExpand,
-    addingFor,
     startAdding,
     cancelAdding,
     gradeValue, setGradeValue,
@@ -159,13 +157,27 @@ export default function SubjectCard({ subject }: { subject: string }) {
     bulkImportGrades,
   } = useDashboard();
 
-  const parsedGrades = isPasting ? parsePastedGrades(pasteText) : [];
+  const openPanel = (panel: "add" | "paste" | "target") => {
+    if (activePanel === panel) { closePanel(); return; }
+    setActivePanel(panel);
+    if (panel === "paste") setPasteText("");
+    if (panel === "target") { setTargetAvg(""); setTargetWeight("1"); }
+    if (panel === "add") startAdding(subject);
+    if (panel !== "add") cancelAdding();
+  };
+
+  const closePanel = () => {
+    setActivePanel(null);
+    cancelAdding();
+  };
+
+  const parsedGrades = activePanel === "paste" ? parsePastedGrades(pasteText) : [];
 
   const handleImport = async () => {
     if (parsedGrades.length === 0 || isImporting) return;
     setIsImporting(true);
     await bulkImportGrades(subject, parsedGrades);
-    setIsPasting(false);
+    setActivePanel(null);
     setPasteText("");
     setIsImporting(false);
   };
@@ -176,7 +188,6 @@ export default function SubjectCard({ subject }: { subject: string }) {
   const adj = getAdjustment(activeSemester, subject);
   const adjKey = `${activeSemester}-${subject}`;
   const isExpanded = expandedSubjects.has(subject);
-  const isAdding = addingFor === subject;
   const isEditingAdj = editingAdjustment === adjKey;
 
   return (
@@ -231,16 +242,16 @@ export default function SubjectCard({ subject }: { subject: string }) {
           ) : (
             <Btn size="sm" onClick={() => startEditingAdjustment(activeSemester, subject)} title="Set bonus/malus">±</Btn>
           )}
-          <Btn size="sm" onClick={() => { setIsTargeting(true); setTargetAvg(""); setTargetWeight("1"); }} title="Calculate required grade">Target</Btn>
-          <Btn size="sm" onClick={() => { setIsPasting(true); setPasteText(""); }} title="Paste grades from school website">Paste</Btn>
-          <Btn variant="primary" onClick={() => startAdding(subject)} className="gap-1.5">
+          <Btn size="sm" variant={activePanel === "target" ? "primary" : "secondary"} onClick={() => openPanel("target")} title="Calculate required grade">Target</Btn>
+          <Btn size="sm" variant={activePanel === "paste" ? "primary" : "secondary"} onClick={() => openPanel("paste")} title="Paste grades from school website">Paste</Btn>
+          <Btn variant={activePanel === "add" ? "primary" : "secondary"} onClick={() => openPanel("add")} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
           </Btn>
         </div>
       </div>
 
       {/* Add Grade Form */}
-      {isExpanded && isAdding && (
+      {activePanel === "add" && (
         <div className="px-4 sm:px-6 py-4 bg-blue-950/30 border-b border-blue-900/30">
           <div className="space-y-4">
             <div>
@@ -275,24 +286,24 @@ export default function SubjectCard({ subject }: { subject: string }) {
             </div>
             <div className="flex gap-2 pt-1">
               <Btn variant="primary" disabled={!gradeValue} onClick={() => addGrade(subject)}>Add Grade</Btn>
-              <Btn onClick={cancelAdding}>Cancel</Btn>
+              <Btn onClick={closePanel}>Cancel</Btn>
             </div>
           </div>
         </div>
       )}
 
       {/* Target Grade Calculator */}
-      {isTargeting && <TargetCalculator
+      {activePanel === "target" && <TargetCalculator
         grades={getGradesForSubject(activeSemester, subject)}
         targetAvg={targetAvg}
         targetWeight={targetWeight}
         onTargetAvgChange={setTargetAvg}
         onTargetWeightChange={setTargetWeight}
-        onClose={() => { setIsTargeting(false); setTargetAvg(""); }}
+        onClose={closePanel}
       />}
 
       {/* Paste Grades Form */}
-      {isPasting && (
+      {activePanel === "paste" && (
         <div className="px-4 sm:px-6 py-4 bg-neutral-800/60 border-b border-neutral-700">
           <p className="text-xs text-neutral-400 mb-2">
             Paste grades from the school website (tab-separated: Name, Grade, Date, Weight)
@@ -321,7 +332,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
             <Btn variant="primary" disabled={parsedGrades.length === 0 || isImporting} onClick={handleImport}>
               {isImporting ? "Importing…" : `Import ${parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}`}
             </Btn>
-            <Btn onClick={() => { setIsPasting(false); setPasteText(""); }}>Cancel</Btn>
+            <Btn onClick={closePanel}>Cancel</Btn>
           </div>
         </div>
       )}

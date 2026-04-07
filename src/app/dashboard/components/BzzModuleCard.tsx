@@ -91,7 +91,7 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
  * @param mod - The module name/number (e.g. "431").
  */
 export default function BzzModuleCard({ mod }: { mod: string }) {
-  const [isTargeting, setIsTargeting] = useState(false);
+  const [activePanel, setActivePanel] = useState<"add" | "target" | null>(null);
   const [targetAvg, setTargetAvg] = useState("");
   const [targetWeight, setTargetWeight] = useState("1");
 
@@ -102,7 +102,6 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
     getBzzModuleAdjustment,
     expandedSubjects,
     toggleExpand,
-    addingFor,
     startAdding,
     cancelAdding,
     gradeValue, setGradeValue,
@@ -135,15 +134,22 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
   const expandKey = `bzz-${mod}`;
   const addKey = `bzz-${mod}`;
   const isExpanded = expandedSubjects.has(expandKey);
-  const isAdding = addingFor === addKey;
   const isEditingAdj = editingAdjustment === adjKey;
 
-  const handleToggle = () => toggleExpand(expandKey);
-  const handleStartAdding = () => startAdding(addKey);
-
-  const handleStartEditingAdj = () => {
-    startEditingAdjustment(BZZ_SEMESTER, mod);
+  const openPanel = (panel: "add" | "target") => {
+    if (activePanel === panel) { closePanel(); return; }
+    setActivePanel(panel);
+    if (panel === "target") { setTargetAvg(""); setTargetWeight("1"); }
+    if (panel === "add") startAdding(addKey);
+    if (panel !== "add") cancelAdding();
   };
+
+  const closePanel = () => {
+    setActivePanel(null);
+    cancelAdding();
+  };
+
+  const handleStartEditingAdj = () => startEditingAdjustment(BZZ_SEMESTER, mod);
 
   const handleSaveAdj = () => {
     const val = parseFloat(adjustmentInput);
@@ -157,7 +163,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
       <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-neutral-800">
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <button
-            onClick={handleToggle}
+            onClick={() => toggleExpand(expandKey)}
             className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition"
             title={isExpanded ? "Hide grades" : "Show grades"}
           >
@@ -203,25 +209,25 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
           ) : (
             <Btn size="sm" onClick={handleStartEditingAdj} title="Set bonus/malus">±</Btn>
           )}
-          <Btn size="sm" onClick={() => { setIsTargeting(true); setTargetAvg(""); setTargetWeight("1"); }} title="Calculate required grade">Target</Btn>
-          <Btn variant="primary" onClick={handleStartAdding} className="gap-1.5">
+          <Btn size="sm" variant={activePanel === "target" ? "primary" : "secondary"} onClick={() => openPanel("target")} title="Calculate required grade">Target</Btn>
+          <Btn variant={activePanel === "add" ? "primary" : "secondary"} onClick={() => openPanel("add")} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
           </Btn>
         </div>
       </div>
 
       {/* Target Grade Calculator */}
-      {isTargeting && <TargetCalculator
+      {activePanel === "target" && <TargetCalculator
         grades={getBzzModuleGrades(mod)}
         targetAvg={targetAvg}
         targetWeight={targetWeight}
         onTargetAvgChange={setTargetAvg}
         onTargetWeightChange={setTargetWeight}
-        onClose={() => { setIsTargeting(false); setTargetAvg(""); }}
+        onClose={closePanel}
       />}
 
       {/* Add Grade Form */}
-      {isExpanded && isAdding && (
+      {activePanel === "add" && (
         <div className="px-4 sm:px-6 py-4 bg-blue-950/30 border-b border-blue-900/30">
           <div className="space-y-4">
             <div>
@@ -256,7 +262,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
             </div>
             <div className="flex gap-2 pt-1">
               <Btn variant="primary" disabled={!gradeValue} onClick={() => addBzzGrade(mod)}>Add Grade</Btn>
-              <Btn onClick={cancelAdding}>Cancel</Btn>
+              <Btn onClick={closePanel}>Cancel</Btn>
             </div>
           </div>
         </div>

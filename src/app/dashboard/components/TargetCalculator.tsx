@@ -69,7 +69,7 @@ export default function TargetCalculator({ grades, targetAvg, targetWeight, onTa
         )}
       </div>
       <div className="mt-3">
-        <Btn size="sm" onClick={onClose}>Close</Btn>
+        <Btn onClick={onClose}>Done</Btn>
       </div>
     </div>
   );
