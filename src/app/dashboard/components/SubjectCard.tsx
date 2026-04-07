@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
 import Btn from "./Btn";
+import TargetCalculator from "./TargetCalculator";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
@@ -120,6 +121,9 @@ export default function SubjectCard({ subject }: { subject: string }) {
   const [isPasting, setIsPasting] = useState(false);
   const [pasteText, setPasteText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
+  const [isTargeting, setIsTargeting] = useState(false);
+  const [targetAvg, setTargetAvg] = useState("");
+  const [targetWeight, setTargetWeight] = useState("1");
 
   const {
     activeSemester,
@@ -227,6 +231,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
           ) : (
             <Btn size="sm" onClick={() => startEditingAdjustment(activeSemester, subject)} title="Set bonus/malus">±</Btn>
           )}
+          <Btn size="sm" onClick={() => { setIsTargeting(true); setTargetAvg(""); setTargetWeight("1"); }} title="Calculate required grade">Target</Btn>
           <Btn size="sm" onClick={() => { setIsPasting(true); setPasteText(""); }} title="Paste grades from school website">Paste</Btn>
           <Btn variant="primary" onClick={() => startAdding(subject)} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
@@ -275,6 +280,16 @@ export default function SubjectCard({ subject }: { subject: string }) {
           </div>
         </div>
       )}
+
+      {/* Target Grade Calculator */}
+      {isTargeting && <TargetCalculator
+        grades={getGradesForSubject(activeSemester, subject)}
+        targetAvg={targetAvg}
+        targetWeight={targetWeight}
+        onTargetAvgChange={setTargetAvg}
+        onTargetWeightChange={setTargetWeight}
+        onClose={() => { setIsTargeting(false); setTargetAvg(""); }}
+      />}
 
       {/* Paste Grades Form */}
       {isPasting && (

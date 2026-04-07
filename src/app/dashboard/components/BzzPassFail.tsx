@@ -16,13 +16,13 @@ export default function BzzPassFail() {
   const status = getBzzPassFail();
   const { normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass, passed } = status;
 
-  const hasData = normalAvg !== null || ukAvg !== null || ipaGrade !== null;
   const avgPass = finalAvg !== null ? finalAvg >= 4 : null;
+  const isDecided = finalAvg !== null || ipaPass === false;
 
   return (
     <div
       className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
-        hasData
+        isDecided
           ? passed
             ? "border-green-800"
             : "border-red-800"
@@ -32,7 +32,7 @@ export default function BzzPassFail() {
       {/* Header */}
       <div
         className={`px-4 sm:px-5 py-3 text-sm font-semibold ${
-          hasData
+          isDecided
             ? passed
               ? "bg-green-900/30 text-green-300"
               : "bg-red-900/30 text-red-300"

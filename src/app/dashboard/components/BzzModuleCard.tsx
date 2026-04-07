@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { useDashboard } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys } from "../utils";
 import { BZZ_SEMESTER } from "@/lib/semesters";
 import Btn from "./Btn";
+import TargetCalculator from "./TargetCalculator";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
@@ -89,6 +91,10 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
  * @param mod - The module name/number (e.g. "431").
  */
 export default function BzzModuleCard({ mod }: { mod: string }) {
+  const [isTargeting, setIsTargeting] = useState(false);
+  const [targetAvg, setTargetAvg] = useState("");
+  const [targetWeight, setTargetWeight] = useState("1");
+
   const {
     getBzzModuleGrades,
     getBzzModuleAverage,
@@ -197,11 +203,22 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
           ) : (
             <Btn size="sm" onClick={handleStartEditingAdj} title="Set bonus/malus">±</Btn>
           )}
+          <Btn size="sm" onClick={() => { setIsTargeting(true); setTargetAvg(""); setTargetWeight("1"); }} title="Calculate required grade">Target</Btn>
           <Btn variant="primary" onClick={handleStartAdding} className="gap-1.5">
             <span className="text-base leading-none">+</span> Add Grade
           </Btn>
         </div>
       </div>
+
+      {/* Target Grade Calculator */}
+      {isTargeting && <TargetCalculator
+        grades={getBzzModuleGrades(mod)}
+        targetAvg={targetAvg}
+        targetWeight={targetWeight}
+        onTargetAvgChange={setTargetAvg}
+        onTargetWeightChange={setTargetWeight}
+        onClose={() => { setIsTargeting(false); setTargetAvg(""); }}
+      />}
 
       {/* Add Grade Form */}
       {isExpanded && isAdding && (
