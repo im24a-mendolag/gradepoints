@@ -57,3 +57,8 @@ export function getAvgColor(value: number): string {
 export function getGradeHex(value: number): string {
   return thresholdFor(value).hex;
 }
+
+/** Format a weight value for display — strips unnecessary trailing zeros (e.g. 0.33, 0.67, 0.5, 1). */
+export function formatWeight(w: number): string {
+  return Number(w.toFixed(2)).toString();
+}

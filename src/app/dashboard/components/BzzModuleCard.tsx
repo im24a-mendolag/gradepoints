@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor, blockNonNumericKeys } from "../utils";
+import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
 import { BZZ_SEMESTER } from "@/lib/semesters";
 import Btn from "./Btn";
 import TargetCalculator from "./TargetCalculator";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
-const WEIGHT_VALUES = [0.5, 1, 1.5, 2];
+const WEIGHT_VALUES = [1/3, 2/3, 0.5, 1, 1.5, 2];
 
 function GradePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const parsed = parseFloat(value);
@@ -66,7 +66,7 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
                 : "border-neutral-700 bg-neutral-800 text-neutral-400 hover:border-neutral-500 hover:text-neutral-200"
               }`}
           >
-            ×{w}
+            ×{formatWeight(w)}
           </button>
         );
       })}
@@ -310,7 +310,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                       <span className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}>
                         {grade.value}
                       </span>
-                      <span className="text-xs text-neutral-500 font-medium shrink-0">×{grade.weight}</span>
+                      <span className="text-xs text-neutral-500 font-medium shrink-0">×{formatWeight(grade.weight)}</span>
                       <div className="min-w-0">
                         <p className="text-sm text-neutral-200 truncate">{grade.description || "No description"}</p>
                         <p className="text-xs text-neutral-500">{new Date(grade.date).toLocaleDateString()}</p>
