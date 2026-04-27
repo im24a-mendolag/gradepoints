@@ -45,6 +45,9 @@ export default function RootLayout({
       >
         <SessionProvider>{children}</SessionProvider>
         <ServiceWorkerRegistrar />
+        <footer className="text-center text-xs text-neutral-600 py-4">
+          © {new Date().getFullYear()} GradePoints. All rights reserved.
+        </footer>
       </body>
     </html>
   );
