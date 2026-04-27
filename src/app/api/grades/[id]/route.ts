@@ -32,8 +32,8 @@ export async function PUT(
   const updated = await prisma.grade.update({
     where: { id },
     data: {
-      ...(value !== undefined && { value: parseFloat(value) }),
-      ...(weight !== undefined && { weight: parseFloat(weight) }),
+      ...(value !== undefined && { value: Math.round(parseFloat(value) * 1000) / 1000 }),
+      ...(weight !== undefined && { weight: Math.round(parseFloat(weight) * 1000) / 1000 }),
       ...(description !== undefined && { description }),
       ...(date !== undefined && { date: new Date(date) }),
     },

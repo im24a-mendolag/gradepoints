@@ -87,8 +87,8 @@ export async function POST(request: Request) {
 
   const grade = await prisma.grade.create({
     data: {
-      value: parseFloat(value),
-      weight: weight !== undefined ? parseFloat(weight) : 1,
+      value: Math.round(parseFloat(value) * 1000) / 1000,
+      weight: weight !== undefined ? Math.round(parseFloat(weight) * 1000) / 1000 : 1,
       description: description || "",
       date: date ? new Date(date) : new Date(),
       semester,
