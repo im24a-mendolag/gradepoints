@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
 import Btn from "./Btn";
 import TargetCalculator from "./TargetCalculator";
 
 const GRADE_VALUES = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
-const WEIGHT_VALUES = [1/3, 2/3, 0.5, 1, 1.5, 2];
+const WEIGHT_VALUES = [0.25, 1/3, 0.5, 2/3, 1, 1.5, 2];
 
 function parsePastedGrades(text: string): BulkGradeEntry[] {
   return text
@@ -38,16 +38,20 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
 }
 
 function GradePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const parsed = parseFloat(value);
+  const [customInput, setCustomInput] = useState("");
+  const parsedCustom = parseFloat(customInput);
+
+  useEffect(() => { if (value === "") setCustomInput(""); }, [value]);
+
   return (
     <div className="flex flex-wrap gap-1.5 items-center">
       {GRADE_VALUES.map((v) => {
-        const selected = value === String(v);
+        const selected = customInput === "" && value === String(v);
         return (
           <button
             key={v}
             type="button"
-            onClick={() => onChange(String(v))}
+            onClick={() => { onChange(String(v)); setCustomInput(""); }}
             className={`w-10 h-9 rounded-lg text-sm font-bold border transition cursor-pointer select-none
               ${selected
                 ? `${getGradeColor(v)} ring-2 ring-blue-400 ring-offset-1 ring-offset-neutral-900`
@@ -63,12 +67,12 @@ function GradePicker({ value, onChange }: { value: string; onChange: (v: string)
         min="1"
         max="6"
         step="any"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={customInput}
+        onChange={(e) => { setCustomInput(e.target.value); onChange(e.target.value); }}
         onKeyDown={(e) => blockNonNumericKeys(e)}
         className={`w-20 px-2 h-9 rounded-lg border text-sm font-bold text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition
-          ${!isNaN(parsed) && parsed >= 1 && parsed <= 6
-            ? `${getGradeColor(parsed)} border-blue-400`
+          ${!isNaN(parsedCustom) && parsedCustom >= 1 && parsedCustom <= 6
+            ? `${getGradeColor(parsedCustom)} border-blue-400`
             : "border-neutral-700 bg-neutral-800 text-neutral-300"
           }`}
         placeholder="custom"
@@ -78,15 +82,19 @@ function GradePicker({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 function WeightPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [customInput, setCustomInput] = useState("");
+
+  useEffect(() => { if (value === "") setCustomInput(""); }, [value]);
+
   return (
     <div className="flex gap-1.5 flex-wrap">
       {WEIGHT_VALUES.map((w) => {
-        const selected = value === String(w);
+        const selected = customInput === "" && value === String(w);
         return (
           <button
             key={w}
             type="button"
-            onClick={() => onChange(String(w))}
+            onClick={() => { onChange(String(w)); setCustomInput(""); }}
             className={`px-3 h-9 rounded-lg text-sm font-medium border transition cursor-pointer select-none
               ${selected
                 ? "bg-blue-600 border-blue-500 text-white"
@@ -102,8 +110,8 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
         min="0"
         max="10"
         step="any"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+        value={customInput}
+        onChange={(e) => { setCustomInput(e.target.value); onChange(e.target.value); }}
         onKeyDown={(e) => blockNonNumericKeys(e)}
         className="w-20 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm font-bold text-neutral-300 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
         placeholder="custom"
@@ -117,12 +125,22 @@ function WeightPicker({ value, onChange }: { value: string; onChange: (v: string
  * Pulls all state and actions from DashboardContext.
  * @param subject - The subject name (e.g. "Math").
  */
+function calcGradeFromPoints(my: string, total: string): string {
+  const m = parseFloat(my);
+  const t = parseFloat(total);
+  if (isNaN(m) || isNaN(t) || t <= 0) return "";
+  return String(Math.round(((m / t) * 5 + 1) * 1000) / 1000);
+}
+
 export default function SubjectCard({ subject }: { subject: string }) {
   const [activePanel, setActivePanel] = useState<"add" | "paste" | "target" | null>(null);
   const [pasteText, setPasteText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [targetAvg, setTargetAvg] = useState("");
   const [targetWeight, setTargetWeight] = useState("1");
+  const [inputMode, setInputMode] = useState<"grade" | "points">("grade");
+  const [myPoints, setMyPoints] = useState("");
+  const [totalPoints, setTotalPoints] = useState("");
 
   const {
     activeSemester,
@@ -169,6 +187,9 @@ export default function SubjectCard({ subject }: { subject: string }) {
   const closePanel = () => {
     setActivePanel(null);
     cancelAdding();
+    setInputMode("grade");
+    setMyPoints("");
+    setTotalPoints("");
   };
 
   const parsedGrades = activePanel === "paste" ? parsePastedGrades(pasteText) : [];
@@ -255,8 +276,46 @@ export default function SubjectCard({ subject }: { subject: string }) {
         <div className="px-4 sm:px-6 py-4 bg-blue-950/30 border-b border-blue-900/30">
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-2">Grade</label>
-              <GradePicker value={gradeValue} onChange={setGradeValue} />
+              <div className="flex items-center gap-3 mb-2">
+                <label className="text-xs font-medium text-neutral-400">Grade</label>
+                <div className="flex rounded-md border border-neutral-700 overflow-hidden text-xs">
+                  <button type="button" onClick={() => setInputMode("grade")} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "grade" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Grade</button>
+                  <button type="button" onClick={() => { setInputMode("points"); setGradeValue(""); setMyPoints(""); setTotalPoints(""); }} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "points" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Points</button>
+                </div>
+              </div>
+              {inputMode === "grade" ? (
+                <GradePicker value={gradeValue} onChange={setGradeValue} />
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={myPoints}
+                    onChange={(e) => { setMyPoints(e.target.value); setGradeValue(calcGradeFromPoints(e.target.value, totalPoints)); }}
+                    onKeyDown={(e) => blockNonNumericKeys(e)}
+                    className="w-24 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="My pts"
+                    autoFocus
+                  />
+                  <span className="text-neutral-500 text-sm font-medium">/</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="any"
+                    value={totalPoints}
+                    onChange={(e) => { setTotalPoints(e.target.value); setGradeValue(calcGradeFromPoints(myPoints, e.target.value)); }}
+                    onKeyDown={(e) => blockNonNumericKeys(e)}
+                    className="w-24 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Max pts"
+                  />
+                  {gradeValue && (
+                    <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${getGradeColor(parseFloat(gradeValue))}`}>
+                      = {parseFloat(gradeValue).toFixed(3)}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             <div>
               <label className="block text-xs font-medium text-neutral-400 mb-2">Weight</label>
@@ -285,7 +344,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
               </div>
             </div>
             <div className="flex gap-2 pt-1">
-              <Btn variant="primary" disabled={!gradeValue} onClick={() => addGrade(subject)}>Add Grade</Btn>
+              <Btn variant="primary" disabled={!gradeValue || parseFloat(gradeValue) < 1 || parseFloat(gradeValue) > 6} onClick={() => addGrade(subject)}>Add Grade</Btn>
               <Btn onClick={closePanel}>Cancel</Btn>
             </div>
           </div>
