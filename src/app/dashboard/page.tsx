@@ -249,7 +249,7 @@ function DashboardContent() {
             {/* Semester Tabs */}
             <SemesterTabs />
 
-            <AddGradePanel />
+            {activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && <AddGradePanel />}
 
             {/* Content for active tab */}
             <div className="space-y-4">
