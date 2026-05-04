@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -29,6 +30,9 @@ export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!await checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
   }
 
   const { value, semester, subject, school } = await request.json();
@@ -68,6 +72,9 @@ export async function DELETE(request: Request) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!await checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
   }
 
   const { semester, subject, school } = await request.json();

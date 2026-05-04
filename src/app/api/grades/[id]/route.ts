@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function PUT(
   request: Request,
@@ -9,6 +10,9 @@ export async function PUT(
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!await checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
   }
 
   const { id } = await params;
@@ -49,6 +53,9 @@ export async function DELETE(
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!await checkRateLimit(session.user.id)) {
+    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
   }
 
   const { id } = await params;

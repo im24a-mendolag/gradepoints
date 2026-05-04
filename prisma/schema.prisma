@@ -41,6 +41,15 @@ model Adjustment {
   @@index([userId])
 }
 
+model RateLimit {
+  userId      String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([userId, windowStart])
+  @@index([userId])
+}
+
 model Grade {
   id          String   @id @default(cuid())
   value       Float
