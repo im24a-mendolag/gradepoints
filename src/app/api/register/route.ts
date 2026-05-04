@@ -5,7 +5,7 @@ import { sendVerificationEmail } from "@/lib/email";
 import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
-  const { allowed } = rateLimitByIp(request, { maxRequests: 5, windowMs: 60_000 });
+  const { allowed } = await rateLimitByIp(request, { maxRequests: 5, windowMs: 60_000 });
   if (!allowed) {
     return NextResponse.json({ error: "Too many requests. Please try again later." }, { status: 429 });
   }

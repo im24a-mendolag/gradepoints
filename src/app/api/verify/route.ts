@@ -8,7 +8,7 @@ import { rateLimitByIp } from "@/lib/rate-limit";
  * Redirects to /verify page with success or error status.
  */
 export async function GET(request: Request) {
-  const { allowed } = rateLimitByIp(request, { maxRequests: 10, windowMs: 60_000 });
+  const { allowed } = await rateLimitByIp(request, { maxRequests: 10, windowMs: 60_000 });
   if (!allowed) {
     return NextResponse.redirect(new URL("/verify?status=error&message=Too+many+requests", request.url));
   }
