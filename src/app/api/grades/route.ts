@@ -66,6 +66,17 @@ export async function POST(request: Request) {
     );
   }
 
+  if (description !== undefined && (typeof description !== "string" || description.length > 500)) {
+    return NextResponse.json({ error: "Description must be a string under 500 characters" }, { status: 400 });
+  }
+
+  if (date !== undefined) {
+    const d = new Date(date);
+    if (isNaN(d.getTime()) || d < new Date("2000-01-01") || d > new Date("2100-01-01")) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+    }
+  }
+
   if (schoolValue === "BZZ") {
     if (!isValidBzzSubject(subject)) {
       return NextResponse.json(

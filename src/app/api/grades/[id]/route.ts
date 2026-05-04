@@ -24,6 +24,15 @@ export async function PUT(
   if (weight !== undefined && (isNaN(parseFloat(weight)) || parseFloat(weight) < 0)) {
     return NextResponse.json({ error: "Weight must be a non-negative number" }, { status: 400 });
   }
+  if (description !== undefined && (typeof description !== "string" || description.length > 500)) {
+    return NextResponse.json({ error: "Description must be a string under 500 characters" }, { status: 400 });
+  }
+  if (date !== undefined) {
+    const d = new Date(date);
+    if (isNaN(d.getTime()) || d < new Date("2000-01-01") || d > new Date("2100-01-01")) {
+      return NextResponse.json({ error: "Invalid date" }, { status: 400 });
+    }
+  }
 
   const grade = await prisma.grade.findFirst({
     where: { id, userId: session.user.id },
