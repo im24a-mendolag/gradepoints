@@ -1,51 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
+import { useDashboard } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
 import Btn from "./Btn";
-import TargetCalculator from "./TargetCalculator";
-import { GradePicker, WeightPicker, calcGradeFromPoints } from "./GradePickers";
-
-function parsePastedGrades(text: string): BulkGradeEntry[] {
-  return text
-    .split("\n")
-    .map((line) => line.trimEnd())
-    .filter((line) => line.trim().length > 0)
-    .flatMap((line) => {
-      const fields = line.split("\t");
-      if (fields.length < 2) return [];
-      const description = fields[0].trim();
-      const rawValue = fields[1].trim().replace(",", ".");
-      const value = parseFloat(rawValue);
-      if (isNaN(value) || value < 1 || value > 6) return [];
-
-      let date = new Date().toISOString().split("T")[0];
-      if (fields[2]) {
-        const parts = fields[2].trim().split(".");
-        if (parts.length === 3) {
-          date = `${parts[2]}-${parts[1].padStart(2, "0")}-${parts[0].padStart(2, "0")}`;
-        }
-      }
-
-      const rawWeight = fields[3]?.trim().replace(",", ".");
-      const weight = rawWeight ? parseFloat(rawWeight) : 1;
-
-      return [{ description, value, date, weight: isNaN(weight) ? 1 : weight }];
-    });
-}
-
+import { GradePicker, WeightPicker } from "./GradePickers";
 
 export default function SubjectCard({ subject }: { subject: string }) {
-  const [activePanel, setActivePanel] = useState<"add" | "paste" | "target" | null>(null);
-  const [pasteText, setPasteText] = useState("");
-  const [isImporting, setIsImporting] = useState(false);
-  const [targetAvg, setTargetAvg] = useState("");
-  const [targetWeight, setTargetWeight] = useState("1");
-  const [inputMode, setInputMode] = useState<"grade" | "points">("grade");
-  const [myPoints, setMyPoints] = useState("");
-  const [totalPoints, setTotalPoints] = useState("");
-
   const {
     activeSemester,
     getGradesForSubject,
@@ -54,13 +14,6 @@ export default function SubjectCard({ subject }: { subject: string }) {
     getAdjustment,
     expandedSubjects,
     toggleExpand,
-    startAdding,
-    cancelAdding,
-    gradeValue, setGradeValue,
-    gradeWeight, setGradeWeight,
-    gradeDescription, setGradeDescription,
-    gradeDate, setGradeDate,
-    addGrade,
     editingGrade,
     startEditing,
     cancelEditing,
@@ -76,36 +29,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
     adjustmentInput,
     setAdjustmentInput,
     handleSaveAdjustment,
-    bulkImportGrades,
   } = useDashboard();
-
-  const openPanel = (panel: "add" | "paste" | "target") => {
-    if (activePanel === panel) { closePanel(); return; }
-    setActivePanel(panel);
-    if (panel === "paste") setPasteText("");
-    if (panel === "target") { setTargetAvg(""); setTargetWeight("1"); }
-    if (panel === "add") startAdding(subject);
-    if (panel !== "add") cancelAdding();
-  };
-
-  const closePanel = () => {
-    setActivePanel(null);
-    cancelAdding();
-    setInputMode("grade");
-    setMyPoints("");
-    setTotalPoints("");
-  };
-
-  const parsedGrades = activePanel === "paste" ? parsePastedGrades(pasteText) : [];
-
-  const handleImport = async () => {
-    if (parsedGrades.length === 0 || isImporting) return;
-    setIsImporting(true);
-    await bulkImportGrades(subject, parsedGrades);
-    setActivePanel(null);
-    setPasteText("");
-    setIsImporting(false);
-  };
 
   const subjectGrades = getGradesForSubject(activeSemester, subject);
   const avg = getSubjectAverage(activeSemester, subject);
@@ -118,18 +42,18 @@ export default function SubjectCard({ subject }: { subject: string }) {
   return (
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       {/* Subject Header */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-neutral-800">
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+      <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2 border-b border-neutral-800">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
           <button
             onClick={() => toggleExpand(subject)}
-            className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition"
+            className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition shrink-0"
             title={isExpanded ? "Hide grades" : "Show grades"}
           >
             <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
           </button>
-          <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
+          <h3 className="text-sm sm:text-base font-semibold text-neutral-100 truncate">{subject}</h3>
           {avg !== null && (
-            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(avg)}`}>
+            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ${getGradeColor(avg)}`}>
               Ø {avg.toFixed(1)}
               {rawAvg !== null && (
                 <span className="text-neutral-500 font-normal ml-1">({rawAvg.toFixed(3)})</span>
@@ -137,17 +61,17 @@ export default function SubjectCard({ subject }: { subject: string }) {
             </span>
           )}
           {adj !== 0 && (
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded border ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
+            <span className={`text-xs font-medium px-1.5 py-0.5 rounded border shrink-0 ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
               {adj > 0 ? "+" : ""}{adj}
             </span>
           )}
-          <span className="text-xs text-neutral-500">
+          <span className="text-xs text-neutral-500 shrink-0">
             {subjectGrades.length} grade{subjectGrades.length !== 1 ? "s" : ""}
           </span>
         </div>
-        <div className="flex items-center gap-2 ml-6 sm:ml-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           {isEditingAdj ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <input
                 type="number"
                 step="any"
@@ -167,145 +91,15 @@ export default function SubjectCard({ subject }: { subject: string }) {
           ) : (
             <Btn size="sm" onClick={() => startEditingAdjustment(activeSemester, subject)} title="Set bonus/malus">±</Btn>
           )}
-          <Btn size="sm" variant={activePanel === "target" ? "primary" : "secondary"} onClick={() => openPanel("target")} title="Calculate required grade">Target</Btn>
-          <Btn size="sm" variant={activePanel === "paste" ? "primary" : "secondary"} onClick={() => openPanel("paste")} title="Paste grades from school website">Paste</Btn>
-          <Btn variant={activePanel === "add" ? "primary" : "secondary"} onClick={() => openPanel("add")} className="gap-1.5">
-            <span className="text-base leading-none">+</span> Add Grade
-          </Btn>
         </div>
       </div>
-
-      {/* Add Grade Form */}
-      {activePanel === "add" && (
-        <div className="px-4 sm:px-6 py-4 bg-blue-950/30 border-b border-blue-900/30">
-          <div className="space-y-4">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <label className="text-xs font-medium text-neutral-400">Grade</label>
-                <div className="flex rounded-md border border-neutral-700 overflow-hidden text-xs">
-                  <button type="button" onClick={() => setInputMode("grade")} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "grade" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Grade</button>
-                  <button type="button" onClick={() => { setInputMode("points"); setGradeValue(""); setMyPoints(""); setTotalPoints(""); }} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "points" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Points</button>
-                </div>
-              </div>
-              {inputMode === "grade" ? (
-                <GradePicker value={gradeValue} onChange={setGradeValue} />
-              ) : (
-                <div className="flex items-center gap-2 flex-wrap">
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={myPoints}
-                    onChange={(e) => { setMyPoints(e.target.value); setGradeValue(calcGradeFromPoints(e.target.value, totalPoints)); }}
-                    onKeyDown={(e) => blockNonNumericKeys(e)}
-                    className="w-24 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="My pts"
-                    autoFocus
-                  />
-                  <span className="text-neutral-500 text-sm font-medium">/</span>
-                  <input
-                    type="number"
-                    min="0"
-                    step="any"
-                    value={totalPoints}
-                    onChange={(e) => { setTotalPoints(e.target.value); setGradeValue(calcGradeFromPoints(myPoints, e.target.value)); }}
-                    onKeyDown={(e) => blockNonNumericKeys(e)}
-                    className="w-24 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Max pts"
-                  />
-                  {gradeValue && (
-                    <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${getGradeColor(parseFloat(gradeValue))}`}>
-                      = {parseFloat(gradeValue).toFixed(3)}
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-neutral-400 mb-2">Weight</label>
-              <WeightPicker value={gradeWeight} onChange={setGradeWeight} />
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex-1">
-                <label className="block text-xs font-medium text-neutral-400 mb-2">Description (optional)</label>
-                <input
-                  type="text"
-                  value={gradeDescription}
-                  onChange={(e) => setGradeDescription(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && gradeValue) addGrade(subject); }}
-                  className="w-full px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100 text-sm"
-                  placeholder="e.g. Midterm exam"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-neutral-400 mb-2">Date</label>
-                <input
-                  type="date"
-                  value={gradeDate}
-                  onChange={(e) => setGradeDate(e.target.value)}
-                  className="w-full sm:w-auto px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-neutral-100 text-sm"
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 pt-1">
-              <Btn variant="primary" disabled={!gradeValue || parseFloat(gradeValue) < 1 || parseFloat(gradeValue) > 6} onClick={() => addGrade(subject)}>Add Grade</Btn>
-              <Btn onClick={closePanel}>Cancel</Btn>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Target Grade Calculator */}
-      {activePanel === "target" && <TargetCalculator
-        grades={getGradesForSubject(activeSemester, subject)}
-        targetAvg={targetAvg}
-        targetWeight={targetWeight}
-        onTargetAvgChange={setTargetAvg}
-        onTargetWeightChange={setTargetWeight}
-        onClose={closePanel}
-      />}
-
-      {/* Paste Grades Form */}
-      {activePanel === "paste" && (
-        <div className="px-4 sm:px-6 py-4 bg-neutral-800/60 border-b border-neutral-700">
-          <p className="text-xs text-neutral-400 mb-2">
-            Paste grades from the school website (tab-separated: Name, Grade, Date, Weight)
-          </p>
-          <textarea
-            autoFocus
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-            rows={4}
-            className="w-full px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-900 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-y font-mono"
-            placeholder={"Prüfung 1\t4.4\t15.09.2025\t1\nPolitik-Podcast\t4.7\t24.09.2025\t1"}
-          />
-          {parsedGrades.length > 0 && (
-            <div className="mt-2 space-y-1">
-              {parsedGrades.map((g, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-neutral-300">
-                  <span className={`inline-flex items-center justify-center w-7 h-7 rounded font-bold border shrink-0 ${getGradeColor(g.value)}`}>{g.value}</span>
-                  <span className="text-neutral-500">×{formatWeight(g.weight)}</span>
-                  <span>{g.description || <em className="text-neutral-500">no description</em>}</span>
-                  <span className="text-neutral-500 ml-auto">{g.date}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="flex gap-2 mt-3">
-            <Btn variant="primary" disabled={parsedGrades.length === 0 || isImporting} onClick={handleImport}>
-              {isImporting ? "Importing…" : `Import ${parsedGrades.length > 0 ? `${parsedGrades.length} grade${parsedGrades.length !== 1 ? "s" : ""}` : ""}`}
-            </Btn>
-            <Btn onClick={closePanel}>Cancel</Btn>
-          </div>
-        </div>
-      )}
 
       {/* Grades List */}
       {isExpanded &&
         (subjectGrades.length > 0 ? (
           <div className="divide-y divide-neutral-800">
             {subjectGrades.map((grade) => (
-              <div key={grade.id} className="px-4 sm:px-6 py-3 hover:bg-neutral-800/50 transition">
+              <div key={grade.id} className="px-4 sm:px-5 py-3 hover:bg-neutral-800/50 transition">
                 {editingGrade === grade.id ? (
                   <div className="space-y-3 py-1">
                     <div>
@@ -339,7 +133,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                 ) : (
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                      <span className={`inline-flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}>
+                      <span className={`inline-flex items-center justify-center w-9 h-9 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(grade.value)}`}>
                         {grade.value}
                       </span>
                       <span className="text-xs text-neutral-500 font-medium shrink-0">×{formatWeight(grade.weight)}</span>
@@ -348,7 +142,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
                         <p className="text-xs text-neutral-500">{new Date(grade.date).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
                       <Btn size="sm" onClick={() => startEditing(grade)}>Edit</Btn>
                       <Btn size="sm" variant="danger" onClick={() => deleteGrade(grade.id)}>Delete</Btn>
                     </div>
@@ -358,7 +152,7 @@ export default function SubjectCard({ subject }: { subject: string }) {
             ))}
           </div>
         ) : (
-          <div className="px-4 sm:px-6 py-4 text-center text-sm text-neutral-500">No grades yet</div>
+          <div className="px-4 sm:px-5 py-4 text-center text-sm text-neutral-500">No grades yet</div>
         ))}
     </div>
   );

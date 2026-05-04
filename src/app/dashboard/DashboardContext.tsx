@@ -27,7 +27,6 @@ interface DashboardContextType {
   loading: boolean;
 
   // ── UI state ──
-  addingFor: string | null;
   editingGrade: string | null;
   expandedSubjects: Set<string>;
   editingAdjustment: string | null;
@@ -76,8 +75,6 @@ interface DashboardContextType {
   saveAdjustment: (semester: number, subject: string, value: number) => Promise<void>;
 
   // UI actions
-  startAdding: (subject: string) => void;
-  cancelAdding: () => void;
   startEditing: (grade: Grade) => void;
   cancelEditing: () => void;
   toggleExpand: (subject: string) => void;
@@ -155,7 +152,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const [error, setError] = useState<string | null>(null);
 
   // ── Add-grade form ──
-  const [addingFor, setAddingFor] = useState<string | null>(null);
   const [gradeValue, setGradeValue] = useState("");
   const [gradeWeight, setGradeWeight] = useState("1");
   const [gradeDescription, setGradeDescription] = useState("");
@@ -213,7 +209,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const setActiveSchool = (school: School) => {
     setActiveSchoolState(school);
     setActiveSemester(school === "KSH" ? 1 : BZZ_SEMESTER);
-    setAddingFor(null);
     setEditingGrade(null);
     setEditingAdjustment(null);
     setExpandedSubjects(new Set());
@@ -558,11 +553,11 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
         }),
       });
       if (res.ok) {
-        setAddingFor(null);
         setGradeValue("");
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
+        setExpandedSubjects((prev) => new Set(prev).add(subject));
         await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
@@ -694,11 +689,11 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
         }),
       });
       if (res.ok) {
-        setAddingFor(null);
         setGradeValue("");
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
+        setExpandedSubjects((prev) => new Set(prev).add(`bzz-${mod}`));
         await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
@@ -738,26 +733,8 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   /** Switches to a different tab and resets active forms. */
   const selectSemester = (sem: number) => {
     setActiveSemester(sem);
-    setAddingFor(null);
     setEditingGrade(null);
   };
-
-  /** Opens the add-grade form for a subject, expanding it and resetting fields. */
-  const startAdding = (subject: string) => {
-    if (addingFor === subject) {
-      setAddingFor(null);
-    } else {
-      setAddingFor(subject);
-      setExpandedSubjects((prev) => new Set(prev).add(subject));
-      setGradeValue("");
-      setGradeWeight("1");
-      setGradeDescription("");
-      setGradeDate(new Date().toISOString().split("T")[0]);
-    }
-  };
-
-  /** Closes the add-grade form. */
-  const cancelAdding = () => setAddingFor(null);
 
   /** Opens the edit form for an existing grade, pre-filling the fields. */
   const startEditing = (grade: Grade) => {
@@ -777,7 +754,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       const next = new Set(prev);
       if (next.has(subject)) {
         next.delete(subject);
-        if (addingFor === subject) setAddingFor(null);
       } else {
         next.add(subject);
       }
@@ -829,6 +805,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
 
   const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
     setError(null);
+    const isBzz = activeSchool === "BZZ";
     try {
       for (const entry of entries) {
         const res = await fetch("/api/grades", {
@@ -839,8 +816,9 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
             weight: entry.weight,
             description: entry.description,
             date: entry.date,
-            semester: activeSemester,
+            semester: isBzz ? BZZ_SEMESTER : activeSemester,
             subject,
+            ...(isBzz ? { school: "BZZ" } : {}),
           }),
         });
         if (!res.ok) {
@@ -863,7 +841,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setActiveSchool,
     error,
     loading,
-    addingFor,
     editingGrade,
     expandedSubjects,
     editingAdjustment,
@@ -879,7 +856,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     saveFinalsGrade,
     deleteFinalsGrade: deleteFinalsGradeAction,
     saveAdjustment: saveAdjustmentAction,
-    startAdding, cancelAdding,
     startEditing, cancelEditing,
     toggleExpand,
     startEditingAdjustment, cancelEditingAdjustment, handleSaveAdjustment,

@@ -25,6 +25,7 @@ import FinalsCard from "./components/FinalsCard";
 import OverviewCard from "./components/OverviewCard";
 import BzzModuleCard from "./components/BzzModuleCard";
 import BzzPassFail from "./components/BzzPassFail";
+import AddGradePanel from "./components/AddGradePanel";
 import type { School } from "./types";
 
 /**
@@ -248,6 +249,8 @@ function DashboardContent() {
             {/* Semester Tabs */}
             <SemesterTabs />
 
+            <AddGradePanel />
+
             {/* Content for active tab */}
             <div className="space-y-4">
               {activeSemester === OVERVIEW_TAB ? (
@@ -287,6 +290,8 @@ function DashboardContent() {
                 className="w-full sm:w-80 px-3 py-2 rounded-lg bg-neutral-900 border border-neutral-700 text-neutral-100 placeholder-neutral-500 text-sm focus:outline-none focus:border-blue-500"
               />
             </div>
+
+            <AddGradePanel />
 
             {(() => {
               const q = bzzSearch.toLowerCase();
