@@ -11,7 +11,16 @@
       "Bash(rm -rf .next)",
       "Bash(npm install *)",
       "Bash(npx prisma *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(xargs wc -l)",
+      "Bash(xargs grep -l \"any\")",
+      "Bash(xargs grep -l \"console\\\\.\")",
+      "Bash(xargs grep -l \"useMemo\\\\|useCallback\\\\|useReducer\")",
+      "PowerShell(Get-NetTCPConnection -State Listen | Where-Object { $_.LocalPort -in @\\(3000,3001,3002,3003\\) } | Select-Object LocalPort, OwningProcess | ForEach-Object { $proc = Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue; [PSCustomObject]@{ Port=$_.LocalPort; PID=$_.OwningProcess; Name=$proc.Name; CMD=\\($proc.MainWindowTitle\\) } })",
+      "PowerShell(Get-Process | Where-Object { $_.Name -in @\\(\"node\",\"next\"\\) } | Select-Object Id, Name, CPU, @{N=\"Cmd\";E={$_.MainModule.FileName}} | Format-Table -AutoSize)",
+      "PowerShell(Get-WmiObject Win32_Process | Where-Object { $_.Name -eq \"node.exe\" } | Select-Object ProcessId, CommandLine | Format-List)",
+      "PowerShell(Stop-Process -Id 17672, 40272, 40696, 41604 -Force -ErrorAction SilentlyContinue)",
+      "PowerShell(Get-Process | Where-Object { $_.Name -eq \"node\" } | Select-Object Id, Name)"
     ],
     "additionalDirectories": [
       "C:\\Users\\giova\\GitHub\\gradepoints\\src\\app\\api\\grades\\[id]"

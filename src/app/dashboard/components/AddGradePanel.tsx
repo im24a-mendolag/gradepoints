@@ -141,6 +141,7 @@ export default function AddGradePanel() {
     bulkImportGrades,
     getGradesForSubject,
     getBzzModuleGrades,
+    isSubmitting,
   } = useDashboard();
 
   const [localSubject, setLocalSubject] = useState("");
@@ -259,8 +260,8 @@ export default function AddGradePanel() {
           <SubjectCombobox options={subjectOptions} value={localSubject} onChange={setLocalSubject} />
         </div>
 
-        <div className="px-4 pb-4 pt-3 grid">
-          <div className={`col-start-1 row-start-1 space-y-3 ${activeTab === "add" ? "" : "invisible pointer-events-none"}`}>
+        <div className="px-4 pb-4 pt-3">
+          <div className={activeTab === "add" ? "space-y-3" : "hidden"}>
               <div className="flex rounded-md border border-neutral-700 overflow-hidden text-xs w-fit">
                 <button type="button" onClick={() => setInputMode("grade")} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "grade" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Grade</button>
                 <button type="button" onClick={() => { setInputMode("points"); setGradeValue(""); setMyPoints(""); setTotalPoints(""); }} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "points" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Points</button>
@@ -292,10 +293,12 @@ export default function AddGradePanel() {
                   <input type="date" value={gradeDate} onChange={(e) => setGradeDate(e.target.value)} className="px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 outline-none text-neutral-100 text-sm" />
                 </div>
               </div>
-              <Btn variant="primary" disabled={isAddDisabled} onClick={handleAdd}>Add Grade</Btn>
+              <Btn variant="primary" disabled={isAddDisabled || isSubmitting} onClick={handleAdd}>
+                {isSubmitting ? "Adding…" : "Add Grade"}
+              </Btn>
           </div>
 
-          <div className={`col-start-1 row-start-1 flex flex-col gap-3 ${activeTab === "paste" ? "" : "invisible pointer-events-none"}`}>
+          <div className={activeTab === "paste" ? "flex flex-col gap-3" : "hidden"}>
               <p className="text-xs text-neutral-400">Paste tab-separated grades (Name, Grade, Date DD.MM.YYYY, Weight)</p>
               <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} className="flex-1 min-h-0 w-full px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono" placeholder={"Prüfung 1\t4.4\t15.09.2025\t1\nPolitik-Podcast\t4.7\t24.09.2025\t1"} />
               {parsedGrades.length > 0 && (
@@ -315,7 +318,7 @@ export default function AddGradePanel() {
               </Btn>
           </div>
 
-          <div className={`col-start-1 row-start-1 flex flex-col gap-3 ${activeTab === "target" ? "" : "invisible pointer-events-none"}`}>
+          <div className={activeTab === "target" ? "flex flex-col gap-3" : "hidden"}>
               <p className="text-xs text-neutral-400">What grade do you need to reach your target average?</p>
               <div className="flex gap-3 flex-wrap items-end">
                 <div>

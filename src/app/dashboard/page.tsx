@@ -147,6 +147,8 @@ function BzzCollapsibleSection({
     <div className="mb-6">
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label={open ? `Collapse ${title}` : `Expand ${title}`}
         className="flex items-center gap-2 mb-3 cursor-pointer group"
       >
         <h2 className="text-lg font-semibold text-neutral-100 group-hover:text-neutral-300 transition">
@@ -172,7 +174,6 @@ function BzzCollapsibleSection({
 function DashboardContent() {
   const { data: session } = useSession();
   const { activeSchool, activeSemester, error, dismissError, loading } = useDashboard();
-  const [bzzSearch] = useState("");
 
   const subjects =
     activeSemester === FINALS_SEMESTER ? [] : (SEMESTER_SUBJECTS[activeSemester] ?? []);
@@ -282,38 +283,19 @@ function DashboardContent() {
 
             <AddGradePanel />
 
-            {(() => {
-              const q = bzzSearch.toLowerCase();
-              const normalMods = (BZZ_NORMAL_MODULES as readonly string[]).filter((m) => m.toLowerCase().includes(q));
-              const ukMods = (BZZ_UK_MODULES as readonly string[]).filter((m) => m.toLowerCase().includes(q));
-              const ipaMatch = BZZ_IPA.toLowerCase().includes(q);
-              return (
-                <>
-                  {normalMods.length > 0 && (
-                    <BzzCollapsibleSection title="Normal Modules" defaultOpen>
-                      {normalMods.map((mod) => (
-                        <BzzModuleCard key={mod} mod={mod} />
-                      ))}
-                    </BzzCollapsibleSection>
-                  )}
-                  {ukMods.length > 0 && (
-                    <BzzCollapsibleSection title="ÜK Modules" defaultOpen>
-                      {ukMods.map((mod) => (
-                        <BzzModuleCard key={mod} mod={mod} />
-                      ))}
-                    </BzzCollapsibleSection>
-                  )}
-                  {ipaMatch && (
-                    <BzzCollapsibleSection title="IPA" defaultOpen>
-                      <BzzModuleCard mod={BZZ_IPA} />
-                    </BzzCollapsibleSection>
-                  )}
-                  {normalMods.length === 0 && ukMods.length === 0 && !ipaMatch && (
-                    <p className="text-neutral-500 text-sm">No modules match &quot;{bzzSearch}&quot;.</p>
-                  )}
-                </>
-              );
-            })()}
+            <BzzCollapsibleSection title="Normal Modules" defaultOpen>
+              {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
+                <BzzModuleCard key={mod} mod={mod} />
+              ))}
+            </BzzCollapsibleSection>
+            <BzzCollapsibleSection title="ÜK Modules" defaultOpen>
+              {(BZZ_UK_MODULES as readonly string[]).map((mod) => (
+                <BzzModuleCard key={mod} mod={mod} />
+              ))}
+            </BzzCollapsibleSection>
+            <BzzCollapsibleSection title="IPA" defaultOpen>
+              <BzzModuleCard mod={BZZ_IPA} />
+            </BzzCollapsibleSection>
           </>
         )}
       </main>

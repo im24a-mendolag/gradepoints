@@ -29,6 +29,7 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
     adjustmentInput,
     setAdjustmentInput,
     saveBzzAdjustment,
+    isSubmitting,
   } = useDashboard();
 
   const modGrades = getBzzModuleGrades(mod);
@@ -53,8 +54,9 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap min-w-0">
           <button
             onClick={() => toggleExpand(expandKey)}
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? `Hide grades for ${mod}` : `Show grades for ${mod}`}
             className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition shrink-0"
-            title={isExpanded ? "Hide grades" : "Show grades"}
           >
             <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
           </button>
@@ -133,8 +135,10 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                       />
                     </div>
                     <div className="flex gap-2">
-                      <Btn size="sm" variant="primary" onClick={() => updateGrade(grade.id)}>Save</Btn>
-                      <Btn size="sm" onClick={cancelEditing}>Cancel</Btn>
+                      <Btn size="sm" variant="primary" disabled={isSubmitting} onClick={() => updateGrade(grade.id)}>
+                        {isSubmitting ? "Saving…" : "Save"}
+                      </Btn>
+                      <Btn size="sm" disabled={isSubmitting} onClick={cancelEditing}>Cancel</Btn>
                     </div>
                   </div>
                 ) : (
@@ -150,8 +154,8 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
                       </div>
                     </div>
                     <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                      <Btn size="sm" onClick={() => startEditing(grade)}>Edit</Btn>
-                      <Btn size="sm" variant="danger" onClick={() => deleteGrade(grade.id)}>Delete</Btn>
+                      <Btn size="sm" disabled={isSubmitting} onClick={() => startEditing(grade)}>Edit</Btn>
+                      <Btn size="sm" variant="danger" disabled={isSubmitting} onClick={() => deleteGrade(grade.id)}>Delete</Btn>
                     </div>
                   </div>
                 )}

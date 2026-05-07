@@ -1,19 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
 import {
-  SEMESTER_SUBJECTS,
-  TOTAL_SEMESTERS,
   FINALS_SEMESTER,
-  FINALS_ENTRIES,
-  IDPA_FINAL_FOR_IDAF,
-  OVERVIEW_SUBJECTS,
   BZZ_SEMESTER,
-  BZZ_NORMAL_MODULES,
-  BZZ_UK_MODULES,
-  BZZ_IPA,
 } from "@/lib/semesters";
 import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
+import { makeKshComputations } from "./lib/kshComputations";
+import { makeBzzComputations } from "./lib/bzzComputations";
 
 // ─── Context shape ──────────────────────────────────────────────
 
@@ -25,6 +19,7 @@ interface DashboardContextType {
   setActiveSchool: (school: School) => void;
   error: string | null;
   loading: boolean;
+  isSubmitting: boolean;
 
   // ── UI state ──
   editingGrade: string | null;
@@ -129,11 +124,6 @@ export interface BulkGradeEntry {
 
 const DashboardContext = createContext<DashboardContextType | null>(null);
 
-/**
- * Hook to access the dashboard context.
- * Must be used within a DashboardProvider.
- * @returns The full DashboardContextType with state, actions, and computed values.
- */
 export function useDashboard(): DashboardContextType {
   const ctx = useContext(DashboardContext);
   if (!ctx) throw new Error("useDashboard must be used within a DashboardProvider");
@@ -147,6 +137,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const [grades, setGrades] = useState<Grade[]>([]);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeSemester, setActiveSemester] = useState(initialSchool === "KSH" ? 1 : BZZ_SEMESTER);
   const [activeSchool, setActiveSchoolState] = useState<School>(initialSchool);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +147,12 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const [gradeWeight, setGradeWeight] = useState("1");
   const [gradeDescription, setGradeDescription] = useState("");
   const [gradeDate, setGradeDate] = useState(new Date().toISOString().split("T")[0]);
+
+  // Persists add-form state per school so switching KSH↔BZZ doesn't discard typed input.
+  const savedForm = useRef<Record<School, { gradeValue: string; gradeWeight: string; gradeDescription: string; gradeDate: string }>>({
+    KSH: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: new Date().toISOString().split("T")[0] },
+    BZZ: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: new Date().toISOString().split("T")[0] },
+  });
 
   // ── Edit-grade form ──
   const [editingGrade, setEditingGrade] = useState<string | null>(null);
@@ -172,7 +169,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
 
   // ─── Data fetching ────────────────────────────────────────────
 
-  /** Fetches all grades for the current user from the API. */
   const fetchGrades = useCallback(async () => {
     try {
       const res = await fetch("/api/grades");
@@ -184,7 +180,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     }
   }, []);
 
-  /** Fetches all bonus/malus adjustments for the current user from the API. */
   const fetchAdjustments = useCallback(async () => {
     try {
       const res = await fetch("/api/adjustments");
@@ -199,346 +194,54 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     fetchAdjustments();
   }, [fetchGrades, fetchAdjustments]);
 
-  // ── School-filtered data helpers ──
-  const kshGrades = grades.filter((g) => !g.school || g.school === "KSH");
-  const kshAdjustments = adjustments.filter((a) => !a.school || a.school === "KSH");
-  const bzzGrades = grades.filter((g) => g.school === "BZZ");
-  const bzzAdjustments = adjustments.filter((a) => a.school === "BZZ");
+  // ── School-filtered data (memoized — only recompute when source arrays change) ──
+  const kshGrades = useMemo(() => grades.filter((g) => !g.school || g.school === "KSH"), [grades]);
+  const kshAdjustments = useMemo(() => adjustments.filter((a) => !a.school || a.school === "KSH"), [adjustments]);
+  const bzzGrades = useMemo(() => grades.filter((g) => g.school === "BZZ"), [grades]);
+  const bzzAdjustments = useMemo(() => adjustments.filter((a) => a.school === "BZZ"), [adjustments]);
 
-  /** Switches school and resets UI state. */
+  // ── Computation factories (memoized — only recompute when data or finalsInputs change) ──
+  const ksh = useMemo(
+    () => makeKshComputations(kshGrades, kshAdjustments, finalsInputs),
+    [kshGrades, kshAdjustments, finalsInputs]
+  );
+
+  const bzz = useMemo(
+    () => makeBzzComputations(bzzGrades, bzzAdjustments),
+    [bzzGrades, bzzAdjustments]
+  );
+
+  /** Switches school, saving/restoring the add-form state per school. */
   const setActiveSchool = (school: School) => {
+    // Save current school's add-form state before switching
+    savedForm.current[activeSchool] = { gradeValue, gradeWeight, gradeDescription, gradeDate };
+
+    // Restore the new school's previously saved add-form state
+    const { gradeValue: v, gradeWeight: w, gradeDescription: d, gradeDate: dt } = savedForm.current[school];
+    setGradeValue(v);
+    setGradeWeight(w);
+    setGradeDescription(d);
+    setGradeDate(dt);
+
     setActiveSchoolState(school);
     setActiveSemester(school === "KSH" ? 1 : BZZ_SEMESTER);
     setEditingGrade(null);
     setEditingAdjustment(null);
     setExpandedSubjects(new Set());
-    setGradeValue("");
-    setGradeWeight("1");
-    setGradeDescription("");
-    setGradeDate(new Date().toISOString().split("T")[0]);
     setEditValue("");
     setEditWeight("1");
     setEditDescription("");
     setEditDate("");
   };
 
-  // ─── KSH Helpers / computed values ────────────────────────────
-
-  /**
-   * Filters KSH grades by semester and subject.
-   */
-  const getGradesForSubject = (semester: number, subject: string) =>
-    kshGrades.filter((g) => g.semester === semester && g.subject === subject);
-
-  /**
-   * Looks up the KSH bonus/malus adjustment value for a subject in a semester.
-   */
-  const getAdjustment = (semester: number, subject: string): number => {
-    const adj = kshAdjustments.find((a) => a.semester === semester && a.subject === subject);
-    return adj ? adj.value : 0;
-  };
-
-  /**
-   * Calculates the raw (non-rounded) weighted average for a subject,
-   * including the bonus/malus adjustment, clamped to [1, 6].
-   * @returns The raw average, or null if there are no counting grades.
-   */
-  const getRawSubjectAverage = (semester: number, subject: string) => {
-    const subjectGrades = getGradesForSubject(semester, subject).filter((g) => g.weight > 0);
-    if (subjectGrades.length === 0) return null;
-    const totalWeight = subjectGrades.reduce((acc, g) => acc + g.weight, 0);
-    const weightedSum = subjectGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-    const adjustment = getAdjustment(semester, subject);
-    return Math.min(6, Math.max(1, weightedSum / totalWeight + adjustment));
-  };
-
-  /**
-   * Calculates the rounded weighted average for a subject (nearest 0.5), clamped to [1, 6].
-   * @returns The rounded average, or null if no grades exist.
-   */
-  const getSubjectAverage = (semester: number, subject: string) => {
-    const raw = getRawSubjectAverage(semester, subject);
-    if (raw === null) return null;
-    return Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
-  };
-
-  /**
-   * Averages all subject averages in a semester (not rounded).
-   * @returns The semester average, or null if no subjects have grades.
-   */
-  const getSemesterAverage = (semester: number) => {
-    const avgs = (SEMESTER_SUBJECTS[semester] ?? [])
-      .map((s) => getSubjectAverage(semester, s))
-      .filter((a): a is number => a !== null);
-    if (avgs.length === 0) return null;
-    return avgs.reduce((a, b) => a + b, 0) / avgs.length;
-  };
-
-  /**
-   * Averages all finals subject-group grades, rounded to 0.5.
-   * Groups: German (Oral+Written), French, English, Math, WR, FrW.
-   * @returns The finals average, or null if no finals grades exist.
-   */
-  const getFinalsAverage = () => {
-    const groups = [
-      { entries: ["German (Oral)", "German (Written)"] },
-      { entries: ["French (Oral)", "French (Written)"] },
-      { entries: ["English (Oral)", "English (Written)"] },
-      { entries: ["Math (Written)"] },
-      { entries: ["WR (Written)"] },
-      { entries: ["FrW (Written)"] },
-    ];
-    const groupAvgs = groups
-      .map(({ entries }) => {
-        const vals = entries
-          .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
-          .filter((v): v is number => v !== null);
-        if (vals.length === 0) return null;
-        return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
-      })
-      .filter((a): a is number => a !== null);
-    if (groupAvgs.length === 0) return null;
-    return Math.round((groupAvgs.reduce((a, b) => a + b, 0) / groupAvgs.length) * 2) / 2;
-  };
-
-  /**
-   * Calculates the overall average across semesters 1–6 and finals (not rounded).
-   * @returns The overall average, or null if no data.
-   */
-  const getOverallAverage = () => {
-    const semAvgs = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => getSemesterAverage(i + 1))
-      .filter((a): a is number => a !== null);
-    const finalsAvg = getFinalsAverage();
-    const all = [...semAvgs, ...(finalsAvg !== null ? [finalsAvg] : [])];
-    if (all.length === 0) return null;
-    return all.reduce((a, b) => a + b, 0) / all.length;
-  };
-
-  /**
-   * Evaluates pass/fail for a semester using three rules:
-   * 1) Average ≥ 4.0  2) ≤ 2 subjects below 4  3) ≤ 2 negative points.
-   * @returns SemesterStatus or null if no grades.
-   */
-  const getSemesterStatus = (semester: number): SemesterStatus | null => {
-    const subjectAvgs = (SEMESTER_SUBJECTS[semester] ?? [])
-      .map((s) => ({ subject: s as string, avg: getSubjectAverage(semester, s) }))
-      .filter((s): s is { subject: string; avg: number } => s.avg !== null);
-    if (subjectAvgs.length === 0) return null;
-
-    const semAvg = getSemesterAverage(semester);
-    const below4 = subjectAvgs.filter((s) => s.avg < 4);
-    const negPts = subjectAvgs.reduce((acc, s) => (s.avg < 4 ? acc + (4 - s.avg) : acc), 0);
-    const r1 = semAvg !== null && semAvg >= 4;
-    const r2 = below4.length <= 2;
-    const r3 = negPts <= 2;
-
-    return {
-      passed: r1 && r2 && r3,
-      semAvg,
-      subjectsBelow4: below4.map((s) => s.subject),
-      subjectsBelow4Count: below4.length,
-      negativePoints: Math.round(negPts * 10) / 10,
-      rule1Pass: r1,
-      rule2Pass: r2,
-      rule3Pass: r3,
-    };
-  };
-
-  /**
-   * Gets the finals exam grade for a base subject by averaging its oral/written entries.
-   * @returns The finals grade rounded to 0.5, or null.
-   */
-  const getFinalsExamGrade = (subject: string): number | null => {
-    const entries = FINALS_ENTRIES[subject];
-    if (!entries) return null;
-    const vals = entries
-      .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
-      .filter((v): v is number => v !== null);
-    if (vals.length === 0) return null;
-    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
-  };
-
-  /**
-   * Lists which semesters (1–6) a subject appears in.
-   * @returns Array of semester numbers.
-   */
-  const getSemestersForSubject = (subject: string): number[] => {
-    const result: number[] = [];
-    for (let s = 1; s <= TOTAL_SEMESTERS; s++) {
-      if ((SEMESTER_SUBJECTS[s] ?? []).includes(subject as never)) result.push(s);
-    }
-    return result;
-  };
-
-  /**
-   * Gets the IDPA grade (semester 6 average), used as the "final" for IDAF.
-   * @returns The IDPA subject average, or null.
-   */
-  const getIdpaGrade = (): number | null =>
-    getSubjectAverage(IDPA_FINAL_FOR_IDAF.finalSemester, IDPA_FINAL_FOR_IDAF.finalSubject);
-
-  /**
-   * Computes the final 3-year grade for a subject combining semester averages and finals.
-   * For IDAF, uses the IDPA grade as the finals component.
-   * @returns { semesterAvg, finalsGrade, finalGrade } (all nullable).
-   */
-  const getFinalSubjectGrade = (subject: string): FinalSubjectGrade => {
-    const sems = getSemestersForSubject(subject);
-    const semAvgs = sems.map((s) => getSubjectAverage(s, subject)).filter((a): a is number => a !== null);
-    const semesterAvg = semAvgs.length > 0
-      ? Math.round((semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length) * 2) / 2
-      : null;
-
-    const finalsGrade = subject === IDPA_FINAL_FOR_IDAF.subject
-      ? getIdpaGrade()
-      : getFinalsExamGrade(subject);
-
-    if (semesterAvg === null && finalsGrade === null) {
-      return { semesterAvg: null, finalsGrade: null, finalGrade: null };
-    }
-
-    let finalGrade: number;
-    if (semesterAvg !== null && finalsGrade !== null) {
-      finalGrade = Math.round(((semesterAvg + finalsGrade) / 2) * 2) / 2;
-    } else {
-      finalGrade = (semesterAvg ?? finalsGrade)!;
-    }
-
-    return { semesterAvg, finalsGrade, finalGrade };
-  };
-
-  /**
-   * Evaluates the 3-year pass/fail status using the same three rules as semesters.
-   * @returns OverviewStatus or null if no data.
-   */
-  const getOverviewStatus = (): OverviewStatus | null => {
-    const results = OVERVIEW_SUBJECTS
-      .map((subject) => ({ subject, finalGrade: getFinalSubjectGrade(subject).finalGrade }))
-      .filter((s): s is { subject: string; finalGrade: number } => s.finalGrade !== null);
-    if (results.length === 0) return null;
-
-    const avg = Math.round((results.reduce((a, s) => a + s.finalGrade, 0) / results.length) * 2) / 2;
-    const below4 = results.filter((s) => s.finalGrade < 4);
-    const negPts = results.reduce((a, s) => (s.finalGrade < 4 ? a + (4 - s.finalGrade) : a), 0);
-    const r1 = avg >= 4;
-    const r2 = below4.length <= 2;
-    const r3 = negPts <= 2;
-
-    return {
-      passed: r1 && r2 && r3,
-      avg,
-      subjectResults: results,
-      subjectsBelow4: below4.map((s) => s.subject),
-      subjectsBelow4Count: below4.length,
-      negativePoints: Math.round(negPts * 10) / 10,
-      rule1Pass: r1,
-      rule2Pass: r2,
-      rule3Pass: r3,
-    };
-  };
-
-  /**
-   * Gets the current input value for a finals entry, falling back to the saved grade.
-   * @returns The input string value.
-   */
-  const getFinalsInputValue = (entry: string) => {
-    if (finalsInputs[entry] !== undefined) return finalsInputs[entry];
-    const existing = getGradesForSubject(FINALS_SEMESTER, entry);
-    return existing.length > 0 ? existing[0].value.toString() : "";
-  };
-
-  // ─── BZZ Helpers / computed values ──────────────────────────────
-
-  /** Filters BZZ grades for a given module. */
-  const getBzzModuleGrades = (mod: string) =>
-    bzzGrades.filter((g) => g.semester === BZZ_SEMESTER && g.subject === mod);
-
-  /** Looks up the BZZ adjustment for a module. */
-  const getBzzModuleAdjustment = (mod: string): number => {
-    const adj = bzzAdjustments.find((a) => a.semester === BZZ_SEMESTER && a.subject === mod);
-    return adj ? adj.value : 0;
-  };
-
-  /** Raw (non-rounded) weighted average for a BZZ module, with bonus/malus, clamped [1,6]. */
-  const getBzzModuleRawAverage = (mod: string): number | null => {
-    const modGrades = getBzzModuleGrades(mod).filter((g) => g.weight > 0);
-    if (modGrades.length === 0) return null;
-    const totalWeight = modGrades.reduce((acc, g) => acc + g.weight, 0);
-    const weightedSum = modGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-    const adjustment = getBzzModuleAdjustment(mod);
-    return Math.min(6, Math.max(1, weightedSum / totalWeight + adjustment));
-  };
-
-  /** Rounded (0.5) weighted average for a BZZ module. */
-  const getBzzModuleAverage = (mod: string): number | null => {
-    const raw = getBzzModuleRawAverage(mod);
-    if (raw === null) return null;
-    return Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
-  };
-
-  /** Average of all normal module averages, rounded to 0.5. */
-  const getBzzNormalAverage = (): number | null => {
-    const avgs = (BZZ_NORMAL_MODULES as readonly string[])
-      .map((m) => getBzzModuleAverage(m))
-      .filter((a): a is number => a !== null);
-    if (avgs.length === 0) return null;
-    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
-  };
-
-  /** Average of all ÜK module averages, rounded to 0.5. */
-  const getBzzUkAverage = (): number | null => {
-    const avgs = (BZZ_UK_MODULES as readonly string[])
-      .map((m) => getBzzModuleAverage(m))
-      .filter((a): a is number => a !== null);
-    if (avgs.length === 0) return null;
-    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
-  };
-
-  /**
-   * Final average: mean of the rounded Normal avg and rounded ÜK avg.
-   * Returns null until both categories have data to avoid a misleading
-   * pass/fail status based on only half the curriculum.
-   */
-  const getBzzFinalAverage = (): number | null => {
-    const normalAvg = getBzzNormalAverage();
-    const ukAvg = getBzzUkAverage();
-    if (normalAvg === null || ukAvg === null) return null;
-    return (normalAvg + ukAvg) / 2;
-  };
-
-  /** IPA grade: raw weighted average, NOT rounded. */
-  const getBzzIpaAverage = (): number | null => {
-    const ipaGrades = getBzzModuleGrades(BZZ_IPA).filter((g) => g.weight > 0);
-    if (ipaGrades.length === 0) return null;
-    const totalWeight = ipaGrades.reduce((acc, g) => acc + g.weight, 0);
-    const weightedSum = ipaGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-    const adjustment = getBzzModuleAdjustment(BZZ_IPA);
-    return Math.min(6, Math.max(1, weightedSum / totalWeight + adjustment));
-  };
-
-  /** BZZ pass/fail status. */
-  const getBzzPassFail = (): BzzPassFailStatus => {
-    const normalAvg = getBzzNormalAverage();
-    const ukAvg = getBzzUkAverage();
-    const finalAvg = getBzzFinalAverage();
-    const ipaGrade = getBzzIpaAverage();
-    const ipaPass = ipaGrade !== null ? ipaGrade >= 4 : null;
-    const avgPass = finalAvg !== null ? finalAvg >= 4 : null;
-    const passed = avgPass === true && (ipaPass === true || ipaPass === null);
-    return { passed, normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass };
-  };
-
   // ─── CRUD actions ─────────────────────────────────────────────
 
-  /**
-   * Creates a new grade for the given subject in the active semester (KSH).
-   * Reads values from the add-grade form state.
-   */
   const addGrade = async (subject: string) => {
     const parsedValue = parseFloat(gradeValue);
     const parsedWeight = parseFloat(gradeWeight);
     if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
     setError(null);
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/grades", {
         method: "POST",
@@ -564,22 +267,25 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       }
     } catch {
       setError("Failed to add grade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /** Deletes a grade by ID. */
   const deleteGrade = async (id: string) => {
     setError(null);
+    setIsSubmitting(true);
     try {
       const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
       if (res.ok) await fetchGrades();
       else setError((await res.json()).error || "Failed to delete grade");
     } catch {
       setError("Failed to delete grade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /** Updates a grade by ID using the edit-form state. */
   const updateGrade = async (id: string) => {
     const parsedValue = parseFloat(editValue);
     const parsedWeight = parseFloat(editWeight);
@@ -588,6 +294,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       return;
     }
     setError(null);
+    setIsSubmitting(true);
     try {
       const res = await fetch(`/api/grades/${id}`, {
         method: "PUT",
@@ -603,17 +310,19 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       else setError((await res.json()).error || "Failed to update grade");
     } catch {
       setError("Failed to update grade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /** Creates or updates a single finals grade for an entry. */
   const saveFinalsGrade = async (subject: string, value: string) => {
     if (!value) return;
     const numVal = parseFloat(value);
     if (isNaN(numVal) || numVal < 1 || numVal > 6) return;
     setError(null);
+    setIsSubmitting(true);
 
-    const existing = getGradesForSubject(FINALS_SEMESTER, subject);
+    const existing = ksh.getGradesForSubject(FINALS_SEMESTER, subject);
     try {
       if (existing.length > 0) {
         const res = await fetch(`/api/grades/${existing[0].id}`, {
@@ -634,16 +343,16 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       setFinalsInputs((prev) => { const next = { ...prev }; delete next[subject]; return next; });
     } catch {
       setError("Failed to save finals grade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /** Deletes the finals grade for a given entry. */
   const deleteFinalsGradeAction = async (subject: string) => {
-    const existing = getGradesForSubject(FINALS_SEMESTER, subject);
+    const existing = ksh.getGradesForSubject(FINALS_SEMESTER, subject);
     if (existing.length > 0) await deleteGrade(existing[0].id);
   };
 
-  /** Creates, updates, or deletes a bonus/malus adjustment (0 = delete). KSH. */
   const saveAdjustmentAction = async (semester: number, subject: string, value: number) => {
     setError(null);
     try {
@@ -668,12 +377,12 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     }
   };
 
-  /** Creates a new BZZ grade for a module. */
   const addBzzGrade = async (mod: string) => {
     const parsedValue = parseFloat(gradeValue);
     const parsedWeight = parseFloat(gradeWeight);
     if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
     setError(null);
+    setIsSubmitting(true);
     try {
       const res = await fetch("/api/grades", {
         method: "POST",
@@ -700,10 +409,11 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
       }
     } catch {
       setError("Failed to add grade. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  /** Creates, updates, or deletes a BZZ adjustment (0 = delete). */
   const saveBzzAdjustment = async (mod: string, value: number) => {
     setError(null);
     try {
@@ -726,81 +436,6 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     } catch {
       setError("Failed to save adjustment. Please try again.");
     }
-  };
-
-  // ─── UI actions ───────────────────────────────────────────────
-
-  /** Switches to a different tab and resets active forms. */
-  const selectSemester = (sem: number) => {
-    setActiveSemester(sem);
-    setEditingGrade(null);
-  };
-
-  /** Opens the edit form for an existing grade, pre-filling the fields. */
-  const startEditing = (grade: Grade) => {
-    setEditingGrade(grade.id);
-    setEditValue(grade.value.toString());
-    setEditWeight(grade.weight.toString());
-    setEditDescription(grade.description);
-    setEditDate(new Date(grade.date).toISOString().split("T")[0]);
-  };
-
-  /** Closes the edit-grade form. */
-  const cancelEditing = () => setEditingGrade(null);
-
-  /** Toggles the expanded/collapsed state of a subject's grade list. */
-  const toggleExpand = (subject: string) => {
-    setExpandedSubjects((prev) => {
-      const next = new Set(prev);
-      if (next.has(subject)) {
-        next.delete(subject);
-      } else {
-        next.add(subject);
-      }
-      return next;
-    });
-  };
-
-  /** Opens the adjustment input for a subject, pre-filling with the current value. */
-  const startEditingAdjustment = (semester: number, subject: string) => {
-    const adj = getAdjustment(semester, subject);
-    setEditingAdjustment(`${semester}-${subject}`);
-    setAdjustmentInput(adj !== 0 ? adj.toString() : "");
-  };
-
-  /** Closes the adjustment input. */
-  const cancelEditingAdjustment = () => setEditingAdjustment(null);
-
-  /** Saves the current adjustment input and closes the form. */
-  const handleSaveAdjustment = (semester: number, subject: string) => {
-    const val = parseFloat(adjustmentInput);
-    saveAdjustmentAction(semester, subject, isNaN(val) ? 0 : val);
-    setEditingAdjustment(null);
-  };
-
-  /** Opens the edit form for a finals entry, pre-filling with the current grade. */
-  const startEditingFinals = (entry: string, currentGrade: Grade | null) => {
-    setEditingGrade(`finals-${entry}`);
-    setFinalsInputs((prev) => ({
-      ...prev,
-      [entry]: currentGrade ? currentGrade.value.toString() : "",
-    }));
-  };
-
-  /** Closes the finals edit form. */
-  const cancelEditingFinals = () => {
-    setEditingGrade(null);
-  };
-
-  /** Deletes a finals grade and clears its input. */
-  const handleDeleteFinalsEntry = (entry: string) => {
-    setFinalsInputs((prev) => { const next = { ...prev }; delete next[entry]; return next; });
-    deleteFinalsGradeAction(entry);
-  };
-
-  /** Updates a controlled finals input value. */
-  const onFinalsInputChange = (entry: string, value: string) => {
-    setFinalsInputs((prev) => ({ ...prev, [entry]: value }));
   };
 
   const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
@@ -832,6 +467,65 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     }
   };
 
+  // ─── UI actions ───────────────────────────────────────────────
+
+  const selectSemester = (sem: number) => {
+    setActiveSemester(sem);
+    setEditingGrade(null);
+  };
+
+  const startEditing = (grade: Grade) => {
+    setEditingGrade(grade.id);
+    setEditValue(grade.value.toString());
+    setEditWeight(grade.weight.toString());
+    setEditDescription(grade.description);
+    setEditDate(new Date(grade.date).toISOString().split("T")[0]);
+  };
+
+  const cancelEditing = () => setEditingGrade(null);
+
+  const toggleExpand = (subject: string) => {
+    setExpandedSubjects((prev) => {
+      const next = new Set(prev);
+      if (next.has(subject)) next.delete(subject);
+      else next.add(subject);
+      return next;
+    });
+  };
+
+  const startEditingAdjustment = (semester: number, subject: string) => {
+    const adj = ksh.getAdjustment(semester, subject);
+    setEditingAdjustment(`${semester}-${subject}`);
+    setAdjustmentInput(adj !== 0 ? adj.toString() : "");
+  };
+
+  const cancelEditingAdjustment = () => setEditingAdjustment(null);
+
+  const handleSaveAdjustment = (semester: number, subject: string) => {
+    const val = parseFloat(adjustmentInput);
+    saveAdjustmentAction(semester, subject, isNaN(val) ? 0 : val);
+    setEditingAdjustment(null);
+  };
+
+  const startEditingFinals = (entry: string, currentGrade: Grade | null) => {
+    setEditingGrade(`finals-${entry}`);
+    setFinalsInputs((prev) => ({
+      ...prev,
+      [entry]: currentGrade ? currentGrade.value.toString() : "",
+    }));
+  };
+
+  const cancelEditingFinals = () => setEditingGrade(null);
+
+  const handleDeleteFinalsEntry = (entry: string) => {
+    setFinalsInputs((prev) => { const next = { ...prev }; delete next[entry]; return next; });
+    deleteFinalsGradeAction(entry);
+  };
+
+  const onFinalsInputChange = (entry: string, value: string) => {
+    setFinalsInputs((prev) => ({ ...prev, [entry]: value }));
+  };
+
   // ─── Context value ────────────────────────────────────────────
 
   const value: DashboardContextType = {
@@ -841,6 +535,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     setActiveSchool,
     error,
     loading,
+    isSubmitting,
     editingGrade,
     expandedSubjects,
     editingAdjustment,
@@ -860,16 +555,10 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
     toggleExpand,
     startEditingAdjustment, cancelEditingAdjustment, handleSaveAdjustment,
     startEditingFinals, cancelEditingFinals, handleDeleteFinalsEntry, onFinalsInputChange,
-    getGradesForSubject, getAdjustment,
-    getRawSubjectAverage, getSubjectAverage,
-    getSemesterAverage, getFinalsAverage, getOverallAverage,
-    getSemesterStatus, getFinalsExamGrade, getSemestersForSubject,
-    getFinalSubjectGrade, getOverviewStatus, getFinalsInputValue,
-    // BZZ
-    getBzzModuleGrades, getBzzModuleAdjustment,
-    getBzzModuleRawAverage, getBzzModuleAverage,
-    getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage,
-    getBzzPassFail,
+    // KSH computed
+    ...ksh,
+    // BZZ computed
+    ...bzz,
     addBzzGrade, saveBzzAdjustment,
     bulkImportGrades,
   };

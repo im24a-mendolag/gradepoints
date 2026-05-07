@@ -74,34 +74,40 @@ export function WeightPicker({ value, onChange }: { value: string; onChange: (v:
   const parsed = parseFloat(value);
   const valid = !isNaN(parsed) && parsed >= 0;
   const sliderVal = valid ? Math.min(3, Math.max(0, parsed)) : 1;
+  const isZero = valid && parsed === 0;
 
   return (
-    <div className="flex items-center gap-3">
-      <span className="inline-flex items-center justify-center w-14 h-9 rounded-lg font-bold text-sm border border-neutral-700 bg-neutral-800 text-neutral-300 shrink-0">
-        ×{valid ? formatWeight(parsed) : "1"}
-      </span>
-      <div className="flex-1 pb-1">
-        <SliderLabels labels={WEIGHT_LABELS} min={0} max={3} />
+    <div>
+      <div className="flex items-center gap-3">
+        <span className={`inline-flex items-center justify-center w-14 h-9 rounded-lg font-bold text-sm border shrink-0 ${isZero ? "border-amber-700 bg-amber-900/20 text-amber-400" : "border-neutral-700 bg-neutral-800 text-neutral-300"}`}>
+          ×{valid ? formatWeight(parsed) : "1"}
+        </span>
+        <div className="flex-1 pb-1">
+          <SliderLabels labels={WEIGHT_LABELS} min={0} max={3} />
+          <input
+            type="range"
+            min="0"
+            max="3"
+            step="0.1"
+            value={sliderVal}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-2 rounded-lg cursor-pointer accent-blue-500 bg-neutral-700"
+          />
+        </div>
         <input
-          type="range"
+          type="number"
           min="0"
-          max="3"
-          step="0.1"
-          value={sliderVal}
+          step="any"
+          value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full h-2 rounded-lg cursor-pointer accent-blue-500 bg-neutral-700"
+          onKeyDown={(e) => blockNonNumericKeys(e)}
+          className="w-16 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="wt"
         />
       </div>
-      <input
-        type="number"
-        min="0"
-        step="any"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={(e) => blockNonNumericKeys(e)}
-        className="w-16 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
-        placeholder="wt"
-      />
+      {isZero && (
+        <p className="mt-1.5 text-xs text-amber-400">Weight 0 — this grade won&apos;t count toward averages</p>
+      )}
     </div>
   );
 }
