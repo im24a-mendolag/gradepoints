@@ -16,6 +16,7 @@ import {
   BZZ_IPA,
 } from "@/lib/semesters";
 import { getAvgColor, getGradeHex } from "../utils";
+import SchoolSelector from "../components/SchoolSelector";
 import type { School } from "../types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -60,31 +61,6 @@ const DARK_TOOLTIP = {
   },
   cursor: { stroke: "#525252" },
 };
-
-/**
- * Pill-style school selector for stats page.
- */
-function StatsSchoolSelector() {
-  const { activeSchool, setActiveSchool } = useDashboard();
-  const schools: School[] = ["KSH", "BZZ"];
-  return (
-    <div className="inline-flex rounded-lg bg-neutral-800 p-0.5">
-      {schools.map((s) => (
-        <button
-          key={s}
-          onClick={() => setActiveSchool(s)}
-          className={`px-3 py-1 rounded-md text-sm font-medium transition cursor-pointer ${
-            activeSchool === s
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-neutral-400 hover:text-neutral-200"
-          }`}
-        >
-          {s}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /**
  * KSH-specific statistics content (existing charts).
@@ -676,7 +652,7 @@ function StatsContent() {
             <Link href={`/dashboard?school=${activeSchool}`} className="text-xl font-bold text-neutral-100 hover:opacity-80 transition shrink-0">
               Grade<span className="text-blue-500">Points</span>
             </Link>
-            <StatsSchoolSelector />
+            <SchoolSelector />
             <span className="text-sm text-neutral-500 hidden sm:inline">/ Statistics</span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">

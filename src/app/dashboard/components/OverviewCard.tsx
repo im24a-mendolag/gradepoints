@@ -1,6 +1,6 @@
 "use client";
 
-import { FINALS_ENTRIES, IDPA_FINAL_FOR_IDAF } from "@/lib/semesters";
+import { FINALS_ENTRIES, IDPA_FINAL_FOR_IDAF, KSH_SUBJECT_NAMES } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
 import { getGradeColor, getAvgColor } from "../utils";
 
@@ -23,7 +23,12 @@ export default function OverviewCard({ subject }: { subject: string }) {
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
       <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3">
-          <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
+            {KSH_SUBJECT_NAMES[subject] && (
+              <p className="text-xs text-neutral-500">{KSH_SUBJECT_NAMES[subject]}</p>
+            )}
+          </div>
           {finalGrade !== null && (
             <span
               className={`text-xs sm:text-sm font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border ${getGradeColor(finalGrade)}`}
