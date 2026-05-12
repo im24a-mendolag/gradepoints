@@ -9,12 +9,12 @@ export function calcGradeFromPoints(my: string, total: string): string {
   return String(Math.round(((m / t) * 5 + 1) * 1000) / 1000);
 }
 
-const GRADE_LABELS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
+export const GRADE_LABELS = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6];
 const WEIGHT_LABELS = [0, 0.5, 1, 1.5, 2, 2.5, 3];
 
 const THUMB_PX = 16;
 
-function SliderLabels({ labels, min, max }: { labels: number[]; min: number; max: number }) {
+export function SliderLabels({ labels, min, max }: { labels: number[]; min: number; max: number }) {
   return (
     <div className="relative h-4">
       {labels.map((v) => {

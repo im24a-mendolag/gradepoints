@@ -10,7 +10,7 @@ import {
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
 import Btn from "./Btn";
-import { GradePicker, WeightPicker, calcGradeFromPoints } from "./GradePickers";
+import { GradePicker, WeightPicker, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
 
 function SubjectCombobox({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
   const [query, setQuery] = useState(value);
@@ -44,11 +44,14 @@ function SubjectCombobox({ options, value, onChange }: { options: string[]; valu
   );
 }
 
-function GradeScaleBar({ currentAvg, needed, neededRounded }: { currentAvg: number | null; needed: number | null; neededRounded?: number | null }) {
+function GradeScaleBar({ currentAvg, neededRounded }: { currentAvg: number | null; neededRounded?: number | null }) {
   const pct = (v: number) => `${((Math.min(6, Math.max(1, v)) - 1) / 5) * 100}%`;
 
   return (
     <div>
+      <div className="flex justify-between text-xs text-neutral-600 mb-0.5">
+        {[1, 2, 3, 4, 5, 6].map((v) => <span key={v}>{v}</span>)}
+      </div>
       <div className="relative py-2">
         <div className="h-2 rounded-full overflow-hidden flex">
           <div className="bg-red-800/80" style={{ width: "60%" }} />
@@ -66,37 +69,17 @@ function GradeScaleBar({ currentAvg, needed, neededRounded }: { currentAvg: numb
             <div className="w-4 h-4 rounded-full bg-emerald-400 ring-2 ring-neutral-900 shadow-lg" />
           </div>
         )}
-        {needed !== null && needed >= 1 && needed <= 6 && (
-          <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: pct(needed) }}>
-            <div className="w-4 h-4 rounded-full bg-neutral-100 ring-2 ring-neutral-900 shadow-lg" />
-          </div>
-        )}
       </div>
-      <div className="flex justify-between text-xs text-neutral-600 mt-0.5">
-        {[1, 2, 3, 4, 5, 6].map((v) => <span key={v}>{v}</span>)}
+      <div className="flex gap-4 mt-1.5 text-xs flex-wrap">
+        <span className="flex items-center gap-1.5 text-blue-400">
+          <span className="inline-block w-3 h-3 rounded-full bg-blue-500 shrink-0" />
+          Current avg: {currentAvg !== null && currentAvg >= 1 && currentAvg <= 6 ? currentAvg.toFixed(2) : "—"}
+        </span>
+        <span className={`flex items-center gap-1.5 ${neededRounded != null && neededRounded > 6 ? "text-red-400" : "text-emerald-400"}`}>
+          <span className={`inline-block w-3 h-3 rounded-full shrink-0 ${neededRounded != null && neededRounded > 6 ? "bg-red-400" : "bg-emerald-400"}`} />
+          Needed: {neededRounded != null && neededRounded >= 1 ? neededRounded.toFixed(2) : "—"}
+        </span>
       </div>
-      {(currentAvg !== null || needed !== null || neededRounded) && (
-        <div className="flex gap-4 mt-1.5 text-xs flex-wrap">
-          {currentAvg !== null && currentAvg >= 1 && currentAvg <= 6 && (
-            <span className="flex items-center gap-1.5 text-blue-400">
-              <span className="inline-block w-3 h-3 rounded-full bg-blue-500 shrink-0" />
-              Current avg: {currentAvg.toFixed(2)}
-            </span>
-          )}
-          {neededRounded !== null && neededRounded !== undefined && neededRounded >= 1 && (
-            <span className={`flex items-center gap-1.5 ${neededRounded > 6 ? "text-red-400" : "text-emerald-400"}`}>
-              <span className={`inline-block w-3 h-3 rounded-full shrink-0 ${neededRounded > 6 ? "bg-red-400" : "bg-emerald-400"}`} />
-              Needed (rounded avg): {neededRounded.toFixed(2)}
-            </span>
-          )}
-          {needed !== null && (
-            <span className={`flex items-center gap-1.5 ${needed < 1 || needed > 6 ? "text-red-400" : "text-neutral-300"}`}>
-              <span className={`inline-block w-3 h-3 rounded-full shrink-0 ${needed < 1 || needed > 6 ? "bg-red-400" : "bg-neutral-100"}`} />
-              Needed: {needed.toFixed(2)}
-            </span>
-          )}
-        </div>
-      )}
     </div>
   );
 }
@@ -151,7 +134,7 @@ export default function AddGradePanel() {
   const [pasteText, setPasteText] = useState("");
   const [isImporting, setIsImporting] = useState(false);
   const [activeTab, setActiveTab] = useState<"add" | "paste" | "target">("add");
-  const [targetAvg, setTargetAvg] = useState("");
+  const [targetAvg, setTargetAvg] = useState("4");
   const [targetWeight, setTargetWeight] = useState("1");
 
   const subjectOptions: string[] =
@@ -170,12 +153,6 @@ export default function AddGradePanel() {
   const totalGradeWeight = activeGrades.reduce((acc, g) => acc + g.weight, 0);
   const parsedTarget = parseFloat(targetAvg);
   const parsedTargetWeight = parseFloat(targetWeight);
-  const needed =
-    !isNaN(parsedTarget) && !isNaN(parsedTargetWeight) && parsedTargetWeight > 0
-      ? (parsedTarget * (totalGradeWeight + parsedTargetWeight) - weightedSum) / parsedTargetWeight
-      : null;
-  const clamped = needed !== null ? Math.min(6, Math.max(1, needed)) : null;
-  const impossible = needed !== null && (needed < 1 || needed > 6);
   const currentAvg = activeGrades.length > 0 ? weightedSum / totalGradeWeight : null;
   // Only meaningful when target is a 0.5 multiple (3.5, 4.0, 4.5…); otherwise rounding is undefined
   const targetIsHalfGrade = !isNaN(parsedTarget) && Math.abs(parsedTarget * 2 - Math.round(parsedTarget * 2)) < 0.001;
@@ -305,40 +282,44 @@ export default function AddGradePanel() {
 
           <div className={activeTab === "target" ? "flex flex-col gap-3" : "hidden"}>
               <p className="text-xs text-neutral-400">What grade do you need to reach your target average?</p>
-              <div className="flex gap-3 flex-wrap items-end">
-                <div>
-                  <label className="block text-xs text-neutral-500 mb-1.5">Target average</label>
-                  <input type="number" min="1" max="6" step="any" value={targetAvg} onChange={(e) => setTargetAvg(e.target.value)} onKeyDown={(e) => blockNonNumericKeys(e)} className="w-28 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 text-center" placeholder="e.g. 5" />
-                </div>
-                <div>
-                  <label className="block text-xs text-neutral-500 mb-1.5">Weight of grade</label>
-                  <input type="number" min="0" step="any" value={targetWeight} onChange={(e) => setTargetWeight(e.target.value)} onKeyDown={(e) => blockNonNumericKeys(e)} className="w-24 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 text-center" />
-                </div>
-                {localSubject && needed !== null && (
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1.5">Needed</label>
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${impossible ? "border-red-800 bg-red-900/30 text-red-400" : getGradeColor(clamped!)}`}>{needed.toFixed(2)}</span>
-                      {impossible && <span className="text-xs text-red-400">{needed > 6 ? "Not achievable" : "Already achieved!"}</span>}
-                    </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-400 mb-2">Target average</label>
+                <div className="flex items-center gap-3">
+                  <span className={`inline-flex items-center justify-center w-14 h-9 rounded-lg font-bold text-sm border shrink-0 transition ${getGradeColor(parseFloat(targetAvg))}`}>
+                    {targetAvg}
+                  </span>
+                  <div className="flex-1 pb-1">
+                    <SliderLabels labels={GRADE_LABELS} min={1} max={6} />
+                    <input
+                      type="range"
+                      min="1" max="6" step="0.5"
+                      value={targetAvg}
+                      onChange={(e) => setTargetAvg(e.target.value)}
+                      className="w-full h-2 rounded-lg cursor-pointer accent-blue-500 bg-neutral-700"
+                    />
                   </div>
-                )}
-                {localSubject && neededForRoundedAvg !== null && (
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1.5">Needed (rounded avg)</label>
-                    <div className="flex items-center gap-2">
-                      {neededForRoundedAvg < 1
-                        ? <span className="text-xs text-green-400">Already achieved!</span>
-                        : <>
-                            <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${neededForRoundedAvg > 6 ? "border-red-800 bg-red-900/30 text-red-400" : getGradeColor(neededForRoundedAvg)}`}>{neededForRoundedAvg.toFixed(2)}</span>
-                            {neededForRoundedAvg > 6 && <span className="text-xs text-red-400">Not achievable</span>}
-                          </>
-                      }
-                    </div>
-                  </div>
-                )}
+                  <input
+                    type="number"
+                    min="1" max="6" step="any"
+                    value={targetAvg}
+                    onChange={(e) => setTargetAvg(e.target.value)}
+                    onBlur={(e) => {
+                      const v = parseFloat(e.target.value);
+                      if (!isNaN(v)) setTargetAvg(String(Math.min(6, Math.max(1, Math.round(v * 2) / 2))));
+                    }}
+                    onKeyDown={(e) => blockNonNumericKeys(e)}
+                    className="w-16 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
-              <GradeScaleBar currentAvg={localSubject ? currentAvg : null} needed={localSubject ? needed : null} neededRounded={localSubject ? neededForRoundedAvg : null} />
+              <div>
+                <label className="block text-xs font-medium text-neutral-400 mb-2">Weight of grade</label>
+                <WeightPicker value={targetWeight} onChange={setTargetWeight} />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-neutral-400 mb-2">Overview</label>
+                <GradeScaleBar currentAvg={localSubject ? currentAvg : null} neededRounded={localSubject ? neededForRoundedAvg : null} />
+              </div>
           </div>
         </div>
       </div>
