@@ -61,12 +61,12 @@ function GradeScaleBar({ currentAvg, needed, neededRounded }: { currentAvg: numb
             <div className="w-4 h-4 rounded-full bg-blue-500 ring-2 ring-neutral-900 shadow-lg" />
           </div>
         )}
-        {neededRounded !== null && neededRounded !== undefined && neededRounded >= 1 && (
+        {neededRounded !== null && neededRounded !== undefined && neededRounded >= 1 && neededRounded <= 6 && (
           <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: pct(neededRounded) }}>
             <div className="w-4 h-4 rounded-full bg-emerald-400 ring-2 ring-neutral-900 shadow-lg" />
           </div>
         )}
-        {needed !== null && (
+        {needed !== null && needed >= 1 && needed <= 6 && (
           <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2" style={{ left: pct(needed) }}>
             <div className="w-4 h-4 rounded-full bg-neutral-100 ring-2 ring-neutral-900 shadow-lg" />
           </div>
@@ -84,14 +84,14 @@ function GradeScaleBar({ currentAvg, needed, neededRounded }: { currentAvg: numb
             </span>
           )}
           {neededRounded !== null && neededRounded !== undefined && neededRounded >= 1 && (
-            <span className="flex items-center gap-1.5 text-emerald-400">
-              <span className="inline-block w-3 h-3 rounded-full bg-emerald-400 shrink-0" />
+            <span className={`flex items-center gap-1.5 ${neededRounded > 6 ? "text-red-400" : "text-emerald-400"}`}>
+              <span className={`inline-block w-3 h-3 rounded-full shrink-0 ${neededRounded > 6 ? "bg-red-400" : "bg-emerald-400"}`} />
               Needed (rounded avg): {neededRounded.toFixed(2)}
             </span>
           )}
           {needed !== null && (
-            <span className="flex items-center gap-1.5 text-neutral-300">
-              <span className="inline-block w-3 h-3 rounded-full bg-neutral-100 shrink-0" />
+            <span className={`flex items-center gap-1.5 ${needed < 1 || needed > 6 ? "text-red-400" : "text-neutral-300"}`}>
+              <span className={`inline-block w-3 h-3 rounded-full shrink-0 ${needed < 1 || needed > 6 ? "bg-red-400" : "bg-neutral-100"}`} />
               Needed: {needed.toFixed(2)}
             </span>
           )}
@@ -153,8 +153,6 @@ export default function AddGradePanel() {
   const [activeTab, setActiveTab] = useState<"add" | "paste" | "target">("add");
   const [targetAvg, setTargetAvg] = useState("");
   const [targetWeight, setTargetWeight] = useState("1");
-  const [remainingExams, setRemainingExams] = useState("3");
-  const [examWeight, setExamWeight] = useState("1");
 
   const subjectOptions: string[] =
     activeSchool === "BZZ"
@@ -179,25 +177,12 @@ export default function AddGradePanel() {
   const clamped = needed !== null ? Math.min(6, Math.max(1, needed)) : null;
   const impossible = needed !== null && (needed < 1 || needed > 6);
   const currentAvg = activeGrades.length > 0 ? weightedSum / totalGradeWeight : null;
-  const parsedRemainingExams = parseInt(remainingExams);
-  const parsedExamWeight = parseFloat(examWeight);
-  const neededPerExam =
-    !isNaN(parsedTarget) && parsedRemainingExams > 0 && parsedExamWeight > 0
-      ? (parsedTarget * (totalGradeWeight + parsedRemainingExams * parsedExamWeight) - weightedSum) /
-        (parsedRemainingExams * parsedExamWeight)
-      : null;
-  const neededPerExamImpossible = neededPerExam !== null && (neededPerExam < 1 || neededPerExam > 6);
   // Only meaningful when target is a 0.5 multiple (3.5, 4.0, 4.5…); otherwise rounding is undefined
   const targetIsHalfGrade = !isNaN(parsedTarget) && Math.abs(parsedTarget * 2 - Math.round(parsedTarget * 2)) < 0.001;
   const roundedTargetMin = targetIsHalfGrade ? parsedTarget - 0.25 : null;
   const neededForRoundedAvg =
     roundedTargetMin !== null && !isNaN(parsedTargetWeight) && parsedTargetWeight > 0
       ? (roundedTargetMin * (totalGradeWeight + parsedTargetWeight) - weightedSum) / parsedTargetWeight
-      : null;
-  const neededPerExamForRoundedAvg =
-    roundedTargetMin !== null && parsedRemainingExams > 0 && parsedExamWeight > 0
-      ? (roundedTargetMin * (totalGradeWeight + parsedRemainingExams * parsedExamWeight) - weightedSum) /
-        (parsedRemainingExams * parsedExamWeight)
       : null;
 
   const parsedGrades = pasteText ? parsePastedGrades(pasteText) : [];
@@ -338,52 +323,22 @@ export default function AddGradePanel() {
                     </div>
                   </div>
                 )}
-                {localSubject && neededForRoundedAvg !== null && !impossible && (
+                {localSubject && neededForRoundedAvg !== null && (
                   <div>
                     <label className="block text-xs text-neutral-500 mb-1.5">Needed (rounded avg)</label>
                     <div className="flex items-center gap-2">
                       {neededForRoundedAvg < 1
                         ? <span className="text-xs text-green-400">Already achieved!</span>
-                        : <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${getGradeColor(Math.min(6, Math.max(1, neededForRoundedAvg)))}`}>{neededForRoundedAvg.toFixed(2)}</span>
+                        : <>
+                            <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${neededForRoundedAvg > 6 ? "border-red-800 bg-red-900/30 text-red-400" : getGradeColor(neededForRoundedAvg)}`}>{neededForRoundedAvg.toFixed(2)}</span>
+                            {neededForRoundedAvg > 6 && <span className="text-xs text-red-400">Not achievable</span>}
+                          </>
                       }
                     </div>
                   </div>
                 )}
               </div>
               <GradeScaleBar currentAvg={localSubject ? currentAvg : null} needed={localSubject ? needed : null} neededRounded={localSubject ? neededForRoundedAvg : null} />
-              <div>
-                <p className="text-xs text-neutral-500 mb-2">Spread across remaining exams</p>
-                <div className="flex gap-3 flex-wrap items-end">
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1.5">Remaining exams</label>
-                    <input type="number" min="1" step="1" value={remainingExams} onChange={(e) => setRemainingExams(e.target.value)} onKeyDown={(e) => blockNonNumericKeys(e)} className="w-28 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 text-center" />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-neutral-500 mb-1.5">Weight each</label>
-                    <input type="number" min="0" step="any" value={examWeight} onChange={(e) => setExamWeight(e.target.value)} onKeyDown={(e) => blockNonNumericKeys(e)} className="w-24 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 text-center" />
-                  </div>
-                  {neededPerExam !== null && (
-                    <div>
-                      <label className="block text-xs text-neutral-500 mb-1.5">Needed each</label>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${neededPerExamImpossible ? "border-red-800 bg-red-900/30 text-red-400" : getGradeColor(Math.min(6, Math.max(1, neededPerExam)))}`}>{neededPerExam.toFixed(2)}</span>
-                        {neededPerExamImpossible && <span className="text-xs text-red-400">{neededPerExam > 6 ? "Not achievable" : "Already achieved!"}</span>}
-                      </div>
-                    </div>
-                  )}
-                  {neededPerExamForRoundedAvg !== null && !neededPerExamImpossible && (
-                    <div>
-                      <label className="block text-xs text-neutral-500 mb-1.5">Each (rounded avg)</label>
-                      <div className="flex items-center gap-2">
-                        {neededPerExamForRoundedAvg < 1
-                          ? <span className="text-xs text-green-400">Already achieved!</span>
-                          : <span className={`inline-flex items-center justify-center px-3 h-9 rounded-lg font-bold text-sm border ${getGradeColor(Math.min(6, Math.max(1, neededPerExamForRoundedAvg)))}`}>{neededPerExamForRoundedAvg.toFixed(2)}</span>
-                        }
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
           </div>
         </div>
       </div>
