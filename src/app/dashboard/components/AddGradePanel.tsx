@@ -8,6 +8,7 @@ import {
   BZZ_IPA,
   BZZ_SEMESTER,
   BZZ_MODULE_NAMES,
+  KSH_SUBJECT_NAMES,
 } from "@/lib/semesters";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
@@ -251,7 +252,10 @@ export default function AddGradePanel() {
             options={subjectOptions}
             value={localSubject}
             onChange={setLocalSubject}
-            getLabel={activeSchool === "BZZ" ? (v) => BZZ_MODULE_NAMES[v] ? `${v} – ${BZZ_MODULE_NAMES[v]}` : v : undefined}
+            getLabel={(v) => {
+              const name = activeSchool === "BZZ" ? BZZ_MODULE_NAMES[v] : KSH_SUBJECT_NAMES[v];
+              return name ? `${v} – ${name}` : v;
+            }}
           />
         </div>
 
