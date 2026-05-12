@@ -255,26 +255,25 @@ export default function AddGradePanel() {
           />
         </div>
 
-        <div className="px-4 pt-3 pb-2 flex items-center gap-2">
-          <label className="text-xs text-neutral-500 shrink-0">Bonus/Malus</label>
-          <input
-            type="number"
-            step="any"
-            value={adjInput}
-            onChange={(e) => setAdjInput(e.target.value)}
-            onBlur={commitAdj}
-            onKeyDown={(e) => {
-              blockNonNumericKeys(e, { allowNegative: true });
-              if (e.key === "Enter") commitAdj();
-            }}
-            disabled={!localSubject}
-            className="w-20 px-2 py-1 rounded border border-neutral-600 bg-neutral-800 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500 text-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed"
-            placeholder="±0.0"
-          />
-        </div>
-
         <div className="px-4 pb-4 pt-3 grid">
           <div className={`col-start-1 row-start-1 space-y-3 ${activeTab === "add" ? "" : "invisible pointer-events-none"}`}>
+              <div className="flex items-center gap-2">
+                <label className="text-xs text-neutral-500 shrink-0">Bonus/Malus</label>
+                <input
+                  type="number"
+                  step="any"
+                  value={adjInput}
+                  onChange={(e) => setAdjInput(e.target.value)}
+                  onBlur={commitAdj}
+                  onKeyDown={(e) => {
+                    blockNonNumericKeys(e, { allowNegative: true });
+                    if (e.key === "Enter") commitAdj();
+                  }}
+                  disabled={!localSubject}
+                  className="w-20 px-2 py-1 rounded border border-neutral-600 bg-neutral-800 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500 text-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  placeholder="±0.0"
+                />
+              </div>
               <div className="flex rounded-md border border-neutral-700 overflow-hidden text-xs w-fit">
                 <button type="button" onClick={() => setInputMode("grade")} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "grade" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Grade</button>
                 <button type="button" onClick={() => { setInputMode("points"); setGradeValue(""); setMyPoints(""); setTotalPoints(""); }} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "points" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Points</button>

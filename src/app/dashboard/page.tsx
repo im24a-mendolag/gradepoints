@@ -20,7 +20,7 @@ import Btn from "./components/Btn";
 import SemesterTabs from "./components/SemesterTabs";
 import StatsCards from "./components/StatsCards";
 import { SemesterPassFailRules, OverviewPassFailRules } from "./components/PassFailRules";
-import SubjectCard from "./components/SubjectCard";
+import KshSubjectCard from "./components/KshSubjectCard";
 import FinalsCard from "./components/FinalsCard";
 import OverviewCard from "./components/OverviewCard";
 import BzzModuleCard from "./components/BzzModuleCard";
@@ -268,7 +268,7 @@ function DashboardContent() {
                 </>
               ) : (
                 subjects.map((subject) => (
-                  <SubjectCard key={subject} subject={subject} />
+                  <KshSubjectCard key={subject} subject={subject} />
                 ))
               )}
             </div>

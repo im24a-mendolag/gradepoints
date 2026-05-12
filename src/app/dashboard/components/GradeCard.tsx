@@ -2,17 +2,22 @@
 
 import { useDashboard } from "../DashboardContext";
 import { getGradeColor, formatWeight } from "../utils";
-import { KSH_SUBJECT_NAMES } from "@/lib/semesters";
+import type { Grade } from "../types";
 import Btn from "./Btn";
 import { GradePicker, WeightPicker } from "./GradePickers";
 
-export default function SubjectCard({ subject }: { subject: string }) {
+interface GradeCardProps {
+  title: string;
+  subtitle?: string;
+  expandKey: string;
+  grades: Grade[];
+  avg: number | null;
+  rawAvg: number | null;
+  adj: number;
+}
+
+export default function GradeCard({ title, subtitle, expandKey, grades, avg, rawAvg, adj }: GradeCardProps) {
   const {
-    activeSemester,
-    getGradesForSubject,
-    getSubjectAverage,
-    getRawSubjectAverage,
-    getAdjustment,
     expandedSubjects,
     toggleExpand,
     editingGrade,
@@ -27,40 +32,33 @@ export default function SubjectCard({ subject }: { subject: string }) {
     isSubmitting,
   } = useDashboard();
 
-  const subjectGrades = getGradesForSubject(activeSemester, subject);
-  const avg = getSubjectAverage(activeSemester, subject);
-  const rawAvg = getRawSubjectAverage(activeSemester, subject);
-  const adj = getAdjustment(activeSemester, subject);
-  const isExpanded = expandedSubjects.has(subject);
+  const isExpanded = expandedSubjects.has(expandKey);
 
   return (
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
-      {/* Subject Header */}
       <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2 border-b border-neutral-800">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <button
-            onClick={() => toggleExpand(subject)}
+            onClick={() => toggleExpand(expandKey)}
             aria-expanded={isExpanded}
-            aria-label={isExpanded ? `Hide grades for ${subject}` : `Show grades for ${subject}`}
+            aria-label={isExpanded ? `Hide grades for ${title}` : `Show grades for ${title}`}
             className="text-neutral-500 hover:text-neutral-300 cursor-pointer transition shrink-0"
           >
             <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
           </button>
           <div className="min-w-0">
-            <h3 className="text-sm sm:text-base font-semibold text-neutral-100">{subject}</h3>
-            {KSH_SUBJECT_NAMES[subject] && (
-              <p className="text-xs text-neutral-500 truncate">{KSH_SUBJECT_NAMES[subject]}</p>
-            )}
+            <h3 className="text-sm sm:text-base font-semibold text-neutral-100">{title}</h3>
+            {subtitle && <p className="text-xs text-neutral-500 truncate">{subtitle}</p>}
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           {adj !== 0 && (
-            <span className={`text-sm font-medium px-2 py-1 rounded border ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
+            <span className={`text-sm font-medium px-2 py-1 rounded border shrink-0 ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
               {adj > 0 ? "+" : ""}{adj}
             </span>
           )}
           <span className="text-sm text-neutral-400">
-            {subjectGrades.length} grade{subjectGrades.length !== 1 ? "s" : ""}
+            {grades.length} grade{grades.length !== 1 ? "s" : ""}
           </span>
           <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${avg !== null ? getGradeColor(avg) : "text-neutral-500 border-neutral-700"}`}>
             {avg !== null ? (
@@ -75,11 +73,10 @@ export default function SubjectCard({ subject }: { subject: string }) {
         </div>
       </div>
 
-      {/* Grades List */}
       {isExpanded &&
-        (subjectGrades.length > 0 ? (
+        (grades.length > 0 ? (
           <div className="divide-y divide-neutral-800">
-            {subjectGrades.map((grade) => (
+            {grades.map((grade) => (
               <div key={grade.id} className="px-4 sm:px-5 py-3 hover:bg-neutral-800/50 transition">
                 {editingGrade === grade.id ? (
                   <div className="space-y-3 py-1">
