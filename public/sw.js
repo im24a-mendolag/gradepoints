@@ -1,6 +1,10 @@
-const CACHE_NAME = "gradepoints-v1";
+const CACHE_NAME = "gradepoints-v2";
+const OFFLINE_URL = "/offline.html";
 
 self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL))
+  );
   self.skipWaiting();
 });
 
@@ -38,6 +42,16 @@ self.addEventListener("fetch", (event) => {
             });
             return response;
           })
+      )
+    );
+    return;
+  }
+
+  // For navigation requests, fall back to offline page if network fails
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        caches.match(OFFLINE_URL)
       )
     );
   }
