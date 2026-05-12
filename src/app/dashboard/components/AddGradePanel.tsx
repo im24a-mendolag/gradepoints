@@ -195,10 +195,10 @@ export default function AddGradePanel() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+                  className={`w-16 py-1 rounded-md text-xs font-medium transition cursor-pointer border text-center ${
                     activeTab === tab
-                      ? "bg-blue-600 text-white"
-                      : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+                      ? "bg-blue-600 border-blue-600 text-white"
+                      : "border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
                   }`}
                 >
                   {tab === "add" ? "Add" : "Paste"}
@@ -208,10 +208,10 @@ export default function AddGradePanel() {
           </div>
           <button
             onClick={() => setActiveTab(activeTab === "target" ? "add" : "target")}
-            className={`px-2.5 py-1 rounded-md text-xs font-medium transition cursor-pointer ${
+            className={`w-16 py-1 rounded-md text-xs font-medium transition cursor-pointer border text-center ${
               activeTab === "target"
-                ? "bg-blue-600 text-white"
-                : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
+                ? "bg-blue-600 border-blue-600 text-white"
+                : "border-neutral-700 text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800"
             }`}
           >
             Target
@@ -222,8 +222,8 @@ export default function AddGradePanel() {
           <SubjectCombobox options={subjectOptions} value={localSubject} onChange={setLocalSubject} />
         </div>
 
-        <div className="px-4 pb-4 pt-3">
-          <div className={activeTab === "add" ? "space-y-3" : "hidden"}>
+        <div className="px-4 pb-4 pt-3 grid">
+          <div className={`col-start-1 row-start-1 space-y-3 ${activeTab === "add" ? "" : "invisible pointer-events-none"}`}>
               <div className="flex rounded-md border border-neutral-700 overflow-hidden text-xs w-fit">
                 <button type="button" onClick={() => setInputMode("grade")} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "grade" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Grade</button>
                 <button type="button" onClick={() => { setInputMode("points"); setGradeValue(""); setMyPoints(""); setTotalPoints(""); }} className={`px-2.5 py-1 transition cursor-pointer ${inputMode === "points" ? "bg-blue-600 text-white" : "bg-neutral-800 text-neutral-400 hover:text-neutral-200"}`}>Points</button>
@@ -260,7 +260,7 @@ export default function AddGradePanel() {
               </Btn>
           </div>
 
-          <div className={activeTab === "paste" ? "flex flex-col gap-3" : "hidden"}>
+          <div className={`col-start-1 row-start-1 flex flex-col gap-3 ${activeTab === "paste" ? "" : "invisible pointer-events-none"}`}>
               <p className="text-xs text-neutral-400">Paste tab-separated grades (Name, Grade, Date DD.MM.YYYY, Weight)</p>
               <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} className="flex-1 min-h-0 w-full px-3 py-2 rounded-lg border border-neutral-600 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 resize-none font-mono" placeholder={"Prüfung 1\t4.4\t15.09.2025\t1\nPolitik-Podcast\t4.7\t24.09.2025\t1"} />
               {parsedGrades.length > 0 && (
@@ -280,7 +280,7 @@ export default function AddGradePanel() {
               </Btn>
           </div>
 
-          <div className={activeTab === "target" ? "flex flex-col gap-3" : "hidden"}>
+          <div className={`col-start-1 row-start-1 flex flex-col gap-3 ${activeTab === "target" ? "" : "invisible pointer-events-none"}`}>
               <p className="text-xs text-neutral-400">What grade do you need to reach your target average?</p>
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-2">Target average</label>
