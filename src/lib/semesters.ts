@@ -5,8 +5,8 @@ export const SUBJECTS = [
   "Math",
   "WR",
   "FrW",
-  "History",
-  "Science",
+  "GuP",
+  "TuU",
   "IDAF",
   "IDPA",
   "PrWr",
@@ -15,12 +15,12 @@ export const SUBJECTS = [
 export type Subject = (typeof SUBJECTS)[number];
 
 export const SEMESTER_SUBJECTS: Record<number, Subject[]> = {
-  1: ["German", "French", "English", "Math", "WR", "FrW", "History"],
-  2: ["German", "French", "English", "Math", "WR", "FrW", "History"],
-  3: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF", "PrWr"],
-  4: ["German", "French", "English", "Math", "WR", "FrW", "History", "Science", "IDAF", "PrWr"],
-  5: ["German", "French", "English", "Math", "WR", "FrW", "Science"],
-  6: ["German", "French", "English", "Math", "WR", "FrW", "Science", "IDPA"],
+  1: ["German", "French", "English", "Math", "WR", "FrW", "GuP"],
+  2: ["German", "French", "English", "Math", "WR", "FrW", "GuP"],
+  3: ["German", "French", "English", "Math", "WR", "FrW", "GuP", "TuU", "IDAF", "PrWr"],
+  4: ["German", "French", "English", "Math", "WR", "FrW", "GuP", "TuU", "IDAF", "PrWr"],
+  5: ["German", "French", "English", "Math", "WR", "FrW", "TuU"],
+  6: ["German", "French", "English", "Math", "WR", "FrW", "TuU", "IDPA"],
 };
 
 export const TOTAL_SEMESTERS = 6;
@@ -68,6 +68,22 @@ export const FINALS_SUBJECT_KEYS = [
   "Math (Written)", "WR (Written)", "FrW (Written)",
 ] as const;
 
+// ─── KSH Configuration ──────────────────────────────────────────
+
+export const KSH_SUBJECT_NAMES: Record<string, string> = {
+  "German":  "Deutsch",
+  "French":  "Französisch",
+  "English": "Englisch",
+  "Math":    "Mathematik",
+  "WR":      "Wirtschaft und Recht",
+  "FrW":     "Finanz und Rechnungswesen",
+  "GuP": "Geschichte und Politik",
+  "TuU": "Technik und Umwelt",
+  "IDAF":    "Interdisziplinäres Arbeiten in den Fächern",
+  "IDPA":    "Interdisziplinäre Projektarbeit",
+  "PrWr":    "Projekt Wirtschaft",
+};
+
 // ─── BZZ Configuration ──────────────────────────────────────────
 
 export const BZZ_SEMESTER = 1; // BZZ uses a single flat "semester" internally
@@ -83,6 +99,41 @@ export const BZZ_UK_MODULES = [
 ] as const;
 
 export const BZZ_IPA = "IPA" as const;
+
+export const BZZ_MODULE_NAMES: Record<string, string> = {
+  "106": "Datenbanken abfragen, bearbeiten und warten",
+  "114": "Codierungs-, Kompressions- und Verschlüsselungsverfahren einsetzen",
+  "117": "Informatik- und Netzinfrastruktur für ein kleines Unternehmen realisieren",
+  "122": "Abläufe mit einer Scriptsprache automatisieren",
+  "162": "Daten analysieren und modellieren",
+  "164": "Datenbanken erstellen und Daten einfügen",
+  "165": "NoSQL-Datenbanken einsetzen",
+  "183": "Applikationssicherheit implementieren",
+  "187": "ICT-Benutzerendgeräte und Arbeitsplatz in Betrieb nehmen",
+  "210": "Public Cloud für Anwendungen nutzen",
+  "223": "Multi-User-Applikationen objektorientiert realisieren",
+  "231": "Datenschutz und Datensicherheit anwenden",
+  "241": "Innovative ICT-Lösungen initialisieren",
+  "245": "Innovative ICT-Lösungen umsetzen",
+  "254": "Geschäftsprozesse im eigenen Berufsumfeld beschreiben",
+  "293": "Webauftritt erstellen und veröffentlichen",
+  "294": "Frontend einer interaktiven Webapplikation realisieren",
+  "295": "Backend für Applikationen realisieren",
+  "306": "Kleinprojekte im eigenen Berufsumfeld abwickeln",
+  "319": "Applikationen entwerfen und implementieren",
+  "320": "Objektorientiert programmieren",
+  "321": "Verteilte Systeme programmieren",
+  "322": "Benutzerschnittstellen entwerfen und implementieren",
+  "323": "Funktional Programmieren",
+  "324": "DevOps-Prozesse mit Tools unterstützen",
+  "335": "Mobile-Applikation realisieren",
+  "346": "Cloud Lösungen konzipieren und realisieren",
+  "347": "Dienst mit Container anwenden",
+  "426": "Software mit agilen Methoden entwickeln",
+  "431": "Aufträge im eigenen Berufsumfeld selbstständig durchführen",
+  "450": "Applikationen testen",
+  "IPA": "Individuelle Praktische Arbeit",
+};
 
 export const BZZ_ALL_MODULES = [
   ...BZZ_NORMAL_MODULES,

@@ -32,8 +32,8 @@ const SUBJECT_COLORS: Record<string, string> = {
   Math: "#f59e0b",
   WR: "#10b981",
   FrW: "#06b6d4",
-  History: "#f97316",
-  Science: "#84cc16",
+  GuP: "#f97316",
+  TuU: "#84cc16",
   IDAF: "#ec4899",
   IDPA: "#a855f7",
 };

@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   SEMESTER_SUBJECTS,
   BZZ_NORMAL_MODULES,
   BZZ_UK_MODULES,
   BZZ_IPA,
+  BZZ_SEMESTER,
+  BZZ_MODULE_NAMES,
 } from "@/lib/semesters";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
 import Btn from "./Btn";
 import { GradePicker, WeightPicker, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
 
-function SubjectCombobox({ options, value, onChange }: { options: string[]; value: string; onChange: (v: string) => void }) {
-  const [query, setQuery] = useState(value);
+function SubjectCombobox({ options, value, onChange, getLabel }: { options: string[]; value: string; onChange: (v: string) => void; getLabel?: (v: string) => string }) {
+  const label = (v: string) => getLabel ? getLabel(v) : v;
+  const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
-  const filtered = query ? options.filter((o) => o.toLowerCase().includes(query.toLowerCase())) : options;
+  const filtered = query
+    ? options.filter((o) => label(o).toLowerCase().includes(query.toLowerCase()) || o.toLowerCase().includes(query.toLowerCase()))
+    : options;
 
   return (
     <div className="relative">
@@ -32,10 +37,10 @@ function SubjectCombobox({ options, value, onChange }: { options: string[]; valu
           {filtered.map((option) => (
             <li
               key={option}
-              onMouseDown={() => { onChange(option); setQuery(option); setOpen(false); }}
+              onMouseDown={() => { onChange(option); setQuery(label(option)); setOpen(false); }}
               className={`px-3 py-2 text-sm cursor-pointer hover:bg-neutral-700 ${value === option ? "text-blue-400" : "text-neutral-100"}`}
             >
-              {option}
+              {label(option)}
             </li>
           ))}
         </ul>
@@ -124,6 +129,10 @@ export default function AddGradePanel() {
     bulkImportGrades,
     getGradesForSubject,
     getBzzModuleGrades,
+    getAdjustment,
+    getBzzModuleAdjustment,
+    saveAdjustment,
+    saveBzzAdjustment,
     isSubmitting,
   } = useDashboard();
 
@@ -141,6 +150,25 @@ export default function AddGradePanel() {
     activeSchool === "BZZ"
       ? [...(BZZ_NORMAL_MODULES as readonly string[]), ...(BZZ_UK_MODULES as readonly string[]), BZZ_IPA]
       : (SEMESTER_SUBJECTS[activeSemester] ?? []);
+
+  const adj = localSubject
+    ? activeSchool === "BZZ"
+      ? getBzzModuleAdjustment(localSubject)
+      : getAdjustment(activeSemester, localSubject)
+    : 0;
+
+  const [adjInput, setAdjInput] = useState(adj !== 0 ? String(adj) : "");
+  useEffect(() => {
+    setAdjInput(adj !== 0 ? String(adj) : "");
+  }, [localSubject]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commitAdj = () => {
+    if (!localSubject) return;
+    const val = parseFloat(adjInput);
+    const normalized = isNaN(val) ? 0 : val;
+    if (activeSchool === "BZZ") saveBzzAdjustment(localSubject, normalized);
+    else saveAdjustment(activeSemester, localSubject, normalized);
+  };
 
   const grades = localSubject
     ? activeSchool === "BZZ"
@@ -219,7 +247,30 @@ export default function AddGradePanel() {
         </div>
 
         <div className="px-4 pb-1">
-          <SubjectCombobox options={subjectOptions} value={localSubject} onChange={setLocalSubject} />
+          <SubjectCombobox
+            options={subjectOptions}
+            value={localSubject}
+            onChange={setLocalSubject}
+            getLabel={activeSchool === "BZZ" ? (v) => BZZ_MODULE_NAMES[v] ? `${v} – ${BZZ_MODULE_NAMES[v]}` : v : undefined}
+          />
+        </div>
+
+        <div className="px-4 pt-3 pb-2 flex items-center gap-2">
+          <label className="text-xs text-neutral-500 shrink-0">Bonus/Malus</label>
+          <input
+            type="number"
+            step="any"
+            value={adjInput}
+            onChange={(e) => setAdjInput(e.target.value)}
+            onBlur={commitAdj}
+            onKeyDown={(e) => {
+              blockNonNumericKeys(e, { allowNegative: true });
+              if (e.key === "Enter") commitAdj();
+            }}
+            disabled={!localSubject}
+            className="w-20 px-2 py-1 rounded border border-neutral-600 bg-neutral-800 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500 text-neutral-100 disabled:opacity-40 disabled:cursor-not-allowed"
+            placeholder="±0.0"
+          />
         </div>
 
         <div className="px-4 pb-4 pt-3 grid">

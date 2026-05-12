@@ -21,7 +21,8 @@
       "PowerShell(Get-WmiObject Win32_Process | Where-Object { $_.Name -eq \"node.exe\" } | Select-Object ProcessId, CommandLine | Format-List)",
       "PowerShell(Stop-Process -Id 17672, 40272, 40696, 41604 -Force -ErrorAction SilentlyContinue)",
       "PowerShell(Get-Process | Where-Object { $_.Name -eq \"node\" } | Select-Object Id, Name)",
-      "PowerShell(Get-NetTCPConnection -LocalPort 3000,3001,3002 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Get-Process -Name \"node\" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host \"done\")"
+      "PowerShell(Get-NetTCPConnection -LocalPort 3000,3001,3002 -State Listen -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }; Get-Process -Name \"node\" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Write-Host \"done\")",
+      "WebFetch(domain:www.modulbaukasten.ch)"
     ],
     "additionalDirectories": [
       "C:\\Users\\giova\\GitHub\\gradepoints\\src\\app\\api\\grades\\[id]"

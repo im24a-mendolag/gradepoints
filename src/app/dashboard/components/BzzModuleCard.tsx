@@ -1,8 +1,8 @@
 "use client";
 
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
-import { BZZ_SEMESTER } from "@/lib/semesters";
+import { getGradeColor, formatWeight } from "../utils";
+import { BZZ_MODULE_NAMES } from "@/lib/semesters";
 import Btn from "./Btn";
 import { GradePicker, WeightPicker } from "./GradePickers";
 
@@ -23,12 +23,6 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
     editDate, setEditDate,
     updateGrade,
     deleteGrade,
-    editingAdjustment,
-    startEditingAdjustment,
-    cancelEditingAdjustment,
-    adjustmentInput,
-    setAdjustmentInput,
-    saveBzzAdjustment,
     isSubmitting,
   } = useDashboard();
 
@@ -36,16 +30,8 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
   const avg = getBzzModuleAverage(mod);
   const rawAvg = getBzzModuleRawAverage(mod);
   const adj = getBzzModuleAdjustment(mod);
-  const adjKey = `${BZZ_SEMESTER}-${mod}`;
   const expandKey = `bzz-${mod}`;
   const isExpanded = expandedSubjects.has(expandKey);
-  const isEditingAdj = editingAdjustment === adjKey;
-
-  const handleSaveAdj = () => {
-    const val = parseFloat(adjustmentInput);
-    saveBzzAdjustment(mod, isNaN(val) ? 0 : val);
-    cancelEditingAdjustment();
-  };
 
   return (
     <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
@@ -60,46 +46,32 @@ export default function BzzModuleCard({ mod }: { mod: string }) {
           >
             <span className={`inline-block transition-transform ${isExpanded ? "rotate-90" : ""}`}>▶</span>
           </button>
-          <h3 className="text-sm sm:text-base font-semibold text-neutral-100 truncate">{mod}</h3>
-          {avg !== null && (
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full border shrink-0 ${getGradeColor(avg)}`}>
-              Ø {avg.toFixed(1)}
-              {rawAvg !== null && (
-                <span className="text-neutral-500 font-normal ml-1">({rawAvg.toFixed(3)})</span>
-              )}
-            </span>
-          )}
+          <div className="min-w-0">
+            <h3 className="text-sm sm:text-base font-semibold text-neutral-100">{mod}</h3>
+            {BZZ_MODULE_NAMES[mod] && (
+              <p className="text-xs text-neutral-500 truncate">{BZZ_MODULE_NAMES[mod]}</p>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
           {adj !== 0 && (
-            <span className={`text-xs font-medium px-1.5 py-0.5 rounded border shrink-0 ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
+            <span className={`text-sm font-medium px-2 py-1 rounded border shrink-0 ${adj > 0 ? "text-green-400 bg-green-900/30 border-green-700" : "text-red-400 bg-red-900/30 border-red-700"}`}>
               {adj > 0 ? "+" : ""}{adj}
             </span>
           )}
-          <span className="text-xs text-neutral-500 shrink-0">
+          <span className="text-sm text-neutral-400">
             {modGrades.length} grade{modGrades.length !== 1 ? "s" : ""}
           </span>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {isEditingAdj ? (
-            <div className="flex items-center gap-1.5">
-              <input
-                type="number"
-                step="any"
-                value={adjustmentInput}
-                onChange={(e) => setAdjustmentInput(e.target.value)}
-                onKeyDown={(e) => {
-                  blockNonNumericKeys(e, { allowNegative: true });
-                  if (e.key === "Enter") handleSaveAdj();
-                }}
-                className="w-20 px-2 py-1 rounded border border-neutral-600 bg-neutral-800 text-sm text-center outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-neutral-100"
-                placeholder="±0.0"
-                autoFocus
-              />
-              <Btn size="sm" variant="primary" onClick={handleSaveAdj}>Save</Btn>
-              <Btn size="sm" onClick={cancelEditingAdjustment}>Cancel</Btn>
-            </div>
-          ) : (
-            <Btn size="sm" onClick={() => startEditingAdjustment(BZZ_SEMESTER, mod)} title="Set bonus/malus">±</Btn>
-          )}
+          <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${avg !== null ? getGradeColor(avg) : "text-neutral-500 border-neutral-700"}`}>
+            {avg !== null ? (
+              <>
+                Ø {avg.toFixed(1)}
+                {rawAvg !== null && (
+                  <span className="text-neutral-500 font-normal ml-1 text-xs">({rawAvg.toFixed(3)})</span>
+                )}
+              </>
+            ) : "—"}
+          </span>
         </div>
       </div>
 
