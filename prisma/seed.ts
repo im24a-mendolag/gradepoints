@@ -58,20 +58,17 @@ async function main() {
 
   // 1. Upsert demo user
   const hashedPassword = await bcryptjs.hash("demo123", 12);
-  let user = await prisma.user.findUnique({ where: { email: "demo@gradepoints.ch" } });
-  if (!user) {
-    user = await prisma.user.create({
-      data: {
-        name: "Demo Student",
-        email: "demo@gradepoints.ch",
-        password: hashedPassword,
-        emailVerified: true,
-      },
-    });
-    console.log("Created demo user: demo@gradepoints.ch / demo123");
-  } else {
-    console.log("Demo user already exists.");
-  }
+  const user = await prisma.user.upsert({
+    where: { email: "demo@gradepoints.ch" },
+    update: { emailVerified: true },
+    create: {
+      name: "Demo Student",
+      email: "demo@gradepoints.ch",
+      password: hashedPassword,
+      emailVerified: true,
+    },
+  });
+  console.log("Demo user ready: demo@gradepoints.ch / demo123");
 
   // 2. Check if grades already exist for this user
   const existingKsh = await prisma.grade.findFirst({ where: { userId: user.id, school: "KSH" } });

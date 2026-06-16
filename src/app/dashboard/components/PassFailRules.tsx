@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDashboard } from "../DashboardContext";
 
 /**
@@ -9,10 +10,11 @@ import { useDashboard } from "../DashboardContext";
 export function SemesterPassFailRules({ semester }: { semester: number }) {
   const { getSemesterStatus } = useDashboard();
   const status = getSemesterStatus(semester);
+  const [open, setOpen] = useState(false);
 
   return (
     <div
-      className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
+      className={`mb-4 sm:mb-6 rounded-xl shadow-sm border overflow-hidden ${
         status
           ? status.passed
             ? "border-green-800"
@@ -20,8 +22,10 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
           : "border-neutral-800"
       }`}
     >
-      <div
-        className={`px-4 sm:px-5 py-3 text-sm font-semibold ${
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
           status
             ? status.passed
               ? "bg-green-900/30 text-green-300"
@@ -29,9 +33,13 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
             : "bg-neutral-900 text-neutral-400"
         }`}
       >
-        Pass/Fail Rules — Semester {semester}
-      </div>
-      <div className="bg-neutral-900 divide-y divide-neutral-800">
+        <span>
+          {status ? (status.passed ? "✓ " : "✗ ") : ""}Pass/Fail Rules — Semester {semester}
+        </span>
+        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
+        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
+      </button>
+      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
         {/* Rule 1: Average ≥ 4.0 */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
@@ -123,10 +131,11 @@ export function SemesterPassFailRules({ semester }: { semester: number }) {
 export function OverviewPassFailRules() {
   const { getOverviewStatus } = useDashboard();
   const status = getOverviewStatus();
+  const [open, setOpen] = useState(false);
 
   return (
     <div
-      className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
+      className={`mb-4 sm:mb-6 rounded-xl shadow-sm border overflow-hidden ${
         status
           ? status.passed
             ? "border-green-800"
@@ -134,8 +143,10 @@ export function OverviewPassFailRules() {
           : "border-neutral-800"
       }`}
     >
-      <div
-        className={`px-4 sm:px-5 py-3 text-sm font-semibold ${
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
           status
             ? status.passed
               ? "bg-green-900/30 text-green-300"
@@ -143,9 +154,13 @@ export function OverviewPassFailRules() {
             : "bg-neutral-900 text-neutral-400"
         }`}
       >
-        Pass/Fail Rules — 3-Year Final
-      </div>
-      <div className="bg-neutral-900 divide-y divide-neutral-800">
+        <span>
+          {status ? (status.passed ? "✓ " : "✗ ") : ""}Pass/Fail Rules — 3-Year Final
+        </span>
+        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
+        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
+      </button>
+      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
         {/* Rule 1 */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

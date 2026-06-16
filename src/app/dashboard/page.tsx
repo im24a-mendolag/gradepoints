@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import {
   SEMESTER_SUBJECTS,
   FINALS_SEMESTER,
@@ -49,27 +49,27 @@ function BzzStatsCards() {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-        <p className="text-sm text-neutral-400 mb-1">Normal Avg</p>
-        <p className={`text-2xl font-bold ${avgColor(normalAvg)}`}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
+        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Normal Avg</p>
+        <p className={`text-xl sm:text-2xl font-bold ${avgColor(normalAvg)}`}>
           {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-        <p className="text-sm text-neutral-400 mb-1">ÜK Avg</p>
-        <p className={`text-2xl font-bold ${avgColor(ukAvg)}`}>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
+        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">ÜK Avg</p>
+        <p className={`text-xl sm:text-2xl font-bold ${avgColor(ukAvg)}`}>
           {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-        <p className="text-sm text-neutral-400 mb-1">Final Avg</p>
-        <p className={`text-2xl font-bold ${avgColor(finalAvg)}`}>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
+        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Final Avg</p>
+        <p className={`text-xl sm:text-2xl font-bold ${avgColor(finalAvg)}`}>
           {finalAvg !== null ? finalAvg.toFixed(2) : "—"}
         </p>
       </div>
       <div
-        className={`rounded-xl shadow-sm border p-5 ${
+        className={`rounded-xl shadow-sm border p-3 sm:p-5 ${
           ipaGrade !== null
             ? ipaGrade >= 4
               ? "bg-green-900/20 border-green-800"
@@ -77,13 +77,13 @@ function BzzStatsCards() {
             : "bg-neutral-900 border-neutral-800"
         }`}
       >
-        <p className="text-sm text-neutral-400 mb-1">IPA</p>
-        <p className={`text-2xl font-bold ${avgColor(ipaGrade)}`}>
+        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">IPA</p>
+        <p className={`text-xl sm:text-2xl font-bold ${avgColor(ipaGrade)}`}>
           {ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}
         </p>
       </div>
       <div
-        className={`rounded-xl shadow-sm border p-5 ${
+        className={`rounded-xl shadow-sm border p-3 sm:p-5 ${
           passFail.finalAvg !== null
             ? passFail.passed
               ? "bg-green-900/20 border-green-800"
@@ -91,9 +91,9 @@ function BzzStatsCards() {
             : "bg-neutral-900 border-neutral-800"
         }`}
       >
-        <p className="text-sm text-neutral-400 mb-1">Status</p>
+        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Status</p>
         <p
-          className={`text-2xl font-bold ${
+          className={`text-xl sm:text-2xl font-bold ${
             passFail.finalAvg !== null
               ? passFail.passed
                 ? "text-green-400"
@@ -150,6 +150,32 @@ function DashboardContent() {
   const { data: session } = useSession();
   const { activeSchool, activeSemester, error, dismissError, loading } = useDashboard();
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close hamburger menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
+
+  // Lock body scroll when add sheet is open
+  useEffect(() => {
+    if (addSheetOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [addSheetOpen]);
+
   const subjects =
     activeSemester === FINALS_SEMESTER ? [] : (SEMESTER_SUBJECTS[activeSemester] ?? []);
 
@@ -163,6 +189,8 @@ function DashboardContent() {
     );
   }
 
+  const canAddGrade = activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB;
+
   return (
     <div className="min-h-screen bg-neutral-950">
       {/* Header */}
@@ -175,7 +203,8 @@ function DashboardContent() {
             <SchoolSelector />
             <span className="text-sm text-neutral-500 hidden sm:inline">/ Dashboard</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-4">
             <Link
               href={`/dashboard/stats?school=${activeSchool}`}
               className="text-sm text-blue-400 hover:text-blue-300 font-medium"
@@ -184,16 +213,50 @@ function DashboardContent() {
             </Link>
             <Link
               href="/dashboard/account"
-              className="text-sm text-neutral-400 hover:text-neutral-200 hidden sm:inline transition"
+              className="text-sm text-neutral-400 hover:text-neutral-200 transition"
             >
               {session?.user?.name}
             </Link>
             <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
           </div>
+          {/* Mobile hamburger */}
+          <div className="relative sm:hidden" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-300 hover:bg-neutral-800 text-xl cursor-pointer"
+              aria-label="Menu"
+            >
+              ☰
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                <Link
+                  href={`/dashboard/stats?school=${activeSchool}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-blue-400 hover:bg-neutral-700"
+                >
+                  Statistics
+                </Link>
+                <Link
+                  href="/dashboard/account"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
+                >
+                  {session?.user?.name ?? "Account"}
+                </Link>
+                <button
+                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8">
+      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-24 sm:pb-8">
         {/* Error Banner */}
         {error && (
           <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">
@@ -225,7 +288,12 @@ function DashboardContent() {
             {/* Semester Tabs */}
             <SemesterTabs />
 
-            {activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && <AddGradePanel />}
+            {/* Add Grade Panel — desktop only */}
+            {canAddGrade && (
+              <div className="hidden sm:block">
+                <AddGradePanel />
+              </div>
+            )}
 
             {/* Content for active tab */}
             <div className="space-y-4">
@@ -256,7 +324,10 @@ function DashboardContent() {
             {/* BZZ: Pass/Fail */}
             <BzzPassFail />
 
-            <AddGradePanel />
+            {/* Add Grade Panel — desktop only */}
+            <div className="hidden sm:block">
+              <AddGradePanel />
+            </div>
 
             <BzzCollapsibleSection title="Normal Modules" defaultOpen>
               {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
@@ -274,6 +345,47 @@ function DashboardContent() {
           </>
         )}
       </main>
+
+      {/* Mobile FAB */}
+      {canAddGrade && (
+        <button
+          onClick={() => setAddSheetOpen(true)}
+          className="fixed bottom-6 left-4 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-light shadow-xl sm:hidden cursor-pointer"
+          aria-label="Add grade"
+        >
+          +
+        </button>
+      )}
+
+      {/* Mobile Add Grade Bottom Sheet */}
+      {addSheetOpen && (
+        <>
+          {/* Overlay */}
+          <div
+            className="fixed inset-0 bg-black/60 z-40 sm:hidden"
+            onClick={() => setAddSheetOpen(false)}
+          />
+          {/* Sheet */}
+          <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-neutral-900 border-t border-neutral-800 rounded-t-2xl max-h-[88vh] flex flex-col">
+            {/* Handle + header */}
+            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
+              <div className="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 bg-neutral-700 rounded-full" />
+              <span className="text-sm font-semibold text-neutral-100">Add Grade</span>
+              <button
+                onClick={() => setAddSheetOpen(false)}
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-neutral-800 text-neutral-400 hover:text-neutral-200 text-lg cursor-pointer"
+                aria-label="Close"
+              >
+                ×
+              </button>
+            </div>
+            {/* Scrollable form */}
+            <div className="overflow-y-auto flex-1 px-1 pb-6">
+              <AddGradePanel noSlider />
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

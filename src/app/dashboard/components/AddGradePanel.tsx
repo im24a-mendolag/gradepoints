@@ -117,7 +117,7 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
     });
 }
 
-export default function AddGradePanel() {
+export default function AddGradePanel({ noSlider }: { noSlider?: boolean } = {}) {
   const {
     activeSchool,
     activeSemester,
@@ -218,7 +218,6 @@ export default function AddGradePanel() {
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl">
         <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-semibold text-neutral-100">Add Grade</h2>
             <div className="flex gap-1">
               {(["add", "paste"] as const).map((tab) => (
                 <button
@@ -285,7 +284,7 @@ export default function AddGradePanel() {
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-2">Grade</label>
                 {inputMode === "grade" ? (
-                  <GradePicker value={gradeValue} onChange={setGradeValue} />
+                  <GradePicker value={gradeValue} onChange={setGradeValue} noSlider={noSlider} />
                 ) : (
                   <div className="flex items-center gap-2 flex-wrap">
                     <input type="number" min="0" step="any" value={myPoints} onChange={(e) => { setMyPoints(e.target.value); setGradeValue(calcGradeFromPoints(e.target.value, totalPoints)); }} onKeyDown={(e) => blockNonNumericKeys(e)} className="w-24 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500" placeholder="My pts" />
@@ -297,7 +296,7 @@ export default function AddGradePanel() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-1.5">Weight</label>
-                <WeightPicker value={gradeWeight} onChange={setGradeWeight} />
+                <WeightPicker value={gradeWeight} onChange={setGradeWeight} noSlider={noSlider} />
               </div>
               <div className="flex gap-3">
                 <div className="flex-1">
@@ -368,7 +367,7 @@ export default function AddGradePanel() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-2">Weight of grade</label>
-                <WeightPicker value={targetWeight} onChange={setTargetWeight} />
+                <WeightPicker value={targetWeight} onChange={setTargetWeight} noSlider={noSlider} />
               </div>
               <div>
                 <label className="block text-xs font-medium text-neutral-400 mb-2">Overview</label>

@@ -33,10 +33,31 @@ export function SliderLabels({ labels, min, max }: { labels: number[]; min: numb
   );
 }
 
-export function GradePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function GradePicker({ value, onChange, noSlider }: { value: string; onChange: (v: string) => void; noSlider?: boolean }) {
   const parsed = parseFloat(value);
   const valid = !isNaN(parsed) && parsed >= 1 && parsed <= 6;
   const sliderVal = valid ? Math.min(6, Math.max(1, parsed)) : 1;
+
+  if (noSlider) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className={`inline-flex items-center justify-center w-14 h-11 rounded-lg font-bold text-base border shrink-0 transition ${valid ? getGradeColor(parsed) : "border-neutral-700 bg-neutral-800 text-neutral-500"}`}>
+          {valid ? parsed : "—"}
+        </span>
+        <input
+          type="number"
+          min="1"
+          max="6"
+          step="0.1"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => blockNonNumericKeys(e)}
+          className="flex-1 px-3 h-11 rounded-lg border border-neutral-700 bg-neutral-800 text-base text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="1–6"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-3">
@@ -70,11 +91,57 @@ export function GradePicker({ value, onChange }: { value: string; onChange: (v: 
   );
 }
 
-export function WeightPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+export function WeightPicker({ value, onChange, noSlider }: { value: string; onChange: (v: string) => void; noSlider?: boolean }) {
   const parsed = parseFloat(value);
   const valid = !isNaN(parsed) && parsed >= 0;
   const sliderVal = valid ? Math.min(3, Math.max(0, parsed)) : 1;
   const isZero = valid && parsed === 0;
+
+  const stepWeight = (delta: number) => {
+    const current = valid ? parsed : 1;
+    const next = Math.round(Math.min(3, Math.max(0, current + delta)) * 10) / 10;
+    onChange(String(next));
+  };
+
+  if (noSlider) {
+    return (
+      <div>
+        <div className="flex items-center gap-3">
+          <span className={`inline-flex items-center justify-center w-14 h-11 rounded-lg font-bold text-base border shrink-0 ${isZero ? "border-amber-700 bg-amber-900/20 text-amber-400" : "border-neutral-700 bg-neutral-800 text-neutral-300"}`}>
+            ×{valid ? formatWeight(parsed) : "1"}
+          </span>
+          <button
+            type="button"
+            onClick={() => stepWeight(-0.5)}
+            className="w-11 h-11 rounded-lg border border-neutral-700 bg-neutral-800 text-neutral-200 text-xl font-bold flex items-center justify-center active:bg-neutral-700 cursor-pointer"
+          >
+            −
+          </button>
+          <input
+            type="number"
+            min="0"
+            max="3"
+            step="0.5"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onKeyDown={(e) => blockNonNumericKeys(e)}
+            className="flex-1 px-3 h-11 rounded-lg border border-neutral-700 bg-neutral-800 text-base text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="wt"
+          />
+          <button
+            type="button"
+            onClick={() => stepWeight(0.5)}
+            className="w-11 h-11 rounded-lg border border-neutral-700 bg-neutral-800 text-neutral-200 text-xl font-bold flex items-center justify-center active:bg-neutral-700 cursor-pointer"
+          >
+            +
+          </button>
+        </div>
+        {isZero && (
+          <p className="mt-1.5 text-xs text-amber-400">Weight 0 — this grade won&apos;t count toward averages</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div>
