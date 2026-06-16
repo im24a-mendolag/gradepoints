@@ -33,7 +33,7 @@ import type { School } from "./types";
  * BZZ-specific stats cards row.
  */
 function BzzStatsCards() {
-  const { getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage, getBzzPassFail } = useDashboard();
+  const { getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage, getBzzPassFail, grades } = useDashboard();
   const normalAvg = getBzzNormalAverage();
   const ukAvg = getBzzUkAverage();
   const finalAvg = getBzzFinalAverage();
@@ -49,27 +49,31 @@ function BzzStatsCards() {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-4 sm:mb-6">
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
-        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Normal Avg</p>
-        <p className={`text-xl sm:text-2xl font-bold ${avgColor(normalAvg)}`}>
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-3 sm:mb-5">
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Total Grades</p>
+        <p className="text-lg sm:text-xl font-bold text-neutral-100">{grades.length}</p>
+      </div>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Normal Avg</p>
+        <p className={`text-lg sm:text-xl font-bold ${avgColor(normalAvg)}`}>
           {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
-        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">ÜK Avg</p>
-        <p className={`text-xl sm:text-2xl font-bold ${avgColor(ukAvg)}`}>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">ÜK Avg</p>
+        <p className={`text-lg sm:text-xl font-bold ${avgColor(ukAvg)}`}>
           {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-3 sm:p-5">
-        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Final Avg</p>
-        <p className={`text-xl sm:text-2xl font-bold ${avgColor(finalAvg)}`}>
+      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Final Avg</p>
+        <p className={`text-lg sm:text-xl font-bold ${avgColor(finalAvg)}`}>
           {finalAvg !== null ? finalAvg.toFixed(2) : "—"}
         </p>
       </div>
       <div
-        className={`rounded-xl shadow-sm border p-3 sm:p-5 ${
+        className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
           ipaGrade !== null
             ? ipaGrade >= 4
               ? "bg-green-900/20 border-green-800"
@@ -77,13 +81,13 @@ function BzzStatsCards() {
             : "bg-neutral-900 border-neutral-800"
         }`}
       >
-        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">IPA</p>
-        <p className={`text-xl sm:text-2xl font-bold ${avgColor(ipaGrade)}`}>
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">IPA</p>
+        <p className={`text-lg sm:text-xl font-bold ${avgColor(ipaGrade)}`}>
           {ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}
         </p>
       </div>
       <div
-        className={`rounded-xl shadow-sm border p-3 sm:p-5 ${
+        className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
           passFail.finalAvg !== null
             ? passFail.passed
               ? "bg-green-900/20 border-green-800"
@@ -91,9 +95,9 @@ function BzzStatsCards() {
             : "bg-neutral-900 border-neutral-800"
         }`}
       >
-        <p className="text-[11px] sm:text-sm text-neutral-400 mb-1">Status</p>
+        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Status</p>
         <p
-          className={`text-xl sm:text-2xl font-bold ${
+          className={`text-lg sm:text-xl font-bold ${
             passFail.finalAvg !== null
               ? passFail.passed
                 ? "text-green-400"
@@ -148,7 +152,7 @@ function BzzCollapsibleSection({
  */
 function DashboardContent() {
   const { data: session } = useSession();
-  const { activeSchool, activeSemester, error, dismissError, loading } = useDashboard();
+  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading } = useDashboard();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -201,19 +205,39 @@ function DashboardContent() {
               Grade<span className="text-blue-500">Points</span>
             </h1>
             <SchoolSelector />
-            <span className="text-sm text-neutral-500 hidden sm:inline">/ Dashboard</span>
           </div>
           {/* Desktop nav */}
           <div className="hidden sm:flex items-center gap-4">
+            {activeSemester === OVERVIEW_TAB || activeSemester === FINALS_SEMESTER ? (
+              <button
+                onClick={() => selectSemester(lastRegularSemester)}
+                className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition cursor-pointer"
+              >
+                Dashboard
+              </button>
+            ) : (
+              <span className="text-sm text-blue-400 font-medium border-b border-blue-400 pb-0.5">
+                Dashboard
+              </span>
+            )}
             <Link
               href={`/dashboard/stats?school=${activeSchool}`}
-              className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+              className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
             >
               Statistics
             </Link>
+            {activeSchool === "KSH" && (
+              <button
+                onClick={() => selectSemester(OVERVIEW_TAB)}
+                className={`text-sm font-medium transition cursor-pointer ${activeSemester === OVERVIEW_TAB ? "text-amber-400 border-b border-amber-400 pb-0.5" : "text-neutral-400 hover:text-neutral-200"}`}
+              >
+                Overview
+              </button>
+            )}
+            <div className="w-px h-4 bg-neutral-700" />
             <Link
               href="/dashboard/account"
-              className="text-sm text-neutral-400 hover:text-neutral-200 transition"
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition"
             >
               {session?.user?.name}
             </Link>
@@ -237,6 +261,14 @@ function DashboardContent() {
                 >
                   Statistics
                 </Link>
+                {activeSchool === "KSH" && (
+                  <button
+                    onClick={() => { selectSemester(OVERVIEW_TAB); setMenuOpen(false); }}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
+                  >
+                    Overview
+                  </button>
+                )}
                 <Link
                   href="/dashboard/account"
                   onClick={() => setMenuOpen(false)}
@@ -286,7 +318,7 @@ function DashboardContent() {
             {activeSemester === OVERVIEW_TAB && <OverviewPassFailRules />}
 
             {/* Semester Tabs */}
-            <SemesterTabs />
+            {activeSemester !== OVERVIEW_TAB && <SemesterTabs />}
 
             {/* Add Grade Panel — desktop only */}
             {canAddGrade && (
@@ -350,7 +382,7 @@ function DashboardContent() {
       {canAddGrade && (
         <button
           onClick={() => setAddSheetOpen(true)}
-          className="fixed bottom-6 left-4 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-light shadow-xl sm:hidden cursor-pointer"
+          className="fixed bottom-6 right-4 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-light shadow-xl sm:hidden cursor-pointer"
           aria-label="Add grade"
         >
           +
@@ -397,8 +429,11 @@ function DashboardContent() {
 function DashboardWrapper() {
   const searchParams = useSearchParams();
   const initialSchool: School = searchParams.get("school") === "BZZ" ? "BZZ" : "KSH";
+  const tabParam = searchParams.get("tab");
+  const tabNum = tabParam !== null ? parseInt(tabParam) : NaN;
+  const initialSemester = !isNaN(tabNum) ? tabNum : undefined;
   return (
-    <DashboardProvider initialSchool={initialSchool}>
+    <DashboardProvider initialSchool={initialSchool} initialSemester={initialSemester}>
       <DashboardContent />
     </DashboardProvider>
   );

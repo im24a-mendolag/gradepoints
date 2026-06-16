@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useDashboard } from "../DashboardContext";
 import { getAvgColor } from "../utils";
 
@@ -15,6 +16,7 @@ export default function BzzPassFail() {
   const { getBzzPassFail } = useDashboard();
   const status = getBzzPassFail();
   const { normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass, passed } = status;
+  const [open, setOpen] = useState(false);
 
   const avgPass = finalAvg !== null ? finalAvg >= 4 : null;
   const isDecided = finalAvg !== null || ipaPass === false;
@@ -30,8 +32,10 @@ export default function BzzPassFail() {
       }`}
     >
       {/* Header */}
-      <div
-        className={`px-4 sm:px-5 py-3 text-sm font-semibold ${
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
           isDecided
             ? passed
               ? "bg-green-900/30 text-green-300"
@@ -39,10 +43,12 @@ export default function BzzPassFail() {
             : "bg-neutral-900 text-neutral-400"
         }`}
       >
-        Pass/Fail — BZZ
-      </div>
+        <span>{isDecided ? (passed ? "✓ " : "✗ ") : ""}Pass/Fail — BZZ</span>
+        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
+        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
+      </button>
 
-      <div className="bg-neutral-900 divide-y divide-neutral-800">
+      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
         {/* Normal Modules Average */}
         <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
           <span className="text-xs sm:text-sm text-neutral-300">Normal Modules Avg</span>

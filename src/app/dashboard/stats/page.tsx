@@ -3,7 +3,7 @@
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { DashboardProvider, useDashboard } from "../DashboardContext";
 import Btn from "../components/Btn";
 import {
@@ -634,6 +634,19 @@ function BzzStatsContent() {
 function StatsContent() {
   const { data: session } = useSession();
   const { activeSchool, loading } = useDashboard();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [menuOpen]);
 
   if (loading) {
     return (
@@ -653,22 +666,80 @@ function StatsContent() {
               Grade<span className="text-blue-500">Points</span>
             </Link>
             <SchoolSelector />
-            <span className="text-sm text-neutral-500 hidden sm:inline">/ Statistics</span>
           </div>
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-4">
             <Link
               href={`/dashboard?school=${activeSchool}`}
-              className="text-sm text-blue-400 hover:text-blue-300 font-medium"
+              className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
             >
-              &larr; Back
+              Dashboard
             </Link>
+            <span className="text-sm text-blue-400 font-medium border-b border-blue-400 pb-0.5">
+              Statistics
+            </span>
+            {activeSchool === "KSH" && (
+              <Link
+                href={`/dashboard?school=KSH&tab=0`}
+                className="text-sm text-neutral-400 hover:text-amber-400 font-medium transition"
+              >
+                Overview
+              </Link>
+            )}
+            <div className="w-px h-4 bg-neutral-700" />
             <Link
               href="/dashboard/account"
-              className="text-sm text-neutral-400 hover:text-neutral-200 hidden sm:inline transition"
+              className="text-xs text-neutral-500 hover:text-neutral-300 transition"
             >
               {session?.user?.name}
             </Link>
             <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
+          </div>
+          {/* Mobile hamburger */}
+          <div className="relative sm:hidden" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-300 hover:bg-neutral-800 text-xl cursor-pointer"
+              aria-label="Menu"
+            >
+              ☰
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-44 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                <Link
+                  href={`/dashboard?school=${activeSchool}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-blue-400 hover:bg-neutral-700"
+                >
+                  ← Dashboard
+                </Link>
+                <div className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-100 font-medium border-t border-neutral-700 bg-neutral-700/40">
+                  Statistics
+                </div>
+                {activeSchool === "KSH" && (
+                  <Link
+                    href={`/dashboard?school=KSH&tab=0`}
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-amber-400 hover:bg-neutral-700 border-t border-neutral-700"
+                  >
+                    Overview
+                  </Link>
+                )}
+                <Link
+                  href="/dashboard/account"
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
+                >
+                  {session?.user?.name ?? "Account"}
+                </Link>
+                <button
+                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
+                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
+                >
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>

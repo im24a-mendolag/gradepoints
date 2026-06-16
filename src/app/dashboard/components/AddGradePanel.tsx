@@ -341,16 +341,18 @@ export default function AddGradePanel({ noSlider }: { noSlider?: boolean } = {})
                   <span className={`inline-flex items-center justify-center w-14 h-9 rounded-lg font-bold text-sm border shrink-0 transition ${getGradeColor(parseFloat(targetAvg))}`}>
                     {targetAvg}
                   </span>
-                  <div className="flex-1 pb-1">
-                    <SliderLabels labels={GRADE_LABELS} min={1} max={6} />
-                    <input
-                      type="range"
-                      min="1" max="6" step="0.5"
-                      value={targetAvg}
-                      onChange={(e) => setTargetAvg(e.target.value)}
-                      className="w-full h-2 rounded-lg cursor-pointer accent-blue-500 bg-neutral-700"
-                    />
-                  </div>
+                  {!noSlider && (
+                    <div className="flex-1 pb-1">
+                      <SliderLabels labels={GRADE_LABELS} min={1} max={6} />
+                      <input
+                        type="range"
+                        min="1" max="6" step="0.5"
+                        value={targetAvg}
+                        onChange={(e) => setTargetAvg(e.target.value)}
+                        className="w-full h-2 rounded-lg cursor-pointer accent-blue-500 bg-neutral-700"
+                      />
+                    </div>
+                  )}
                   <input
                     type="number"
                     min="1" max="6" step="any"
@@ -361,7 +363,7 @@ export default function AddGradePanel({ noSlider }: { noSlider?: boolean } = {})
                       if (!isNaN(v)) setTargetAvg(String(Math.min(6, Math.max(1, Math.round(v * 2) / 2))));
                     }}
                     onKeyDown={(e) => blockNonNumericKeys(e)}
-                    className="w-16 px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500"
+                    className={`px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 ${noSlider ? "flex-1" : "w-16"}`}
                   />
                 </div>
               </div>

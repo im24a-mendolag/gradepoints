@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
 import {
   FINALS_SEMESTER,
+  OVERVIEW_TAB,
   BZZ_SEMESTER,
 } from "@/lib/semesters";
 import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
@@ -15,6 +16,7 @@ interface DashboardContextType {
   // ── Core data ──
   grades: Grade[];
   activeSemester: number;
+  lastRegularSemester: number;
   activeSchool: School;
   setActiveSchool: (school: School) => void;
   error: string | null;
@@ -132,13 +134,14 @@ export function useDashboard(): DashboardContextType {
 
 // ─── Provider ───────────────────────────────────────────────────
 
-export function DashboardProvider({ children, initialSchool = "KSH" }: { children: ReactNode; initialSchool?: School }) {
+export function DashboardProvider({ children, initialSchool = "KSH", initialSemester }: { children: ReactNode; initialSchool?: School; initialSemester?: number }) {
   // ── Core state ──
   const [grades, setGrades] = useState<Grade[]>([]);
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeSemester, setActiveSemester] = useState(initialSchool === "KSH" ? 1 : BZZ_SEMESTER);
+  const [activeSemester, setActiveSemester] = useState(initialSemester ?? (initialSchool === "KSH" ? 1 : BZZ_SEMESTER));
+  const [lastRegularSemester, setLastRegularSemester] = useState(initialSchool === "KSH" ? 1 : BZZ_SEMESTER);
   const [activeSchool, setActiveSchoolState] = useState<School>(initialSchool);
   const [error, setError] = useState<string | null>(null);
 
@@ -472,6 +475,9 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const selectSemester = (sem: number) => {
     setActiveSemester(sem);
     setEditingGrade(null);
+    if (sem !== OVERVIEW_TAB && sem !== FINALS_SEMESTER) {
+      setLastRegularSemester(sem);
+    }
   };
 
   const startEditing = (grade: Grade) => {
@@ -531,6 +537,7 @@ export function DashboardProvider({ children, initialSchool = "KSH" }: { childre
   const value: DashboardContextType = {
     grades,
     activeSemester,
+    lastRegularSemester,
     activeSchool,
     setActiveSchool,
     error,

@@ -82,11 +82,11 @@ export default function GradeCard({ title, subtitle, expandKey, grades, avg, raw
                   <div className="space-y-3 py-1">
                     <div>
                       <label className="block text-xs font-medium text-neutral-500 mb-1.5">Grade</label>
-                      <GradePicker value={editValue} onChange={setEditValue} />
+                      <GradePicker value={editValue} onChange={setEditValue} noSlider />
                     </div>
                     <div>
                       <label className="block text-xs font-medium text-neutral-500 mb-1.5">Weight</label>
-                      <WeightPicker value={editWeight} onChange={setEditWeight} />
+                      <WeightPicker value={editWeight} onChange={setEditWeight} noSlider />
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input

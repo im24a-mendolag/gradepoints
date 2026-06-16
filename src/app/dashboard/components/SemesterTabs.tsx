@@ -1,57 +1,41 @@
 "use client";
 
-import { TOTAL_SEMESTERS, FINALS_SEMESTER, OVERVIEW_TAB } from "@/lib/semesters";
+import { TOTAL_SEMESTERS, FINALS_SEMESTER } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
 
-/**
- * Renders the navigation tabs for semesters (1–6), finals, and overview.
- * Reads activeSemester and computation functions from DashboardContext — no props needed.
- */
 export default function SemesterTabs() {
-  const { activeSemester, selectSemester, getSemesterAverage } = useDashboard();
+  const { activeSemester, selectSemester } = useDashboard();
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6">
+    <div className="flex gap-1.5 mb-4 overflow-x-auto sm:overflow-visible scrollbar-none pb-0.5">
       {Array.from({ length: TOTAL_SEMESTERS }, (_, i) => i + 1).map((sem) => {
-        const avg = getSemesterAverage(sem);
+        const active = activeSemester === sem;
         return (
           <button
             key={sem}
             onClick={() => selectSemester(sem)}
-            className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
-              activeSemester === sem
+            className={`flex items-center justify-center px-3 py-1.5 sm:py-3 rounded-lg shrink-0 sm:shrink sm:flex-1 transition cursor-pointer min-w-[46px] sm:min-w-0 ${
+              active
                 ? "bg-blue-600 text-white shadow-sm"
                 : "bg-neutral-900 text-neutral-300 border border-neutral-700 hover:bg-neutral-800"
             }`}
           >
-            Sem {sem}
-            {avg !== null && (
-              <span className={`ml-1.5 ${activeSemester === sem ? "text-blue-200" : "text-neutral-500"}`}>
-                {avg.toFixed(1)}
-              </span>
-            )}
+            <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">
+              <span className="sm:hidden">S{sem}</span>
+              <span className="hidden sm:inline">Semester {sem}</span>
+            </span>
           </button>
         );
       })}
       <button
         onClick={() => selectSemester(FINALS_SEMESTER)}
-        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
+        className={`flex items-center justify-center px-3 py-1.5 sm:py-3 rounded-lg shrink-0 sm:shrink sm:flex-1 transition cursor-pointer min-w-[52px] sm:min-w-0 ${
           activeSemester === FINALS_SEMESTER
             ? "bg-purple-600 text-white shadow-sm"
             : "bg-neutral-900 text-purple-400 border border-purple-800 hover:bg-purple-900/30"
         }`}
       >
-        Finals
-      </button>
-      <button
-        onClick={() => selectSemester(OVERVIEW_TAB)}
-        className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition cursor-pointer ${
-          activeSemester === OVERVIEW_TAB
-            ? "bg-amber-600 text-white shadow-sm"
-            : "bg-neutral-900 text-amber-400 border border-amber-800 hover:bg-amber-900/30"
-        }`}
-      >
-        Overview
+        <span className="text-xs sm:text-sm font-semibold">Finals</span>
       </button>
     </div>
   );

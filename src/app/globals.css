@@ -34,6 +34,14 @@ input[type="number"] {
   appearance: textfield;
 }
 
+/* Hide scrollbar for horizontal scroll strips */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Dark mode date input icon */
 input[type="date"]::-webkit-calendar-picker-indicator {
   filter: invert(0.7);
