@@ -116,6 +116,9 @@ interface DashboardContextType {
   // ── Bulk import ──
   bulkImportGrades: (subject: string, entries: BulkGradeEntry[]) => Promise<void>;
 
+  // ── Clear semester ──
+  clearSemesterGrades: (semester: number) => Promise<void>;
+
   // ── Undo ──
   undoEntry: { label: string } | null;
   undoLastAction: () => Promise<void>;
@@ -571,6 +574,38 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     }
   };
 
+  const clearSemesterGrades = async (semester: number) => {
+    const toDelete = grades.filter((g) => g.semester === semester && g.school !== "BZZ");
+    if (toDelete.length === 0) return;
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      await Promise.all(toDelete.map((g) => fetch(`/api/grades/${g.id}`, { method: "DELETE" })));
+      await fetchGrades();
+      pushUndo(`Cleared semester ${semester} (${toDelete.length} grades)`, async () => {
+        for (const g of toDelete) {
+          await fetch("/api/grades", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              value: g.value,
+              weight: g.weight,
+              description: g.description,
+              date: new Date(g.date).toISOString().split("T")[0],
+              semester: g.semester,
+              subject: g.subject,
+            }),
+          });
+        }
+        await fetchGrades();
+      });
+    } catch {
+      setError("Failed to clear semester grades. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // ─── UI actions ───────────────────────────────────────────────
 
   const selectSemester = (sem: number) => {
@@ -669,6 +704,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     ...bzz,
     addBzzGrade, saveBzzAdjustment,
     bulkImportGrades,
+    clearSemesterGrades,
     undoEntry: undoAction ? { label: undoAction.label } : null,
     undoLastAction,
     dismissUndo,

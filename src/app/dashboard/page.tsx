@@ -152,10 +152,12 @@ function BzzCollapsibleSection({
  */
 function DashboardContent() {
   const { data: session } = useSession();
-  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading, isSubmitting, undoEntry, undoLastAction, dismissUndo } = useDashboard();
+  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading, isSubmitting, undoEntry, undoLastAction, dismissUndo, clearSemesterGrades, grades } = useDashboard();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => setConfirmClear(false), [activeSemester]);
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Close hamburger menu on outside click
@@ -361,6 +363,39 @@ function DashboardContent() {
                 ))
               )}
             </div>
+
+            {/* Clear semester */}
+            {canAddGrade && (() => {
+              const semGradeCount = grades.filter(g => g.semester === activeSemester && g.school !== "BZZ").length;
+              if (semGradeCount === 0) return null;
+              return confirmClear ? (
+                <div className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-red-900 bg-red-950/20 text-sm">
+                  <span className="text-red-300 flex-1">Delete all {semGradeCount} grades from semester {activeSemester}?</span>
+                  <button
+                    onClick={() => { clearSemesterGrades(activeSemester); setConfirmClear(false); }}
+                    disabled={isSubmitting}
+                    className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg font-medium transition cursor-pointer disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                  <button
+                    onClick={() => setConfirmClear(false)}
+                    className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 flex justify-center">
+                  <button
+                    onClick={() => setConfirmClear(true)}
+                    className="text-xs text-red-500 hover:text-red-400 border border-red-900 hover:border-red-700 px-3 py-1.5 rounded-lg transition cursor-pointer"
+                  >
+                    Remove all grades from this semester
+                  </button>
+                </div>
+              );
+            })()}
           </>
         ) : (
           <>
