@@ -115,6 +115,11 @@ interface DashboardContextType {
 
   // ── Bulk import ──
   bulkImportGrades: (subject: string, entries: BulkGradeEntry[]) => Promise<void>;
+
+  // ── Undo ──
+  undoEntry: { label: string } | null;
+  undoLastAction: () => Promise<void>;
+  dismissUndo: () => void;
 }
 
 export interface BulkGradeEntry {
@@ -169,6 +174,38 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const [editingAdjustment, setEditingAdjustment] = useState<string | null>(null);
   const [adjustmentInput, setAdjustmentInput] = useState("");
   const [finalsInputs, setFinalsInputs] = useState<Record<string, string>>({});
+
+  // ── Undo ──
+  const [undoAction, setUndoAction] = useState<{ label: string; perform: () => Promise<void> } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
+
+  const pushUndo = (label: string, perform: () => Promise<void>) => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoAction({ label, perform });
+    undoTimer.current = setTimeout(() => setUndoAction(null), 8000);
+  };
+
+  const undoLastAction = async () => {
+    if (!undoAction) return;
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    const action = undoAction;
+    setUndoAction(null);
+    setIsSubmitting(true);
+    try {
+      await action.perform();
+    } catch {
+      setError("Failed to undo. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const dismissUndo = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    setUndoAction(null);
+  };
 
   // ─── Data fetching ────────────────────────────────────────────
 
@@ -259,11 +296,16 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
         }),
       });
       if (res.ok) {
+        const created: Grade = await res.json();
         setGradeValue("");
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
         setExpandedSubjects((prev) => new Set(prev).add(subject));
+        pushUndo("Grade added", async () => {
+          await fetch(`/api/grades/${created.id}`, { method: "DELETE" });
+          await fetchGrades();
+        });
         await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
@@ -276,12 +318,34 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   };
 
   const deleteGrade = async (id: string) => {
+    const snapshot = grades.find((g) => g.id === id);
     setError(null);
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
-      if (res.ok) await fetchGrades();
-      else setError((await res.json()).error || "Failed to delete grade");
+      if (res.ok) {
+        await fetchGrades();
+        if (snapshot) {
+          pushUndo("Grade deleted", async () => {
+            await fetch("/api/grades", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                value: snapshot.value,
+                weight: snapshot.weight,
+                description: snapshot.description,
+                date: new Date(snapshot.date).toISOString().split("T")[0],
+                semester: snapshot.semester,
+                subject: snapshot.subject,
+                ...(snapshot.school !== "KSH" ? { school: snapshot.school } : {}),
+              }),
+            });
+            await fetchGrades();
+          });
+        }
+      } else {
+        setError((await res.json()).error || "Failed to delete grade");
+      }
     } catch {
       setError("Failed to delete grade. Please try again.");
     } finally {
@@ -296,6 +360,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
       setError("Grade value and weight must be valid numbers");
       return;
     }
+    const snapshot = grades.find((g) => g.id === id);
     setError(null);
     setIsSubmitting(true);
     try {
@@ -309,8 +374,27 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
           date: editDate,
         }),
       });
-      if (res.ok) { setEditingGrade(null); await fetchGrades(); }
-      else setError((await res.json()).error || "Failed to update grade");
+      if (res.ok) {
+        setEditingGrade(null);
+        await fetchGrades();
+        if (snapshot) {
+          pushUndo("Grade updated", async () => {
+            await fetch(`/api/grades/${id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                value: snapshot.value,
+                weight: snapshot.weight,
+                description: snapshot.description,
+                date: new Date(snapshot.date).toISOString().split("T")[0],
+              }),
+            });
+            await fetchGrades();
+          });
+        }
+      } else {
+        setError((await res.json()).error || "Failed to update grade");
+      }
     } catch {
       setError("Failed to update grade. Please try again.");
     } finally {
@@ -401,11 +485,16 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
         }),
       });
       if (res.ok) {
+        const created: Grade = await res.json();
         setGradeValue("");
         setGradeWeight("1");
         setGradeDescription("");
         setGradeDate(new Date().toISOString().split("T")[0]);
         setExpandedSubjects((prev) => new Set(prev).add(`bzz-${mod}`));
+        pushUndo("Grade added", async () => {
+          await fetch(`/api/grades/${created.id}`, { method: "DELETE" });
+          await fetchGrades();
+        });
         await fetchGrades();
       } else {
         setError((await res.json()).error || "Failed to add grade");
@@ -444,6 +533,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
     setError(null);
     const isBzz = activeSchool === "BZZ";
+    const createdIds: string[] = [];
     try {
       for (const entry of entries) {
         const res = await fetch("/api/grades", {
@@ -461,10 +551,21 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
         });
         if (!res.ok) {
           setError((await res.json()).error || "Failed to import a grade");
-          return;
+          break;
         }
+        const created: Grade = await res.json();
+        createdIds.push(created.id);
       }
       await fetchGrades();
+      if (createdIds.length > 0) {
+        pushUndo(
+          `Pasted ${createdIds.length} grade${createdIds.length !== 1 ? "s" : ""}`,
+          async () => {
+            await Promise.all(createdIds.map((id) => fetch(`/api/grades/${id}`, { method: "DELETE" })));
+            await fetchGrades();
+          }
+        );
+      }
     } catch {
       setError("Failed to import grades. Please try again.");
     }
@@ -568,6 +669,9 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     ...bzz,
     addBzzGrade, saveBzzAdjustment,
     bulkImportGrades,
+    undoEntry: undoAction ? { label: undoAction.label } : null,
+    undoLastAction,
+    dismissUndo,
   };
 
   return (

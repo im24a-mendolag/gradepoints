@@ -117,7 +117,7 @@ function parsePastedGrades(text: string): BulkGradeEntry[] {
     });
 }
 
-export default function AddGradePanel({ noSlider }: { noSlider?: boolean } = {}) {
+export default function AddGradePanel({ noSlider }: { noSlider?: boolean }) {
   const {
     activeSchool,
     activeSemester,

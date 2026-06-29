@@ -152,7 +152,7 @@ function BzzCollapsibleSection({
  */
 function DashboardContent() {
   const { data: session } = useSession();
-  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading } = useDashboard();
+  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading, isSubmitting, undoEntry, undoLastAction, dismissUndo } = useDashboard();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [addSheetOpen, setAddSheetOpen] = useState(false);
@@ -172,11 +172,8 @@ function DashboardContent() {
 
   // Lock body scroll when add sheet is open
   useEffect(() => {
-    if (addSheetOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!addSheetOpen) return;
+    document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, [addSheetOpen]);
 
@@ -357,9 +354,11 @@ function DashboardContent() {
             <BzzPassFail />
 
             {/* Add Grade Panel — desktop only */}
-            <div className="hidden sm:block">
-              <AddGradePanel />
-            </div>
+            {canAddGrade && (
+              <div className="hidden sm:block">
+                <AddGradePanel />
+              </div>
+            )}
 
             <BzzCollapsibleSection title="Normal Modules" defaultOpen>
               {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
@@ -418,6 +417,27 @@ function DashboardContent() {
           </div>
         </>
       )}
+
+      {/* Undo toast */}
+      {undoEntry && (
+        <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl text-sm text-neutral-200 whitespace-nowrap">
+          <span>{undoEntry.label}</span>
+          <button
+            onClick={undoLastAction}
+            disabled={isSubmitting}
+            className="font-semibold text-blue-400 hover:text-blue-300 transition cursor-pointer disabled:opacity-50"
+          >
+            Undo
+          </button>
+          <button
+            onClick={dismissUndo}
+            className="text-neutral-500 hover:text-neutral-300 transition cursor-pointer text-base leading-none"
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -429,8 +449,7 @@ function DashboardContent() {
 function DashboardWrapper() {
   const searchParams = useSearchParams();
   const initialSchool: School = searchParams.get("school") === "BZZ" ? "BZZ" : "KSH";
-  const tabParam = searchParams.get("tab");
-  const tabNum = tabParam !== null ? parseInt(tabParam) : NaN;
+  const tabNum = parseInt(searchParams.get("tab") ?? "");
   const initialSemester = !isNaN(tabNum) ? tabNum : undefined;
   return (
     <DashboardProvider initialSchool={initialSchool} initialSemester={initialSemester}>

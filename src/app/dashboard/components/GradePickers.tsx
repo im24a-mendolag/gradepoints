@@ -97,13 +97,12 @@ export function WeightPicker({ value, onChange, noSlider }: { value: string; onC
   const sliderVal = valid ? Math.min(3, Math.max(0, parsed)) : 1;
   const isZero = valid && parsed === 0;
 
-  const stepWeight = (delta: number) => {
-    const current = valid ? parsed : 1;
-    const next = Math.round(Math.min(3, Math.max(0, current + delta)) * 10) / 10;
-    onChange(String(next));
-  };
-
   if (noSlider) {
+    const stepWeight = (delta: number) => {
+      const current = valid ? parsed : 1;
+      const next = Math.round(Math.min(3, Math.max(0, current + delta)) * 10) / 10;
+      onChange(String(next));
+    };
     return (
       <div>
         <div className="flex items-center gap-3">
