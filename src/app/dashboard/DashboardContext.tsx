@@ -580,11 +580,19 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     setError(null);
     setIsSubmitting(true);
     try {
-      await Promise.all(toDelete.map((g) => fetch(`/api/grades/${g.id}`, { method: "DELETE" })));
+      const deleteWithRetry = async (id: string) => {
+        const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
+        if (res.status === 429) {
+          const wait = parseInt(res.headers.get("Retry-After") ?? "60", 10);
+          await new Promise((r) => setTimeout(r, wait * 1000));
+          await fetch(`/api/grades/${id}`, { method: "DELETE" });
+        }
+      };
+      for (const g of toDelete) await deleteWithRetry(g.id);
       await fetchGrades();
       pushUndo(`Cleared semester ${semester} (${toDelete.length} grades)`, async () => {
         for (const g of toDelete) {
-          await fetch("/api/grades", {
+          const res = await fetch("/api/grades", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -596,6 +604,22 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
               subject: g.subject,
             }),
           });
+          if (res.status === 429) {
+            const wait = parseInt(res.headers.get("Retry-After") ?? "60", 10);
+            await new Promise((r) => setTimeout(r, wait * 1000));
+            await fetch("/api/grades", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                value: g.value,
+                weight: g.weight,
+                description: g.description,
+                date: new Date(g.date).toISOString().split("T")[0],
+                semester: g.semester,
+                subject: g.subject,
+              }),
+            });
+          }
         }
         await fetchGrades();
       });

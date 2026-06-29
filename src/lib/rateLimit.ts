@@ -2,7 +2,7 @@ import { prisma } from "./prisma";
 
 export async function checkRateLimit(
   key: string,
-  limit = 20,
+  limit = 60,
   windowMs = 60_000
 ): Promise<boolean> {
   const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs);

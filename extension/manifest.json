@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "GradePoints Importer",
-  "version": "1.0",
+  "version": "1.1",
   "description": "Import grades from intranet.tam.ch into GradePoints",
   "permissions": ["activeTab", "scripting", "storage"],
   "host_permissions": [

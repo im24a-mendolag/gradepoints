@@ -457,6 +457,17 @@ function escHtml(str) {
 
 // ── Import ───────────────────────────────────────────────────────────────────
 
+async function postWithRetry(url, options, btn) {
+  const res = await fetch(url, options);
+  if (res.status === 429) {
+    const wait = parseInt(res.headers.get('Retry-After') || '60', 10);
+    if (btn) btn.textContent = `Rate limited — retrying in ${wait}s…`;
+    await new Promise(r => setTimeout(r, wait * 1000));
+    return fetch(url, options);
+  }
+  return res;
+}
+
 async function importSubject(subject, btn) {
   if (!selectedSemester || !subject.gpKey) return;
 
@@ -466,7 +477,7 @@ async function importSubject(subject, btn) {
 
   try {
     for (const grade of subject.grades) {
-      const res = await fetch(`${GP_BASE}/api/grades`, {
+      const res = await postWithRetry(`${GP_BASE}/api/grades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -479,7 +490,7 @@ async function importSubject(subject, btn) {
           subject:     subject.gpKey,
           school:      'KSH',
         }),
-      });
+      }, btn);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error || `HTTP ${res.status}`);
@@ -490,7 +501,7 @@ async function importSubject(subject, btn) {
     if (subject.bonuses.length > 0) {
       const totalAdj = subject.bonuses.reduce((sum, b) => sum + b.value, 0);
       if (totalAdj !== 0) {
-        const res = await fetch(`${GP_BASE}/api/adjustments`, {
+        const res = await postWithRetry(`${GP_BASE}/api/adjustments`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           credentials: 'include',
@@ -500,7 +511,7 @@ async function importSubject(subject, btn) {
             subject: subject.gpKey,
             school:  'KSH',
           }),
-        });
+        }, btn);
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           throw new Error(body.error || `Adjustment failed: HTTP ${res.status}`);
