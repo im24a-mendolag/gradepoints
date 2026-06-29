@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "GradePoints Importer",
+  "version": "1.0",
+  "description": "Import grades from intranet.tam.ch into GradePoints",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "https://gradepoints.mendolag.ch/*",
+    "https://intranet.tam.ch/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "GradePoints Importer"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "gradepoints-importer@mendolag.ch",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "optional": []
+      }
+    }
+  }
+}

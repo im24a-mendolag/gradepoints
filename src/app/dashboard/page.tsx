@@ -231,6 +231,14 @@ function DashboardContent() {
                 Overview
               </button>
             )}
+            {activeSchool === "KSH" && (
+              <Link
+                href="/extension"
+                className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
+              >
+                Extension
+              </Link>
+            )}
             <div className="w-px h-4 bg-neutral-700" />
             <Link
               href="/dashboard/account"
@@ -265,6 +273,15 @@ function DashboardContent() {
                   >
                     Overview
                   </button>
+                )}
+                {activeSchool === "KSH" && (
+                  <Link
+                    href="/extension"
+                    onClick={() => setMenuOpen(false)}
+                    className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
+                  >
+                    Extension
+                  </Link>
                 )}
                 <Link
                   href="/dashboard/account"

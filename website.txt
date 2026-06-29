@@ -1,0 +1,136 @@
+Notenbuch
+Frühlingssemester 2026
+	
+Kurs
+	Deutsch, GF DjTj (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Bergkristall	4.2	24.02.2026	0.25	
+Diktat	1.6	16.06.2026	0.25	
+Präsentation Nudge	6	22.06.2026	0.25	
+Schnitt schriftlich	3.933			
+ZBU (Mündlichnote, zählt 25%)	3.5	23.06.2026	0.25	
+Schnitt total	3.825			
+	Englisch, GF DjTj (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Test 1	3.4	04.05.2026	1	
+Test 2	4.3	22.06.2026	1.5	
+Oral 1	4.5	04.05.2026	0.5	
+Oral 2	4.75	22.06.2026	0.5	
+Schnitt	4.136			
+	Finanz- und Rechnungswesen, SP (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Prüfung 1	5.7	09.03.2026	1	
+Prüfung 2	4	01.06.2026	1	
+Prüfung 3	4.7	15.06.2026	1	
+	Französisch, GF DjTj (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Premier examen du semestre	4.6	31.03.2026	1	
+Deuxième examen écrit_littérature (M. Ibrahim)	3.3	01.06.2026	1	
+M. Ibrahim (oral)	5.2	01.06.2026	0.5	
+Note participation	4.5	22.06.2026	0.5	
+Schnitt	4.250			
+	Geschichte und Politik, EF (I2a)
+	IDAF TuU, EF DjTn (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+IDAF	4.5	19.06.2026	1	
+	IDAF WR, EF DjTn (I2a)
+	Mathematik, GF DjTj (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Prüfung 1	5.1	11.03.2026	1	
+Prüfung 2	4.8	07.04.2026	1	
+Datenanalyse	6	02.06.2026	1	
+Mündlich Bonus	0.2			
+Zeugnissnote	5.5	29.06.2026	0	
+	Projekte Wirtschaft und Recht, SOG DjTj (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+	Sport, BF DnTn (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+	Technik und Umwelt, EF (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Prüfung 1	4.8	05.05.2026	1	
+prüfung 2	4.3	22.06.2026	1	
+	Wirtschaft und Recht, SP (I2a)
+	
+Titel
+	
+Wert
+	
+Datum
+	
+Gewichtung
+	
+Prüfung 1	3.6	26.03.2026	1	
+Prüfung 2	4.7	22.05.2026	1	
+Prüfung 3	4.3	19.06.2026	1

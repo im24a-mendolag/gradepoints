@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>GradePoints Importer</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <header>
+    <span class="logo">Grade<span class="blue">Points</span></span>
+    <span class="logo-sub">Importer</span>
+  </header>
+
+  <!-- Wrong page -->
+  <div data-state="wrong-page" hidden>
+    <div class="state-body">
+      <p class="state-msg">Open your school's Notenbuch page first.</p>
+      <a href="https://intranet.tam.ch/ksh/gradebook" target="_blank" class="btn btn-secondary">
+        Open Notenbuch →
+      </a>
+    </div>
+  </div>
+
+  <!-- Not logged in to GradePoints -->
+  <div data-state="not-logged-in" hidden>
+    <div class="state-body">
+      <p class="state-msg">Log in to GradePoints first.</p>
+      <a id="login-link" href="https://gradepoints.mendolag.ch/login" target="_blank" class="btn btn-primary">
+        Log in to GradePoints
+      </a>
+    </div>
+  </div>
+
+  <!-- Ready to capture -->
+  <div data-state="ready" hidden>
+    <div class="state-body">
+      <p class="state-msg muted">Connected to GradePoints.</p>
+      <button id="capture-btn" class="btn btn-primary">Capture grades from this page</button>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div data-state="preview" hidden>
+    <div class="preview-top">
+      <div id="semester-label-row" class="school-semester-row" hidden>
+        <span class="label-text">School semester:</span>
+        <span id="semester-label" class="school-semester-value"></span>
+      </div>
+      <div class="semester-row">
+        <label for="semester-select" class="label-text">GradePoints semester:</label>
+        <select id="semester-select" class="semester-select">
+          <option value="">— choose —</option>
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+          <option value="5">Semester 5</option>
+          <option value="6">Semester 6</option>
+        </select>
+      </div>
+    </div>
+    <div class="import-all-bar">
+      <button id="import-all-btn" class="btn btn-primary full-width" disabled>Import all subjects</button>
+    </div>
+    <div id="subjects-list"></div>
+    <div id="all-done-bar" hidden>
+      <button id="open-gp-btn" class="btn btn-primary full-width">Open GradePoints →</button>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div data-state="error" hidden>
+    <div class="state-body">
+      <p class="state-msg error-text" id="error-msg"></p>
+      <button id="retry-btn" class="btn btn-secondary">Try again</button>
+    </div>
+  </div>
+
+  <!-- Loading spinner -->
+  <div data-state="loading" hidden>
+    <div class="state-body">
+      <div class="spinner"></div>
+      <p class="state-msg muted" id="loading-msg">Loading…</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

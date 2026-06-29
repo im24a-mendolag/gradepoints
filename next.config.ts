@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
       },
+      {
+        source: "/gradepoints-extension.xpi",
+        headers: [
+          { key: "Content-Type", value: "application/x-xpinstall" },
+        ],
+      },
     ];
   },
 };
