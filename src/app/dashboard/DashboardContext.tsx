@@ -103,7 +103,9 @@ interface DashboardContextType {
   getBzzModuleAdjustment: (mod: string) => number;
   getBzzModuleRawAverage: (mod: string) => number | null;
   getBzzModuleAverage: (mod: string) => number | null;
+  getBzzNormalRawAverage: () => number | null;
   getBzzNormalAverage: () => number | null;
+  getBzzUkRawAverage: () => number | null;
   getBzzUkAverage: () => number | null;
   getBzzFinalAverage: () => number | null;
   getBzzIpaAverage: () => number | null;

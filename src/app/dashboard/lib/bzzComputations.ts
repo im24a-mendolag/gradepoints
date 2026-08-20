@@ -35,20 +35,32 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
     return result;
   };
 
-  const getBzzNormalAverage = (): number | null => {
+  const getBzzNormalRawAverage = (): number | null => {
     const avgs = (BZZ_NORMAL_MODULES as readonly string[])
       .map((m) => getBzzModuleAverage(m))
       .filter((a): a is number => a !== null);
     if (avgs.length === 0) return null;
-    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
+    return avgs.reduce((a, b) => a + b, 0) / avgs.length;
   };
 
-  const getBzzUkAverage = (): number | null => {
+  const getBzzNormalAverage = (): number | null => {
+    const raw = getBzzNormalRawAverage();
+    if (raw === null) return null;
+    return Math.round(raw * 2) / 2;
+  };
+
+  const getBzzUkRawAverage = (): number | null => {
     const avgs = (BZZ_UK_MODULES as readonly string[])
       .map((m) => getBzzModuleAverage(m))
       .filter((a): a is number => a !== null);
     if (avgs.length === 0) return null;
-    return Math.round((avgs.reduce((a, b) => a + b, 0) / avgs.length) * 2) / 2;
+    return avgs.reduce((a, b) => a + b, 0) / avgs.length;
+  };
+
+  const getBzzUkAverage = (): number | null => {
+    const raw = getBzzUkRawAverage();
+    if (raw === null) return null;
+    return Math.round(raw * 2) / 2;
   };
 
   // Returns null until both categories have data to avoid a misleading status.
@@ -83,7 +95,9 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
     getBzzModuleAdjustment,
     getBzzModuleRawAverage,
     getBzzModuleAverage,
+    getBzzNormalRawAverage,
     getBzzNormalAverage,
+    getBzzUkRawAverage,
     getBzzUkAverage,
     getBzzFinalAverage,
     getBzzIpaAverage,

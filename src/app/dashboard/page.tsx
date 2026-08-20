@@ -33,9 +33,11 @@ import type { School } from "./types";
  * BZZ-specific stats cards row.
  */
 function BzzStatsCards() {
-  const { getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage, getBzzPassFail, grades } = useDashboard();
+  const { getBzzNormalAverage, getBzzNormalRawAverage, getBzzUkAverage, getBzzUkRawAverage, getBzzFinalAverage, getBzzIpaAverage, getBzzPassFail, grades } = useDashboard();
   const normalAvg = getBzzNormalAverage();
+  const normalRawAvg = getBzzNormalRawAverage();
   const ukAvg = getBzzUkAverage();
+  const ukRawAvg = getBzzUkRawAverage();
   const finalAvg = getBzzFinalAverage();
   const ipaGrade = getBzzIpaAverage();
   const passFail = getBzzPassFail();
@@ -58,12 +60,14 @@ function BzzStatsCards() {
         <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Normal Avg</p>
         <p className={`text-lg sm:text-xl font-bold ${avgColor(normalAvg)}`}>
           {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
+          {normalRawAvg !== null && <span className="text-xs text-neutral-400 font-normal ml-1">({normalRawAvg.toFixed(3)})</span>}
         </p>
       </div>
       <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
         <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">ÜK Avg</p>
         <p className={`text-lg sm:text-xl font-bold ${avgColor(ukAvg)}`}>
           {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
+          {ukRawAvg !== null && <span className="text-xs text-neutral-400 font-normal ml-1">({ukRawAvg.toFixed(3)})</span>}
         </p>
       </div>
       <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
