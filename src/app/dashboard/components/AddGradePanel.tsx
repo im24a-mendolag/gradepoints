@@ -11,7 +11,7 @@ import {
   KSH_SUBJECT_NAMES,
 } from "@/lib/semesters";
 import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
-import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
+import { getGradeColor, blockNonNumericKeys, formatWeight, roundToHalf } from "../utils";
 import Btn from "./Btn";
 import { GradePicker, WeightPicker, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
 
@@ -360,7 +360,7 @@ export default function AddGradePanel({ noSlider }: { noSlider?: boolean }) {
                     onChange={(e) => setTargetAvg(e.target.value)}
                     onBlur={(e) => {
                       const v = parseFloat(e.target.value);
-                      if (!isNaN(v)) setTargetAvg(String(Math.min(6, Math.max(1, Math.round(v * 2) / 2))));
+                      if (!isNaN(v)) setTargetAvg(String(Math.min(6, Math.max(1, roundToHalf(v)))));
                     }}
                     onKeyDown={(e) => blockNonNumericKeys(e)}
                     className={`px-2 h-9 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 text-center outline-none focus:ring-2 focus:ring-blue-500 ${noSlider ? "flex-1" : "w-16"}`}

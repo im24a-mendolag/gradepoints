@@ -15,7 +15,7 @@ import {
   BZZ_UK_MODULES,
   BZZ_IPA,
 } from "@/lib/semesters";
-import { getAvgColor, getGradeHex } from "../utils";
+import { getAvgColor, getGradeHex, roundToHalf } from "../utils";
 import SchoolSelector from "../components/SchoolSelector";
 import type { School } from "../types";
 import {
@@ -128,7 +128,7 @@ function KshStatsContent() {
     color: getGradeHex(v),
   }));
   for (const g of regularGrades) {
-    const rounded = Math.round(g.value * 2) / 2;
+    const rounded = roundToHalf(g.value);
     const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
     if (bucket) bucket.count++;
   }
@@ -473,7 +473,7 @@ function BzzStatsContent() {
     color: getGradeHex(v),
   }));
   for (const g of bzzGrades) {
-    const rounded = Math.round(g.value * 2) / 2;
+    const rounded = roundToHalf(g.value);
     const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
     if (bucket) bucket.count++;
   }

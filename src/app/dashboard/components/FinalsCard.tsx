@@ -2,7 +2,7 @@
 
 import { FINALS_SEMESTER } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor, blockNonNumericKeys } from "../utils";
+import { getGradeColor, blockNonNumericKeys, roundToHalf } from "../utils";
 import Btn from "./Btn";
 
 export default function FinalsCard({
@@ -28,7 +28,7 @@ export default function FinalsCard({
     .filter((v): v is number => v !== null);
   const groupAvg =
     groupGrades.length > 0
-      ? Math.round((groupGrades.reduce((a, b) => a + b, 0) / groupGrades.length) * 2) / 2
+      ? roundToHalf(groupGrades.reduce((a, b) => a + b, 0) / groupGrades.length)
       : null;
 
   return (

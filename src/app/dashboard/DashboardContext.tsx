@@ -9,6 +9,7 @@ import {
 import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
 import { makeKshComputations } from "./lib/kshComputations";
 import { makeBzzComputations } from "./lib/bzzComputations";
+import { toDateInputString } from "./utils";
 
 // ─── Context shape ──────────────────────────────────────────────
 
@@ -159,12 +160,12 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const [gradeValue, setGradeValue] = useState("");
   const [gradeWeight, setGradeWeight] = useState("1");
   const [gradeDescription, setGradeDescription] = useState("");
-  const [gradeDate, setGradeDate] = useState(new Date().toISOString().split("T")[0]);
+  const [gradeDate, setGradeDate] = useState(toDateInputString());
 
   // Persists add-form state per school so switching KSH↔BZZ doesn't discard typed input.
   const savedForm = useRef<Record<School, { gradeValue: string; gradeWeight: string; gradeDescription: string; gradeDate: string }>>({
-    KSH: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: new Date().toISOString().split("T")[0] },
-    BZZ: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: new Date().toISOString().split("T")[0] },
+    KSH: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: toDateInputString() },
+    BZZ: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: toDateInputString() },
   });
 
   // ── Edit-grade form ──
@@ -281,32 +282,26 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
 
   // ─── CRUD actions ─────────────────────────────────────────────
 
-  const addGrade = async (subject: string) => {
+  const _addGrade = async (bodyExtras: object, expandKey: string) => {
     const parsedValue = parseFloat(gradeValue);
     const parsedWeight = parseFloat(gradeWeight);
     if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
     setError(null);
     setIsSubmitting(true);
+    const body = { value: parsedValue, weight: parsedWeight, description: gradeDescription, date: gradeDate, ...bodyExtras };
     try {
       const res = await fetch("/api/grades", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          value: parsedValue,
-          weight: parsedWeight,
-          description: gradeDescription,
-          date: gradeDate,
-          semester: activeSemester,
-          subject,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         const created: Grade = await res.json();
         setGradeValue("");
         setGradeWeight("1");
         setGradeDescription("");
-        setGradeDate(new Date().toISOString().split("T")[0]);
-        setExpandedSubjects((prev) => new Set(prev).add(subject));
+        setGradeDate(toDateInputString());
+        setExpandedSubjects((prev) => new Set(prev).add(expandKey));
         pushUndo("Grade added", async () => {
           await fetch(`/api/grades/${created.id}`, { method: "DELETE" });
           await fetchGrades();
@@ -321,6 +316,9 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
       setIsSubmitting(false);
     }
   };
+
+  const addGrade = (subject: string) =>
+    _addGrade({ semester: activeSemester, subject }, subject);
 
   const deleteGrade = async (id: string) => {
     const snapshot = grades.find((g) => g.id === id);
@@ -339,7 +337,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
                 value: snapshot.value,
                 weight: snapshot.weight,
                 description: snapshot.description,
-                date: new Date(snapshot.date).toISOString().split("T")[0],
+                date: toDateInputString(snapshot.date),
                 semester: snapshot.semester,
                 subject: snapshot.subject,
                 ...(snapshot.school !== "KSH" ? { school: snapshot.school } : {}),
@@ -391,7 +389,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
                 value: snapshot.value,
                 weight: snapshot.weight,
                 description: snapshot.description,
-                date: new Date(snapshot.date).toISOString().split("T")[0],
+                date: toDateInputString(snapshot.date),
               }),
             });
             await fetchGrades();
@@ -445,21 +443,21 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     if (existing.length > 0) await deleteGrade(existing[0].id);
   };
 
-  const saveAdjustmentAction = async (semester: number, subject: string, value: number) => {
+  const _saveAdjustment = async (semester: number, subject: string, value: number, school: School) => {
     setError(null);
     try {
       if (value === 0) {
         const res = await fetch("/api/adjustments", {
           method: "DELETE",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ semester, subject, school: "KSH" }),
+          body: JSON.stringify({ semester, subject, school }),
         });
         if (!res.ok) { setError("Failed to delete adjustment"); return; }
       } else {
         const res = await fetch("/api/adjustments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value, semester, subject, school: "KSH" }),
+          body: JSON.stringify({ value, semester, subject, school }),
         });
         if (!res.ok) { setError((await res.json()).error || "Failed to save adjustment"); return; }
       }
@@ -469,71 +467,14 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     }
   };
 
-  const addBzzGrade = async (mod: string) => {
-    const parsedValue = parseFloat(gradeValue);
-    const parsedWeight = parseFloat(gradeWeight);
-    if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await fetch("/api/grades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          value: parsedValue,
-          weight: parsedWeight,
-          description: gradeDescription,
-          date: gradeDate,
-          semester: BZZ_SEMESTER,
-          subject: mod,
-          school: "BZZ",
-        }),
-      });
-      if (res.ok) {
-        const created: Grade = await res.json();
-        setGradeValue("");
-        setGradeWeight("1");
-        setGradeDescription("");
-        setGradeDate(new Date().toISOString().split("T")[0]);
-        setExpandedSubjects((prev) => new Set(prev).add(`bzz-${mod}`));
-        pushUndo("Grade added", async () => {
-          await fetch(`/api/grades/${created.id}`, { method: "DELETE" });
-          await fetchGrades();
-        });
-        await fetchGrades();
-      } else {
-        setError((await res.json()).error || "Failed to add grade");
-      }
-    } catch {
-      setError("Failed to add grade. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const saveAdjustmentAction = (semester: number, subject: string, value: number) =>
+    _saveAdjustment(semester, subject, value, "KSH");
 
-  const saveBzzAdjustment = async (mod: string, value: number) => {
-    setError(null);
-    try {
-      if (value === 0) {
-        const res = await fetch("/api/adjustments", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }),
-        });
-        if (!res.ok) { setError("Failed to delete adjustment"); return; }
-      } else {
-        const res = await fetch("/api/adjustments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value, semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }),
-        });
-        if (!res.ok) { setError((await res.json()).error || "Failed to save adjustment"); return; }
-      }
-      await fetchAdjustments();
-    } catch {
-      setError("Failed to save adjustment. Please try again.");
-    }
-  };
+  const addBzzGrade = (mod: string) =>
+    _addGrade({ semester: BZZ_SEMESTER, subject: mod, school: "BZZ" }, `bzz-${mod}`);
+
+  const saveBzzAdjustment = (mod: string, value: number) =>
+    _saveAdjustment(BZZ_SEMESTER, mod, value, "BZZ");
 
   const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
     setError(null);
@@ -601,7 +542,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
               value: g.value,
               weight: g.weight,
               description: g.description,
-              date: new Date(g.date).toISOString().split("T")[0],
+              date: toDateInputString(g.date),
               semester: g.semester,
               subject: g.subject,
             }),
@@ -616,7 +557,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
                 value: g.value,
                 weight: g.weight,
                 description: g.description,
-                date: new Date(g.date).toISOString().split("T")[0],
+                date: toDateInputString(g.date),
                 semester: g.semester,
                 subject: g.subject,
               }),
@@ -647,7 +588,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     setEditValue(grade.value.toString());
     setEditWeight(grade.weight.toString());
     setEditDescription(grade.description);
-    setEditDate(new Date(grade.date).toISOString().split("T")[0]);
+    setEditDate(toDateInputString(grade.date));
   };
 
   const cancelEditing = () => setEditingGrade(null);

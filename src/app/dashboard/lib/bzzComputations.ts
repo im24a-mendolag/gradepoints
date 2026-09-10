@@ -1,5 +1,6 @@
 import { BZZ_SEMESTER, BZZ_NORMAL_MODULES, BZZ_UK_MODULES, BZZ_IPA } from "@/lib/semesters";
 import type { Grade, Adjustment, BzzPassFailStatus } from "../types";
+import { roundToHalf } from "../utils";
 
 export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustment[]) {
   // Per-factory caches — valid for the lifetime of this memoized factory instance.
@@ -30,7 +31,7 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
   const getBzzModuleAverage = (mod: string): number | null => {
     if (avgCache.has(mod)) return avgCache.get(mod)!;
     const raw = getBzzModuleRawAverage(mod);
-    const result = raw === null ? null : Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
+    const result = raw === null ? null : Math.min(6, Math.max(1, roundToHalf(raw)));
     avgCache.set(mod, result);
     return result;
   };
@@ -46,7 +47,7 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
   const getBzzNormalAverage = (): number | null => {
     const raw = getBzzNormalRawAverage();
     if (raw === null) return null;
-    return Math.round(raw * 2) / 2;
+    return roundToHalf(raw);
   };
 
   const getBzzUkRawAverage = (): number | null => {
@@ -60,7 +61,7 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
   const getBzzUkAverage = (): number | null => {
     const raw = getBzzUkRawAverage();
     if (raw === null) return null;
-    return Math.round(raw * 2) / 2;
+    return roundToHalf(raw);
   };
 
   // Returns null until both categories have data to avoid a misleading status.

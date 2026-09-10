@@ -62,3 +62,18 @@ export function getGradeHex(value: number): string {
 export function formatWeight(w: number): string {
   return Number(w.toFixed(2)).toString();
 }
+
+/** Round a number to the nearest 0.5 (Swiss school grade rounding). */
+export function roundToHalf(n: number): number {
+  return Math.round(n * 2) / 2;
+}
+
+/** Round a number to 1 decimal place. */
+export function roundTo1dp(n: number): number {
+  return Math.round(n * 10) / 10;
+}
+
+/** Format a Date or date string as a YYYY-MM-DD string suitable for date inputs. Defaults to today. */
+export function toDateInputString(date?: Date | string): string {
+  return (date !== undefined ? new Date(date) : new Date()).toISOString().split("T")[0];
+}

@@ -8,7 +8,7 @@ export interface Grade {
   date: string;
   semester: number;
   subject: string;
-  school: string;
+  school?: School;
 }
 
 export interface Adjustment {
@@ -16,7 +16,7 @@ export interface Adjustment {
   value: number;
   semester: number;
   subject: string;
-  school: string;
+  school?: School;
 }
 
 export interface SemesterStatus {

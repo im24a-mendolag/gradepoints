@@ -7,6 +7,7 @@ import {
   OVERVIEW_SUBJECTS,
 } from "@/lib/semesters";
 import type { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade } from "../types";
+import { roundToHalf, roundTo1dp } from "../utils";
 
 export function makeKshComputations(
   kshGrades: Grade[],
@@ -44,7 +45,7 @@ export function makeKshComputations(
     const key = `${semester}|${subject}`;
     if (avgCache.has(key)) return avgCache.get(key)!;
     const raw = getRawSubjectAverage(semester, subject);
-    const result = raw === null ? null : Math.min(6, Math.max(1, Math.round(raw * 2) / 2));
+    const result = raw === null ? null : Math.min(6, Math.max(1, roundToHalf(raw)));
     avgCache.set(key, result);
     return result;
   };
@@ -74,11 +75,11 @@ export function makeKshComputations(
           .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
           .filter((v): v is number => v !== null);
         if (vals.length === 0) return null;
-        return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
+        return roundToHalf(vals.reduce((a, b) => a + b, 0) / vals.length);
       })
       .filter((a): a is number => a !== null);
     if (groupAvgs.length === 0) return null;
-    return Math.round((groupAvgs.reduce((a, b) => a + b, 0) / groupAvgs.length) * 2) / 2;
+    return roundToHalf(groupAvgs.reduce((a, b) => a + b, 0) / groupAvgs.length);
   };
 
   const getOverallAverage = (): number | null => {
@@ -108,7 +109,7 @@ export function makeKshComputations(
       semAvg,
       subjectsBelow4: below4.map((s) => s.subject),
       subjectsBelow4Count: below4.length,
-      negativePoints: Math.round(negPts * 10) / 10,
+      negativePoints: roundTo1dp(negPts),
       rule1Pass: r1,
       rule2Pass: r2,
       rule3Pass: r3,
@@ -122,7 +123,7 @@ export function makeKshComputations(
       .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
       .filter((v): v is number => v !== null);
     if (vals.length === 0) return null;
-    return Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 2) / 2;
+    return roundToHalf(vals.reduce((a, b) => a + b, 0) / vals.length);
   };
 
   const getSemestersForSubject = (subject: string): number[] => {
@@ -140,7 +141,7 @@ export function makeKshComputations(
     const sems = getSemestersForSubject(subject);
     const semAvgs = sems.map((s) => getSubjectAverage(s, subject)).filter((a): a is number => a !== null);
     const semesterAvg = semAvgs.length > 0
-      ? Math.round((semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length) * 2) / 2
+      ? roundToHalf(semAvgs.reduce((a, b) => a + b, 0) / semAvgs.length)
       : null;
 
     const finalsGrade = subject === IDPA_FINAL_FOR_IDAF.subject
@@ -152,7 +153,7 @@ export function makeKshComputations(
     }
 
     const finalGrade = semesterAvg !== null && finalsGrade !== null
-      ? Math.round(((semesterAvg + finalsGrade) / 2) * 2) / 2
+      ? roundToHalf((semesterAvg + finalsGrade) / 2)
       : (semesterAvg ?? finalsGrade)!;
 
     return { semesterAvg, finalsGrade, finalGrade };
@@ -164,7 +165,7 @@ export function makeKshComputations(
       .filter((s): s is { subject: string; finalGrade: number } => s.finalGrade !== null);
     if (results.length === 0) return null;
 
-    const avg = Math.round((results.reduce((a, s) => a + s.finalGrade, 0) / results.length) * 2) / 2;
+    const avg = roundToHalf(results.reduce((a, s) => a + s.finalGrade, 0) / results.length);
     const below4 = results.filter((s) => s.finalGrade < 4);
     const negPts = results.reduce((a, s) => (s.finalGrade < 4 ? a + (4 - s.finalGrade) : a), 0);
     const r1 = avg >= 4;
@@ -177,7 +178,7 @@ export function makeKshComputations(
       subjectResults: results,
       subjectsBelow4: below4.map((s) => s.subject),
       subjectsBelow4Count: below4.length,
-      negativePoints: Math.round(negPts * 10) / 10,
+      negativePoints: roundTo1dp(negPts),
       rule1Pass: r1,
       rule2Pass: r2,
       rule3Pass: r3,
