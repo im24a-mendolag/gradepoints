@@ -1,245 +1,103 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useDashboard } from "../DashboardContext";
+import { IconCheck, IconX, IconChevron } from "./Icons";
 
-/**
- * Renders the pass/fail rules breakdown for a regular semester.
- * @param semester - The semester number (1–6) to display rules for.
- */
-export function SemesterPassFailRules({ semester }: { semester: number }) {
-  const { getSemesterStatus } = useDashboard();
-  const status = getSemesterStatus(semester);
-  const [open, setOpen] = useState(false);
+function StatusIcon({ pass }: { pass: boolean | null }) {
+  if (pass === null) return <span className="text-fg-faint text-sm">—</span>;
+  return pass ? (
+    <IconCheck size={15} className="text-subject-green" />
+  ) : (
+    <IconX size={15} className="text-now" />
+  );
+}
 
+function RuleRow({ pass, label, value }: { pass: boolean | null; label: string; value: ReactNode }) {
+  const tone = pass === null ? "text-fg-faint" : pass ? "text-subject-green" : "text-now";
   return (
-    <div
-      className={`mb-4 sm:mb-6 rounded-xl shadow-sm border overflow-hidden ${
-        status
-          ? status.passed
-            ? "border-green-800"
-            : "border-red-800"
-          : "border-neutral-800"
-      }`}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
-          status
-            ? status.passed
-              ? "bg-green-900/30 text-green-300"
-              : "bg-red-900/30 text-red-300"
-            : "bg-neutral-900 text-neutral-400"
-        }`}
-      >
-        <span>
-          {status ? (status.passed ? "✓ " : "✗ ") : ""}Pass/Fail Rules — Semester {semester}
-        </span>
-        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
-        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
-      </button>
-      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
-        {/* Rule 1: Average ≥ 4.0 */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule1Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Average ≥ 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? (status.semAvg?.toFixed(2) ?? "—") : "—"}
-          </span>
-        </div>
-        {/* Rule 2: Max 2 subjects below 4.0 */}
-        <div className="px-4 sm:px-5 py-3 flex items-start sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule2Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Max 2 below 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium text-right ${
-              status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? (
-              <>
-                {status.subjectsBelow4Count} subject
-                {status.subjectsBelow4Count !== 1 ? "s" : ""}
-                {status.subjectsBelow4Count > 0 && (
-                  <span className="text-neutral-500 font-normal block sm:inline">
-                    {" "}
-                    ({status.subjectsBelow4.join(", ")})
-                  </span>
-                )}
-              </>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
-        {/* Rule 3: Max 2 negative points */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule3Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Max 2 neg. points</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? (
-              <>
-                {status.negativePoints} pt{status.negativePoints !== 1 ? "s" : ""}
-              </>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
+    <div className="px-4 py-2.5 flex items-start justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <StatusIcon pass={pass} />
+        <span className="text-[13px] text-fg-muted">{label}</span>
       </div>
+      <span className={`text-[13px] font-mono text-right shrink-0 ${tone}`}>{value}</span>
     </div>
   );
 }
 
-/**
- * Renders the pass/fail rules breakdown for the 3-year overview.
- * Reads OverviewStatus from DashboardContext.
- */
-export function OverviewPassFailRules() {
-  const { getOverviewStatus } = useDashboard();
-  const status = getOverviewStatus();
+function Panel({
+  passed,
+  heading,
+  children,
+}: {
+  passed: boolean | null;
+  heading: string;
+  children: ReactNode;
+}) {
   const [open, setOpen] = useState(false);
-
+  const tone = passed === null ? "text-fg-muted" : passed ? "text-subject-green" : "text-now";
   return (
-    <div
-      className={`mb-4 sm:mb-6 rounded-xl shadow-sm border overflow-hidden ${
-        status
-          ? status.passed
-            ? "border-green-800"
-            : "border-red-800"
-          : "border-neutral-800"
-      }`}
-    >
+    <div className="rounded-card border border-line overflow-hidden bg-surface">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
-          status
-            ? status.passed
-              ? "bg-green-900/30 text-green-300"
-              : "bg-red-900/30 text-red-300"
-            : "bg-neutral-900 text-neutral-400"
-        }`}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer"
       >
-        <span>
-          {status ? (status.passed ? "✓ " : "✗ ") : ""}Pass/Fail Rules — 3-Year Final
-        </span>
-        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
-        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
+        <span className={tone}>{heading}</span>
+        <IconChevron size={14} className={`text-fg-faint transition-transform ${open ? "rotate-90" : ""} xl:hidden`} />
       </button>
-      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
-        {/* Rule 1 */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule1Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Average ≥ 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              status ? (status.rule1Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? status.avg.toFixed(2) : "—"}
-          </span>
-        </div>
-        {/* Rule 2 */}
-        <div className="px-4 sm:px-5 py-3 flex items-start sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule2Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Max 2 below 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium text-right ${
-              status ? (status.rule2Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? (
-              <>
-                {status.subjectsBelow4Count} subject{status.subjectsBelow4Count !== 1 ? "s" : ""}
-                {status.subjectsBelow4Count > 0 && (
-                  <span className="text-neutral-500 font-normal block sm:inline">
-                    {" "}
-                    ({status.subjectsBelow4.join(", ")})
-                  </span>
-                )}
-              </>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
-        {/* Rule 3 */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-              }`}
-            >
-              {status ? (status.rule3Pass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Max 2 neg. points</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              status ? (status.rule3Pass ? "text-green-400" : "text-red-400") : "text-neutral-600"
-            }`}
-          >
-            {status ? (
-              <>
-                {status.negativePoints} pt{status.negativePoints !== 1 ? "s" : ""}
-              </>
-            ) : (
-              "—"
-            )}
-          </span>
-        </div>
-      </div>
+      <div className={`divide-y divide-line border-t border-line ${open ? "" : "hidden xl:block"}`}>{children}</div>
     </div>
+  );
+}
+
+export function SemesterPassFailRules({ semester }: { semester: number }) {
+  const { getSemesterStatus } = useDashboard();
+  const status = getSemesterStatus(semester);
+  return (
+    <Panel passed={status?.passed ?? null} heading={`Pass / Fail — Semester ${semester}`}>
+      <RuleRow pass={status?.rule1Pass ?? null} label="Average ≥ 4.0" value={status ? (status.semAvg?.toFixed(2) ?? "—") : "—"} />
+      <RuleRow
+        pass={status?.rule2Pass ?? null}
+        label="Max 2 below 4.0"
+        value={
+          status ? (
+            <>
+              {status.subjectsBelow4Count} subject{status.subjectsBelow4Count !== 1 ? "s" : ""}
+              {status.subjectsBelow4Count > 0 && (
+                <span className="text-fg-faint block sm:inline"> ({status.subjectsBelow4.join(", ")})</span>
+              )}
+            </>
+          ) : "—"
+        }
+      />
+      <RuleRow pass={status?.rule3Pass ?? null} label="Max 2 neg. points" value={status ? `${status.negativePoints} pt${status.negativePoints !== 1 ? "s" : ""}` : "—"} />
+    </Panel>
+  );
+}
+
+export function OverviewPassFailRules() {
+  const { getOverviewStatus } = useDashboard();
+  const status = getOverviewStatus();
+  return (
+    <Panel passed={status?.passed ?? null} heading="Pass / Fail — 3-Year Final">
+      <RuleRow pass={status?.rule1Pass ?? null} label="Average ≥ 4.0" value={status ? status.avg.toFixed(2) : "—"} />
+      <RuleRow
+        pass={status?.rule2Pass ?? null}
+        label="Max 2 below 4.0"
+        value={
+          status ? (
+            <>
+              {status.subjectsBelow4Count} subject{status.subjectsBelow4Count !== 1 ? "s" : ""}
+              {status.subjectsBelow4Count > 0 && (
+                <span className="text-fg-faint block sm:inline"> ({status.subjectsBelow4.join(", ")})</span>
+              )}
+            </>
+          ) : "—"
+        }
+      />
+      <RuleRow pass={status?.rule3Pass ?? null} label="Max 2 neg. points" value={status ? `${status.negativePoints} pt${status.negativePoints !== 1 ? "s" : ""}` : "—"} />
+    </Panel>
   );
 }

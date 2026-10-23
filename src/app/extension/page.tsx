@@ -1,41 +1,37 @@
-import Link from "next/link";
+import ExtensionShell from "./ExtensionShell";
+import { IconFirefox, IconChrome } from "../dashboard/components/Icons";
 
 export const metadata = { title: "GradePoints – Install Extension" };
 
 export default function ExtensionPage() {
   return (
-    <div className="min-h-screen bg-neutral-950 text-neutral-100 px-4 py-12">
-      <div className="max-w-2xl mx-auto">
-
+    <ExtensionShell>
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="mb-10">
-          <Link href="/" className="text-sm text-neutral-500 hover:text-neutral-300 transition mb-6 inline-block">
-            ← Back
-          </Link>
-          <h1 className="text-3xl font-bold mb-2">
-            Grade<span className="text-blue-500">Points</span> Importer
-          </h1>
-          <p className="text-neutral-400">
+        <header className="mb-8">
+          <h1 className="text-2xl font-semibold tracking-tight text-fg mb-1">Extension Importer</h1>
+          <p className="text-fg-muted text-sm">
             A browser extension that imports your grades directly from{" "}
-            <span className="text-neutral-200">intranet.tam.ch</span> into GradePoints — no copy-pasting needed.
+            <span className="text-fg">intranet.tam.ch</span> into GradePoints — no copy-pasting needed.
           </p>
-        </div>
+        </header>
 
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        {/* Left column: install */}
+        <div>
         {/* Firefox — primary CTA */}
-        <div className="mb-12 p-6 rounded-2xl border border-orange-900/50 bg-orange-950/20">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">🦊</span>
-            <h2 className="text-lg font-semibold">Firefox</h2>
-            <span className="ml-1 text-xs font-medium bg-orange-900/50 text-orange-300 border border-orange-800/50 px-2 py-0.5 rounded-full">
+        <div className="mb-12 p-6 rounded-card border border-subject-orange/40 bg-subject-orange/10">
+          <div className="flex items-center gap-2.5 mb-1">
+            <IconFirefox size={22} className="text-[#ff7139]" />
+            <h2 className="text-base font-medium">Firefox</h2>
+            <span className="ml-1 text-[11px] font-medium bg-subject-orange/15 text-subject-orange border border-subject-orange/40 px-2 py-0.5 rounded-full">
               One-click install
             </span>
           </div>
-          <p className="text-sm text-neutral-400 mb-5">
-            Click the button — Firefox will show an install prompt.
-          </p>
+          <p className="text-sm text-fg-muted mb-5">Click the button — Firefox will show an install prompt.</p>
           <a
             href="/gradepoints-extension.xpi"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-orange-600 hover:bg-orange-500 text-white font-semibold rounded-xl transition text-base"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-subject-orange text-on-solid font-medium rounded-control transition hover:opacity-90 text-base"
           >
             Install for Firefox
           </a>
@@ -43,55 +39,53 @@ export default function ExtensionPage() {
 
         {/* Chrome */}
         <div className="mb-3">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-xl">🟡</span>
-            <h2 className="text-lg font-semibold">Chrome</h2>
+          <div className="flex items-center gap-2.5 mb-1">
+            <IconChrome size={22} className="text-[#4285f4]" />
+            <h2 className="text-base font-medium">Chrome</h2>
           </div>
-          <p className="text-sm text-neutral-400 mb-5">
-            Chrome requires loading the extension manually in developer mode.
-          </p>
+          <p className="text-sm text-fg-muted mb-5">Chrome requires loading the extension manually in developer mode.</p>
         </div>
 
         {/* Chrome step 1 — download */}
-        <div className="mb-8 p-5 rounded-xl border border-neutral-800 bg-neutral-900">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-3">Step 1 — Download</p>
+        <div className="mb-8 p-5 rounded-card border border-line bg-surface">
+          <p className="text-[11px] font-semibold text-fg-faint uppercase tracking-wide mb-3">Step 1 — Download</p>
           <a
             href="/gradepoints-extension.zip"
             download
-            className="inline-flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition text-base"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-ink text-on-ink font-medium rounded-control transition hover:opacity-90 text-base"
           >
             Download gradepoints-extension.zip
           </a>
         </div>
 
         {/* Chrome steps 2-5 */}
-        <div className="p-5 rounded-xl border border-neutral-800 bg-neutral-900 mb-4">
-          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-4">Step 2 — Load in Chrome</p>
+        <div className="p-5 rounded-card border border-line bg-surface mb-4">
+          <p className="text-[11px] font-semibold text-fg-faint uppercase tracking-wide mb-4">Step 2 — Load in Chrome</p>
           <ol className="space-y-4">
             {[
               <>Unzip the file anywhere on your computer.</>,
-              <>Go to <code className="bg-neutral-800 px-1.5 py-0.5 rounded text-blue-300 text-xs">chrome://extensions</code> in your address bar.</>,
-              <>Enable <strong className="text-neutral-200">Developer mode</strong> using the toggle in the top-right corner.</>,
-              <>Click <strong className="text-neutral-200">Load unpacked</strong> and select the unzipped folder.</>,
+              <>Go to <code className="bg-sunken px-1.5 py-0.5 rounded text-fg font-mono text-xs">chrome://extensions</code> in your address bar.</>,
+              <>Enable <strong className="text-fg">Developer mode</strong> using the toggle in the top-right corner.</>,
+              <>Click <strong className="text-fg">Load unpacked</strong> and select the unzipped folder.</>,
             ].map((text, i) => (
               <li key={i} className="flex gap-4 items-start">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-xs font-bold text-neutral-300">
+                <span className="shrink-0 w-7 h-7 rounded-full bg-sunken border border-line flex items-center justify-center text-xs font-mono text-fg-muted">
                   {i + 1}
                 </span>
-                <p className="text-sm text-neutral-300 pt-1">{text}</p>
+                <p className="text-sm text-fg-muted pt-1">{text}</p>
               </li>
             ))}
           </ol>
         </div>
 
-        <div className="mb-12 text-xs text-neutral-500 bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3">
-          The extension stays installed permanently. If Chrome warns you about Developer mode extensions at startup, click <strong className="text-neutral-400">Keep</strong>.
+        <div className="text-xs text-fg-faint bg-surface border border-line rounded-control px-4 py-3">
+          The extension stays installed permanently. If Chrome warns you about Developer mode extensions at startup, click <strong className="text-fg-muted">Keep</strong>.
+        </div>
         </div>
 
-        {/* How to use */}
-        <div className="border-t border-neutral-800 mb-10" />
-        <section className="mb-10">
-          <h2 className="text-lg font-semibold mb-4">How to use</h2>
+        {/* Right column: how to use */}
+        <section className="rounded-card border border-line bg-surface p-5 sm:p-6 lg:sticky lg:top-7">
+          <h2 className="text-base font-medium mb-4">How to use</h2>
           <ol className="space-y-4">
             {[
               "Log in to both GradePoints and intranet.tam.ch in the same browser.",
@@ -102,25 +96,16 @@ export default function ExtensionPage() {
               'Review the subjects and click "Import all subjects" (or import one by one).',
             ].map((text, i) => (
               <li key={i} className="flex gap-4 items-start">
-                <span className="shrink-0 w-7 h-7 rounded-full bg-blue-900/50 border border-blue-800 flex items-center justify-center text-xs font-bold text-blue-300">
+                <span className="shrink-0 w-7 h-7 rounded-full bg-hover border border-line flex items-center justify-center text-xs font-mono text-fg-muted">
                   {i + 1}
                 </span>
-                <p className="text-sm text-neutral-300 pt-1">{text}</p>
+                <p className="text-sm text-fg-muted pt-1">{text}</p>
               </li>
             ))}
           </ol>
         </section>
-
-        <div className="text-center">
-          <Link
-            href="/dashboard"
-            className="inline-flex px-6 py-2.5 bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 rounded-lg text-sm font-medium transition"
-          >
-            Go to Dashboard
-          </Link>
         </div>
-
       </div>
-    </div>
+    </ExtensionShell>
   );
 }

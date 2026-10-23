@@ -10,25 +10,23 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900 px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-canvas px-4">
       <div className="text-center max-w-2xl">
-        <h1 className="text-5xl font-bold text-neutral-100 mb-4">
-          Grade<span className="text-blue-500">Points</span>
-        </h1>
-        <p className="text-xl text-neutral-400 mb-8">
+        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-fg mb-4">GradePoints</h1>
+        <p className="text-lg sm:text-xl text-fg-muted mb-8">
           Track all your school grades in one place. Add subjects, log grades,
           and see your averages at a glance.
         </p>
-        <div className="flex gap-4 justify-center">
+        <div className="flex gap-3 justify-center">
           <Link
             href="/register"
-            className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition shadow-lg shadow-blue-900/30"
+            className="px-6 py-2.5 bg-ink text-on-ink font-medium rounded-control transition hover:opacity-90"
           >
             Get Started
           </Link>
           <Link
             href="/login"
-            className="px-8 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium rounded-lg transition shadow-lg shadow-black/20 border border-neutral-700"
+            className="px-6 py-2.5 bg-surface hover:bg-hover text-fg font-medium rounded-control transition border border-line"
           >
             Sign In
           </Link>

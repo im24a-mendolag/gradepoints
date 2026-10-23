@@ -24,44 +24,40 @@ export default function TargetCalculator({ grades, targetAvg, targetWeight, onTa
   const clamped = needed !== null ? Math.min(6, Math.max(1, needed)) : null;
   const impossible = needed !== null && (needed < 1 || needed > 6);
 
+  const input =
+    "w-24 px-3 py-2 rounded-control border border-line bg-sunken text-sm text-fg outline-none focus:ring-2 focus:ring-line-strong focus:border-transparent text-center";
+
   return (
-    <div className="px-4 sm:px-6 py-4 bg-neutral-800/40 border-b border-neutral-700">
-      <p className="text-xs font-medium text-neutral-400 mb-3">What grade do you need?</p>
+    <div className="px-4 sm:px-6 py-4 bg-sunken/60 border-b border-line">
+      <p className="text-xs font-medium text-fg-muted mb-3">What grade do you need?</p>
       <div className="flex flex-wrap gap-3 items-end">
         <div>
-          <label className="block text-xs text-neutral-500 mb-1.5">Target average</label>
+          <label className="block text-[11px] text-fg-faint mb-1.5">Target average</label>
           <input
-            type="number"
-            min="1"
-            max="6"
-            step="any"
-            value={targetAvg}
+            type="number" min="1" max="6" step="any" value={targetAvg}
             onChange={(e) => onTargetAvgChange(e.target.value)}
             onKeyDown={(e) => blockNonNumericKeys(e)}
-            className="w-24 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+            className={input}
             placeholder="e.g. 5"
             autoFocus
           />
         </div>
         <div>
-          <label className="block text-xs text-neutral-500 mb-1.5">Weight of new grade</label>
+          <label className="block text-[11px] text-fg-faint mb-1.5">Weight of new grade</label>
           <input
-            type="number"
-            min="0"
-            step="any"
-            value={targetWeight}
+            type="number" min="0" step="any" value={targetWeight}
             onChange={(e) => onTargetWeightChange(e.target.value)}
             onKeyDown={(e) => blockNonNumericKeys(e)}
-            className="w-24 px-3 py-2 rounded-lg border border-neutral-700 bg-neutral-800 text-sm text-neutral-100 outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center"
+            className={input}
           />
         </div>
         {needed !== null && (
           <div className="flex items-center gap-2">
-            <span className={`inline-flex items-center justify-center px-2 h-10 rounded-lg font-bold text-sm border ${impossible ? "border-red-800 bg-red-900/30 text-red-400" : getGradeColor(clamped!)}`}>
+            <span className={`inline-flex items-center justify-center px-2 h-10 rounded-control font-mono text-sm border ${impossible ? "border-now/40 bg-now-tint text-now" : getGradeColor(clamped!)}`}>
               {needed.toFixed(2)}
             </span>
             {impossible && (
-              <span className="text-xs text-red-400">
+              <span className="text-xs text-now">
                 {needed > 6 ? "Not achievable" : "Already achieved"}
               </span>
             )}

@@ -6,36 +6,29 @@ import { useDashboard } from "../DashboardContext";
 export default function SemesterTabs() {
   const { activeSemester, selectSemester } = useDashboard();
 
+  const pill = (active: boolean) =>
+    `flex items-center justify-center px-3.5 py-1.5 rounded-control shrink-0 text-sm font-medium transition cursor-pointer ${
+      active
+        ? "bg-surface text-fg shadow-sm"
+        : "text-fg-muted hover:text-fg"
+    }`;
+
   return (
-    <div className="flex gap-1.5 mb-4 overflow-x-auto sm:overflow-visible scrollbar-none pb-0.5">
-      {Array.from({ length: TOTAL_SEMESTERS }, (_, i) => i + 1).map((sem) => {
-        const active = activeSemester === sem;
-        return (
-          <button
-            key={sem}
-            onClick={() => selectSemester(sem)}
-            className={`flex items-center justify-center px-3 py-1.5 sm:py-3 rounded-lg shrink-0 sm:shrink sm:flex-1 transition cursor-pointer min-w-[46px] sm:min-w-0 ${
-              active
-                ? "bg-blue-600 text-white shadow-sm"
-                : "bg-neutral-900 text-neutral-300 border border-neutral-700 hover:bg-neutral-800"
-            }`}
-          >
-            <span className="text-xs sm:text-sm font-semibold whitespace-nowrap">
-              <span className="sm:hidden">S{sem}</span>
-              <span className="hidden sm:inline">Semester {sem}</span>
-            </span>
-          </button>
-        );
-      })}
+    <div className="flex gap-0.5 overflow-x-auto sm:overflow-visible scrollbar-none rounded-card bg-sunken p-0.5">
+      {Array.from({ length: TOTAL_SEMESTERS }, (_, i) => i + 1).map((sem) => (
+        <button key={sem} onClick={() => selectSemester(sem)} className={`${pill(activeSemester === sem)} sm:flex-1`}>
+          <span className="whitespace-nowrap">
+            <span className="sm:hidden">S{sem}</span>
+            <span className="hidden sm:inline">Semester {sem}</span>
+          </span>
+        </button>
+      ))}
       <button
         onClick={() => selectSemester(FINALS_SEMESTER)}
-        className={`flex items-center justify-center px-3 py-1.5 sm:py-3 rounded-lg shrink-0 sm:shrink sm:flex-1 transition cursor-pointer min-w-[52px] sm:min-w-0 ${
-          activeSemester === FINALS_SEMESTER
-            ? "bg-purple-600 text-white shadow-sm"
-            : "bg-neutral-900 text-purple-400 border border-purple-800 hover:bg-purple-900/30"
-        }`}
+        className={`${pill(activeSemester === FINALS_SEMESTER)} sm:flex-1`}
       >
-        <span className="text-xs sm:text-sm font-semibold">Finals</span>
+        <span className="sm:hidden">F</span>
+        <span className="hidden sm:inline">Finals</span>
       </button>
     </div>
   );

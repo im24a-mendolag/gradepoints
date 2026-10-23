@@ -2,7 +2,7 @@
 
 import { FINALS_SEMESTER } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor, blockNonNumericKeys, roundToHalf } from "../utils";
+import { getGradeColor, blockNonNumericKeys, roundToHalf, subjectColorVar } from "../utils";
 import Btn from "./Btn";
 
 export default function FinalsCard({
@@ -32,19 +32,20 @@ export default function FinalsCard({
       : null;
 
   return (
-    <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-neutral-800">
+    <div className="bg-surface rounded-card border border-line overflow-hidden">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-line">
         <div className="flex items-center gap-2 sm:gap-3">
-          <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{groupName}</h3>
+          <span className="w-3 h-3 rounded-[3px] shrink-0" style={{ backgroundColor: subjectColorVar(groupName) }} />
+          <h3 className="text-sm sm:text-base font-medium text-fg">{groupName}</h3>
           {groupAvg !== null && (
-            <span className={`text-xs sm:text-sm font-medium px-2 sm:px-2.5 py-0.5 rounded-full border ${getGradeColor(groupAvg)}`}>
+            <span className={`font-mono text-xs sm:text-sm px-2 sm:px-2.5 py-0.5 rounded-control border ${getGradeColor(groupAvg)}`}>
               Ø {groupAvg.toFixed(2)}
             </span>
           )}
         </div>
       </div>
 
-      <div className="divide-y divide-neutral-800">
+      <div className="divide-y divide-line">
         {entries.map((entry) => {
           const existing = getGradesForSubject(FINALS_SEMESTER, entry);
           const currentGrade = existing.length > 0 ? existing[0] : null;
@@ -56,18 +57,18 @@ export default function FinalsCard({
           };
 
           return (
-            <div key={entry} className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3 hover:bg-neutral-800/50 transition">
+            <div key={entry} className="px-4 sm:px-6 py-3 flex items-center justify-between gap-3 hover:bg-hover/40 transition">
               <div className="flex items-center gap-3">
                 {currentGrade ? (
-                  <span className={`inline-flex items-center justify-center w-9 h-9 rounded-lg font-bold text-sm border shrink-0 ${getGradeColor(currentGrade.value)}`}>
+                  <span className={`inline-flex items-center justify-center w-9 h-9 rounded-control font-mono text-sm border shrink-0 ${getGradeColor(currentGrade.value)}`}>
                     {currentGrade.value}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-lg font-bold text-sm border border-neutral-700 text-neutral-600 shrink-0">
+                  <span className="inline-flex items-center justify-center w-9 h-9 rounded-control font-mono text-sm border border-line text-fg-faint shrink-0">
                     —
                   </span>
                 )}
-                <span className="text-sm text-neutral-400">{label}</span>
+                <span className="text-sm text-fg-muted">{label}</span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -82,7 +83,7 @@ export default function FinalsCard({
                     if (e.key === "Enter") handleSave();
                   }}
                   onBlur={handleSave}
-                  className="w-20 px-3 py-1.5 rounded-lg border border-neutral-700 bg-neutral-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-sm text-neutral-100 text-center"
+                  className="w-20 px-3 py-1.5 rounded-control border border-line bg-sunken focus:ring-2 focus:ring-line-strong focus:border-transparent outline-none text-sm text-fg text-center font-mono"
                   placeholder="1–6"
                 />
                 {currentGrade && (

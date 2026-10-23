@@ -5,6 +5,7 @@ import {
   FINALS_SEMESTER,
   OVERVIEW_TAB,
   BZZ_SEMESTER,
+  TOTAL_SEMESTERS,
 } from "@/lib/semesters";
 import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
 import { makeKshComputations } from "./lib/kshComputations";
@@ -239,6 +240,26 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     fetchGrades();
     fetchAdjustments();
   }, [fetchGrades, fetchAdjustments]);
+
+  // Once grades load, auto-select the latest KSH semester that has a grade —
+  // unless a tab was deep-linked (?tab=) or the user has already navigated.
+  const didAutoSelect = useRef(false);
+  useEffect(() => {
+    if (didAutoSelect.current) return;
+    if (initialSemester !== undefined) { didAutoSelect.current = true; return; }
+    if (loading) return;
+    didAutoSelect.current = true;
+    if (initialSchool === "KSH") {
+      const semesters = grades
+        .filter((g) => (!g.school || g.school === "KSH") && g.semester >= 1 && g.semester <= TOTAL_SEMESTERS)
+        .map((g) => g.semester);
+      if (semesters.length > 0) {
+        const latest = Math.max(...semesters);
+        setActiveSemester(latest);
+        setLastRegularSemester(latest);
+      }
+    }
+  }, [loading, grades, initialSemester, initialSchool]);
 
   // ── School-filtered data (memoized — only recompute when source arrays change) ──
   const kshGrades = useMemo(() => grades.filter((g) => !g.school || g.school === "KSH"), [grades]);

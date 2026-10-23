@@ -2,7 +2,7 @@
 
 import { FINALS_ENTRIES, IDPA_FINAL_FOR_IDAF, KSH_SUBJECT_NAMES } from "@/lib/semesters";
 import { useDashboard } from "../DashboardContext";
-import { getGradeColor, getAvgColor } from "../utils";
+import { getGradeColor, getAvgColor, subjectColorVar } from "../utils";
 
 /**
  * Renders a subject card in the Overview tab, showing the final 3-year grade,
@@ -20,44 +20,39 @@ export default function OverviewCard({ subject }: { subject: string }) {
   const semesters = getSemestersForSubject(subject);
 
   return (
-    <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 overflow-hidden">
+    <div className="bg-surface rounded-card border border-line overflow-hidden">
       <div className="px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div className="flex items-center gap-2 sm:gap-3">
+          <span className="w-3 h-3 rounded-[3px] shrink-0" style={{ backgroundColor: subjectColorVar(subject) }} />
           <div>
-            <h3 className="text-base sm:text-lg font-semibold text-neutral-100">{subject}</h3>
+            <h3 className="text-sm sm:text-base font-medium text-fg">{subject}</h3>
             {KSH_SUBJECT_NAMES[subject] && (
-              <p className="text-xs text-neutral-500">{KSH_SUBJECT_NAMES[subject]}</p>
+              <p className="text-[11px] text-fg-faint">{KSH_SUBJECT_NAMES[subject]}</p>
             )}
           </div>
           {finalGrade !== null && (
-            <span
-              className={`text-xs sm:text-sm font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full border ${getGradeColor(finalGrade)}`}
-            >
+            <span className={`font-mono text-xs sm:text-sm px-2 sm:px-3 py-0.5 sm:py-1 rounded-control border ${getGradeColor(finalGrade)}`}>
               {finalGrade.toFixed(1)}
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3 sm:gap-4 text-xs text-neutral-400 flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4 text-[11px] text-fg-muted flex-wrap">
           <span>Sem: {semesters.join(", ")}</span>
           <span>
             Avg:{" "}
             {semesterAvg !== null ? (
-              <span className={`font-medium ${getAvgColor(semesterAvg)}`}>
-                {semesterAvg.toFixed(1)}
-              </span>
+              <span className={`font-mono ${getAvgColor(semesterAvg)}`}>{semesterAvg.toFixed(1)}</span>
             ) : (
-              <span className="text-neutral-600">—</span>
+              <span className="text-fg-faint">—</span>
             )}
           </span>
           {hasAnyFinal && (
             <span>
               {finalLabel}:{" "}
               {finalsGrade !== null ? (
-                <span className={`font-medium ${getAvgColor(finalsGrade)}`}>
-                  {finalsGrade.toFixed(1)}
-                </span>
+                <span className={`font-mono ${getAvgColor(finalsGrade)}`}>{finalsGrade.toFixed(1)}</span>
               ) : (
-                <span className="text-neutral-600">—</span>
+                <span className="text-fg-faint">—</span>
               )}
             </span>
           )}
@@ -69,12 +64,8 @@ export default function OverviewCard({ subject }: { subject: string }) {
           const avg = getSubjectAverage(sem, subject);
           return (
             <div key={sem} className="flex flex-col items-center">
-              <span className="text-[10px] text-neutral-500 mb-0.5">S{sem}</span>
-              <span
-                className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-bold border ${
-                  avg !== null ? getGradeColor(avg) : "border-neutral-700 text-neutral-600"
-                }`}
-              >
+              <span className="text-[10px] text-fg-faint mb-0.5 font-mono">S{sem}</span>
+              <span className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-control text-xs font-mono border ${avg !== null ? getGradeColor(avg) : "border-line text-fg-faint"}`}>
                 {avg !== null ? avg.toFixed(1) : "—"}
               </span>
             </div>
@@ -82,16 +73,8 @@ export default function OverviewCard({ subject }: { subject: string }) {
         })}
         {hasAnyFinal && (
           <div className="flex flex-col items-center">
-            <span
-              className={`text-[10px] mb-0.5 ${hasIdpaFinal ? "text-amber-400" : "text-purple-400"}`}
-            >
-              {finalLabel}
-            </span>
-            <span
-              className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-lg text-xs font-bold border ${
-                finalsGrade !== null ? getGradeColor(finalsGrade) : "border-neutral-700 text-neutral-600"
-              }`}
-            >
+            <span className={`text-[10px] mb-0.5 ${hasIdpaFinal ? "text-subject-amber" : "text-subject-violet"}`}>{finalLabel}</span>
+            <span className={`inline-flex items-center justify-center w-8 h-8 sm:w-9 sm:h-9 rounded-control text-xs font-mono border ${finalsGrade !== null ? getGradeColor(finalsGrade) : "border-line text-fg-faint"}`}>
               {finalsGrade !== null ? finalsGrade.toFixed(1) : "—"}
             </span>
           </div>

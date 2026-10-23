@@ -29,91 +29,55 @@ export default function StatsCards() {
       : null;
   const overviewStatus = activeSemester === OVERVIEW_TAB ? getOverviewStatus() : null;
 
+  const card = "bg-surface border border-line rounded-card px-3.5 py-3";
+  const label = "text-[11px] font-semibold tracking-wide uppercase text-fg-faint mb-1";
+  const num = "font-mono text-xl";
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 mb-3 sm:mb-5">
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">
+    <div className="grid grid-cols-2 xl:grid-cols-2 gap-2.5">
+      <div className={card}>
+        <p className={label}>
           {activeSemester === FINALS_SEMESTER
             ? "Finals"
             : activeSemester === OVERVIEW_TAB
-            ? "Final Average"
-            : `Sem ${activeSemester} Average`}
+            ? "Final avg"
+            : `Sem ${activeSemester} avg`}
         </p>
         <p
-          className={`text-lg sm:text-xl font-bold ${
+          className={`${num} ${
             activeSemester === OVERVIEW_TAB
-              ? overviewStatus
-                ? getAvgColor(overviewStatus.avg)
-                : "text-neutral-600"
-              : semesterAvg
-              ? getAvgColor(semesterAvg)
-              : "text-neutral-600"
+              ? overviewStatus ? getAvgColor(overviewStatus.avg) : "text-fg-faint"
+              : semesterAvg ? getAvgColor(semesterAvg) : "text-fg-faint"
           }`}
         >
           {activeSemester === OVERVIEW_TAB
-            ? overviewStatus
-              ? overviewStatus.avg.toFixed(2)
-              : "—"
-            : semesterAvg
-            ? semesterAvg.toFixed(2)
-            : "—"}
+            ? overviewStatus ? overviewStatus.avg.toFixed(2) : "—"
+            : semesterAvg ? semesterAvg.toFixed(2) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Overall Avg</p>
-        <p className={`text-lg sm:text-xl font-bold ${overallAvg ? getAvgColor(overallAvg) : "text-neutral-600"}`}>
+      <div className={card}>
+        <p className={label}>Overall avg</p>
+        <p className={`${num} ${overallAvg ? getAvgColor(overallAvg) : "text-fg-faint"}`}>
           {overallAvg ? overallAvg.toFixed(2) : "—"}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Total Grades</p>
-        <p className="text-lg sm:text-xl font-bold text-neutral-100">{grades.length}</p>
+      <div className={card}>
+        <p className={label}>Total grades</p>
+        <p className={`${num} text-fg`}>{grades.length}</p>
       </div>
       {activeSemester > 0 && activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && (
-        <div
-          className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
-            semesterStatus
-              ? semesterStatus.passed
-                ? "bg-green-900/20 border-green-800"
-                : "bg-red-900/20 border-red-800"
-              : "bg-neutral-900 border-neutral-800"
-          }`}
-        >
-          <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Sem Status</p>
-          <p
-            className={`text-lg sm:text-xl font-bold ${
-              semesterStatus
-                ? semesterStatus.passed
-                  ? "text-green-400"
-                  : "text-red-400"
-                : "text-neutral-600"
-            }`}
-          >
-            {semesterStatus ? (semesterStatus.passed ? "✓ Passed" : "✗ Failed") : "—"}
+        <div className={card}>
+          <p className={label}>Sem status</p>
+          <p className={`${num} ${semesterStatus ? (semesterStatus.passed ? "text-subject-green" : "text-now") : "text-fg-faint"}`}>
+            {semesterStatus ? (semesterStatus.passed ? "Passed" : "Failed") : "—"}
           </p>
         </div>
       )}
       {activeSemester === OVERVIEW_TAB && (
-        <div
-          className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
-            overviewStatus
-              ? overviewStatus.passed
-                ? "bg-green-900/20 border-green-800"
-                : "bg-red-900/20 border-red-800"
-              : "bg-neutral-900 border-neutral-800"
-          }`}
-        >
-          <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Final Result</p>
-          <p
-            className={`text-lg sm:text-xl font-bold ${
-              overviewStatus
-                ? overviewStatus.passed
-                  ? "text-green-400"
-                  : "text-red-400"
-                : "text-neutral-600"
-            }`}
-          >
-            {overviewStatus ? (overviewStatus.passed ? "✓ Passed" : "✗ Failed") : "—"}
+        <div className={card}>
+          <p className={label}>Final result</p>
+          <p className={`${num} ${overviewStatus ? (overviewStatus.passed ? "text-subject-green" : "text-now") : "text-fg-faint"}`}>
+            {overviewStatus ? (overviewStatus.passed ? "Passed" : "Failed") : "—"}
           </p>
         </div>
       )}

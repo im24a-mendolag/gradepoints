@@ -18,51 +18,47 @@ function VerifyContent() {
   const isError = status === "error";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-canvas px-4">
       <div className="w-full max-w-md">
-        <div className="bg-neutral-900 rounded-2xl shadow-xl shadow-black/20 border border-neutral-800 p-8 text-center">
+        <div className="bg-surface rounded-card border border-line p-8 text-center">
           {isSuccess ? (
             <>
-              <div className="w-16 h-16 rounded-full bg-green-900/30 border-2 border-green-700 flex items-center justify-center mx-auto mb-4">
-                <span className="text-green-400 text-3xl">✓</span>
+              <div className="w-16 h-16 rounded-full bg-subject-green/10 border border-subject-green/40 flex items-center justify-center mx-auto mb-4">
+                <span className="text-subject-green text-3xl">✓</span>
               </div>
-              <h1 className="text-2xl font-bold text-neutral-100 mb-2">Email Verified!</h1>
-              <p className="text-neutral-400 mb-6">
-                Your account has been verified. You can now sign in.
-              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-fg mb-2">Email Verified!</h1>
+              <p className="text-fg-muted mb-6 text-sm">Your account has been verified. You can now sign in.</p>
               <Link
                 href="/login?verified=true"
-                className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg transition"
+                className="inline-block px-6 py-3 bg-ink text-on-ink font-medium rounded-control transition hover:opacity-90"
               >
                 Sign in
               </Link>
             </>
           ) : isError ? (
             <>
-              <div className="w-16 h-16 rounded-full bg-red-900/30 border-2 border-red-700 flex items-center justify-center mx-auto mb-4">
-                <span className="text-red-400 text-3xl">✗</span>
+              <div className="w-16 h-16 rounded-full bg-now-tint border border-now/40 flex items-center justify-center mx-auto mb-4">
+                <span className="text-now text-3xl">✗</span>
               </div>
-              <h1 className="text-2xl font-bold text-neutral-100 mb-2">Verification Failed</h1>
-              <p className="text-neutral-400 mb-6">
-                {message || "The verification link is invalid or has expired."}
-              </p>
+              <h1 className="text-2xl font-semibold tracking-tight text-fg mb-2">Verification Failed</h1>
+              <p className="text-fg-muted mb-6 text-sm">{message || "The verification link is invalid or has expired."}</p>
               <Link
                 href="/register"
-                className="inline-block px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium rounded-lg transition border border-neutral-700"
+                className="inline-block px-6 py-3 bg-surface hover:bg-hover text-fg font-medium rounded-control transition border border-line"
               >
                 Try again
               </Link>
             </>
           ) : (
             <>
-              <h1 className="text-2xl font-bold text-neutral-100 mb-2">Check Your Email</h1>
-              <p className="text-neutral-400 mb-6">
+              <h1 className="text-2xl font-semibold tracking-tight text-fg mb-2">Check Your Email</h1>
+              <p className="text-fg-muted mb-6 text-sm">
                 We&apos;ve sent a verification link to your email address.
                 Click the link to activate your account.
               </p>
               <Link
                 href="/login"
-                className="inline-block px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 font-medium rounded-lg transition border border-neutral-700"
+                className="inline-block px-6 py-3 bg-surface hover:bg-hover text-fg font-medium rounded-control transition border border-line"
               >
                 Back to Login
               </Link>
@@ -77,8 +73,8 @@ function VerifyContent() {
 export default function VerifyPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-950 to-neutral-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-line border-t-fg"></div>
       </div>
     }>
       <VerifyContent />

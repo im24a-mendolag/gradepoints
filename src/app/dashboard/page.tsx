@@ -1,9 +1,7 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect } from "react";
 import {
   SEMESTER_SUBJECTS,
   FINALS_SEMESTER,
@@ -16,7 +14,6 @@ import {
 } from "@/lib/semesters";
 
 import { DashboardProvider, useDashboard } from "./DashboardContext";
-import Btn from "./components/Btn";
 import SemesterTabs from "./components/SemesterTabs";
 import StatsCards from "./components/StatsCards";
 import { SemesterPassFailRules, OverviewPassFailRules } from "./components/PassFailRules";
@@ -28,36 +25,53 @@ import BzzPassFail from "./components/BzzPassFail";
 import BzzStatsCards from "./components/BzzStatsCards";
 import BzzCollapsibleSection from "./components/BzzCollapsibleSection";
 import AddGradePanel from "./components/AddGradePanel";
+import Sidebar from "./components/Sidebar";
+import BottomTabBar from "./components/BottomTabBar";
 import SchoolSelector from "./components/SchoolSelector";
+import { IconPlus, IconX } from "./components/Icons";
 import type { School } from "./types";
 
-/**
- * The inner dashboard content that consumes DashboardContext.
- * Handles layout, header, error banner, and tab-based content rendering.
- */
-function DashboardContent() {
-  const { data: session } = useSession();
-  const { activeSchool, activeSemester, lastRegularSemester, selectSemester, error, dismissError, loading, isSubmitting, undoEntry, undoLastAction, dismissUndo, clearSemesterGrades, grades } = useDashboard();
+/** Stats + pass/fail block — shown in the right rail (xl+) and inline on mobile. */
+function RailSection() {
+  const { activeSchool, activeSemester } = useDashboard();
+  if (activeSchool === "BZZ") {
+    return (
+      <>
+        <BzzStatsCards />
+        <BzzPassFail />
+      </>
+    );
+  }
+  return (
+    <>
+      <StatsCards />
+      {activeSemester > 0 && activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB && (
+        <SemesterPassFailRules semester={activeSemester} />
+      )}
+      {activeSemester === OVERVIEW_TAB && <OverviewPassFailRules />}
+    </>
+  );
+}
 
-  const [menuOpen, setMenuOpen] = useState(false);
+function DashboardContent() {
+  const {
+    activeSchool,
+    activeSemester,
+    error,
+    dismissError,
+    loading,
+    isSubmitting,
+    undoEntry,
+    undoLastAction,
+    dismissUndo,
+    clearSemesterGrades,
+    grades,
+  } = useDashboard();
+
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [confirmClear, setConfirmClear] = useState(false);
   useEffect(() => setConfirmClear(false), [activeSemester]);
-  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close hamburger menu on outside click
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
-
-  // Lock body scroll when add sheet is open
   useEffect(() => {
     if (!addSheetOpen) return;
     document.body.style.overflow = "hidden";
@@ -66,288 +80,192 @@ function DashboardContent() {
 
   const subjects =
     activeSemester === FINALS_SEMESTER ? [] : (SEMESTER_SUBJECTS[activeSemester] ?? []);
-
   const finalsSubjects = Object.entries(FINALS_ENTRIES).map(([name, entries]) => ({ name, entries }));
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-canvas lg:flex">
+        <Sidebar />
+        <main className="min-w-0 flex-1 flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-line border-t-fg" />
+        </main>
+        <BottomTabBar />
       </div>
     );
   }
 
   const canAddGrade = activeSemester !== FINALS_SEMESTER && activeSemester !== OVERVIEW_TAB;
 
+  const title =
+    activeSchool === "BZZ"
+      ? "Modules"
+      : activeSemester === OVERVIEW_TAB
+      ? "Overview"
+      : activeSemester === FINALS_SEMESTER
+      ? "Finals"
+      : "Grades";
+  const subtitle =
+    activeSchool === "BZZ"
+      ? `BZZ · ${grades.filter((g) => g.school === "BZZ").length} grades`
+      : activeSemester === OVERVIEW_TAB
+      ? "Three-year final results"
+      : activeSemester === FINALS_SEMESTER
+      ? "Oral & written finals"
+      : `Semester ${activeSemester} · ${grades.filter((g) => g.semester === activeSemester && g.school !== "BZZ").length} grades`;
+
   return (
-    <div className="min-h-screen bg-neutral-950">
-      {/* Header */}
-      <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-neutral-100 shrink-0">
-              Grade<span className="text-blue-500">Points</span>
-            </h1>
-            <SchoolSelector />
-          </div>
-          {/* Desktop nav */}
-          <div className="hidden sm:flex items-center gap-4">
-            {activeSemester === OVERVIEW_TAB || activeSemester === FINALS_SEMESTER ? (
-              <button
-                onClick={() => selectSemester(lastRegularSemester)}
-                className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition cursor-pointer"
-              >
-                Dashboard
-              </button>
-            ) : (
-              <span className="text-sm text-blue-400 font-medium border-b border-blue-400 pb-0.5">
-                Dashboard
-              </span>
-            )}
-            <Link
-              href={`/dashboard/stats?school=${activeSchool}`}
-              className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
-            >
-              Statistics
-            </Link>
-            {activeSchool === "KSH" && (
-              <button
-                onClick={() => selectSemester(OVERVIEW_TAB)}
-                className={`text-sm font-medium transition cursor-pointer ${activeSemester === OVERVIEW_TAB ? "text-amber-400 border-b border-amber-400 pb-0.5" : "text-neutral-400 hover:text-neutral-200"}`}
-              >
-                Overview
-              </button>
-            )}
-            {activeSchool === "KSH" && (
-              <Link
-                href="/extension"
-                className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
-              >
-                Extension
-              </Link>
-            )}
-            <div className="w-px h-4 bg-neutral-700" />
-            <Link
-              href="/dashboard/account"
-              className="text-xs text-neutral-500 hover:text-neutral-300 transition"
-            >
-              {session?.user?.name}
-            </Link>
-            <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
-          </div>
-          {/* Mobile hamburger */}
-          <div className="relative sm:hidden" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-300 hover:bg-neutral-800 text-xl cursor-pointer"
-              aria-label="Menu"
-            >
-              ☰
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                <Link
-                  href={`/dashboard/stats?school=${activeSchool}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-blue-400 hover:bg-neutral-700"
-                >
-                  Statistics
-                </Link>
-                {activeSchool === "KSH" && (
-                  <button
-                    onClick={() => { selectSemester(OVERVIEW_TAB); setMenuOpen(false); }}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-sm text-amber-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
-                  >
-                    Overview
-                  </button>
-                )}
-                {activeSchool === "KSH" && (
-                  <Link
-                    href="/extension"
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
-                  >
-                    Extension
-                  </Link>
-                )}
-                <Link
-                  href="/dashboard/account"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
-                >
-                  {session?.user?.name ?? "Account"}
-                </Link>
-                <button
-                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-canvas lg:flex">
+      <Sidebar />
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-24 sm:pb-8">
-        {/* Error Banner */}
-        {error && (
-          <div className="mb-6 flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-red-900/30 border border-red-800 text-red-300 text-sm">
-            <span>{error}</span>
-            <button
-              onClick={dismissError}
-              className="text-red-400 hover:text-red-300 font-bold text-lg leading-none cursor-pointer"
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        {activeSchool === "KSH" ? (
-          <>
-            {/* KSH: Stats */}
-            <StatsCards />
-
-            {/* Pass/Fail Rules — Semester */}
-            {activeSemester > 0 &&
-              activeSemester !== FINALS_SEMESTER &&
-              activeSemester !== OVERVIEW_TAB && (
-                <SemesterPassFailRules semester={activeSemester} />
-              )}
-
-            {/* Pass/Fail Rules — Overview */}
-            {activeSemester === OVERVIEW_TAB && <OverviewPassFailRules />}
-
-            {/* Semester Tabs */}
-            {activeSemester !== OVERVIEW_TAB && <SemesterTabs />}
-
-            {/* Add Grade Panel — desktop only */}
-            {canAddGrade && (
-              <div className="hidden sm:block">
-                <AddGradePanel />
-              </div>
-            )}
-
-            {/* Content for active tab */}
-            <div className="space-y-4">
-              {activeSemester === OVERVIEW_TAB ? (
-                <>
-                  {OVERVIEW_SUBJECTS.map((subject) => (
-                    <OverviewCard key={subject} subject={subject} />
-                  ))}
-                </>
-              ) : activeSemester === FINALS_SEMESTER ? (
-                <>
-                  {finalsSubjects.map((group) => (
-                    <FinalsCard key={group.name} groupName={group.name} entries={group.entries} />
-                  ))}
-                </>
-              ) : (
-                subjects.map((subject) => (
-                  <KshSubjectCard key={subject} subject={subject} />
-                ))
-              )}
+      <div className="lg:flex-1 lg:flex min-w-0">
+        <main className="min-w-0 flex-1 px-4 sm:px-6 lg:px-8 py-5 sm:py-7 pb-24 lg:pb-10">
+          {/* Header */}
+          <header className="flex items-start justify-between gap-3 mb-5">
+            <div className="min-w-0">
+              <h1 className="text-2xl font-semibold tracking-tight text-fg">{title}</h1>
+              <p className="text-[11px] text-fg-muted mt-0.5">{subtitle}</p>
             </div>
+            <div className="lg:hidden shrink-0">
+              <SchoolSelector />
+            </div>
+          </header>
 
-            {/* Clear semester */}
-            {canAddGrade && (() => {
-              const semGradeCount = grades.filter(g => g.semester === activeSemester && g.school !== "BZZ").length;
-              if (semGradeCount === 0) return null;
-              return confirmClear ? (
-                <div className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-red-900 bg-red-950/20 text-sm">
-                  <span className="text-red-300 flex-1">Delete all {semGradeCount} grades from semester {activeSemester}?</span>
-                  <button
-                    onClick={() => { clearSemesterGrades(activeSemester); setConfirmClear(false); }}
-                    disabled={isSubmitting}
-                    className="px-3 py-1.5 bg-red-700 hover:bg-red-600 text-white rounded-lg font-medium transition cursor-pointer disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setConfirmClear(false)}
-                    className="px-3 py-1.5 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 rounded-lg transition cursor-pointer"
-                  >
-                    Cancel
-                  </button>
+          {/* Error banner */}
+          {error && (
+            <div className="mb-5 flex items-center justify-between gap-3 px-4 py-3 rounded-card bg-now-tint border border-now/40 text-now text-sm">
+              <span>{error}</span>
+              <button onClick={dismissError} className="text-now hover:opacity-70 cursor-pointer" aria-label="Dismiss">
+                <IconX size={16} />
+              </button>
+            </div>
+          )}
+
+          {/* Inline stats + pass/fail (mobile / below xl) */}
+          <div className="xl:hidden flex flex-col gap-4 mb-5">
+            <RailSection />
+          </div>
+
+          {activeSchool === "KSH" ? (
+            <>
+              {activeSemester !== OVERVIEW_TAB && (
+                <div className="mb-5">
+                  <SemesterTabs />
                 </div>
-              ) : (
-                <div className="mt-4 flex justify-center">
-                  <button
-                    onClick={() => setConfirmClear(true)}
-                    className="text-xs text-red-500 hover:text-red-400 border border-red-900 hover:border-red-700 px-3 py-1.5 rounded-lg transition cursor-pointer"
-                  >
-                    Remove all grades from this semester
-                  </button>
+              )}
+
+              {canAddGrade && (
+                <div className="hidden sm:block mb-5">
+                  <AddGradePanel />
                 </div>
-              );
-            })()}
-          </>
-        ) : (
-          <>
-            {/* BZZ: Stats */}
-            <BzzStatsCards />
+              )}
 
-            {/* BZZ: Pass/Fail */}
-            <BzzPassFail />
-
-            {/* Add Grade Panel — desktop only */}
-            {canAddGrade && (
-              <div className="hidden sm:block">
-                <AddGradePanel />
+              <div className="flex flex-col gap-2.5">
+                {activeSemester === OVERVIEW_TAB ? (
+                  OVERVIEW_SUBJECTS.map((subject) => <OverviewCard key={subject} subject={subject} />)
+                ) : activeSemester === FINALS_SEMESTER ? (
+                  finalsSubjects.map((group) => (
+                    <FinalsCard key={group.name} groupName={group.name} entries={group.entries} />
+                  ))
+                ) : (
+                  subjects.map((subject) => <KshSubjectCard key={subject} subject={subject} />)
+                )}
               </div>
-            )}
 
-            <BzzCollapsibleSection title="Normal Modules" defaultOpen>
-              {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
-                <BzzModuleCard key={mod} mod={mod} />
-              ))}
-            </BzzCollapsibleSection>
-            <BzzCollapsibleSection title="ÜK Modules" defaultOpen>
-              {(BZZ_UK_MODULES as readonly string[]).map((mod) => (
-                <BzzModuleCard key={mod} mod={mod} />
-              ))}
-            </BzzCollapsibleSection>
-            <BzzCollapsibleSection title="IPA" defaultOpen>
-              <BzzModuleCard mod={BZZ_IPA} />
-            </BzzCollapsibleSection>
-          </>
-        )}
-      </main>
+              {canAddGrade && (() => {
+                const semGradeCount = grades.filter((g) => g.semester === activeSemester && g.school !== "BZZ").length;
+                if (semGradeCount === 0) return null;
+                return confirmClear ? (
+                  <div className="mt-4 flex items-center gap-3 p-3 rounded-card border border-now/40 bg-now-tint text-sm">
+                    <span className="text-now flex-1">Delete all {semGradeCount} grades from semester {activeSemester}?</span>
+                    <button
+                      onClick={() => { clearSemesterGrades(activeSemester); setConfirmClear(false); }}
+                      disabled={isSubmitting}
+                      className="px-3 py-1.5 bg-now text-on-solid rounded-control font-medium transition cursor-pointer disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmClear(false)}
+                      className="px-3 py-1.5 bg-sunken hover:bg-hover text-fg-muted rounded-control transition cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <div className="mt-5 flex justify-center">
+                    <button
+                      onClick={() => setConfirmClear(true)}
+                      className="text-xs text-fg-faint hover:text-now transition cursor-pointer"
+                    >
+                      Remove all grades from this semester
+                    </button>
+                  </div>
+                );
+              })()}
+            </>
+          ) : (
+            <>
+              {canAddGrade && (
+                <div className="hidden sm:block mb-5">
+                  <AddGradePanel />
+                </div>
+              )}
+              <BzzCollapsibleSection title="Normal Modules" defaultOpen>
+                {(BZZ_NORMAL_MODULES as readonly string[]).map((mod) => (
+                  <BzzModuleCard key={mod} mod={mod} />
+                ))}
+              </BzzCollapsibleSection>
+              <BzzCollapsibleSection title="ÜK Modules" defaultOpen>
+                {(BZZ_UK_MODULES as readonly string[]).map((mod) => (
+                  <BzzModuleCard key={mod} mod={mod} />
+                ))}
+              </BzzCollapsibleSection>
+              <BzzCollapsibleSection title="IPA" defaultOpen>
+                <BzzModuleCard mod={BZZ_IPA} />
+              </BzzCollapsibleSection>
+            </>
+          )}
+        </main>
+
+        {/* Right rail (xl+) */}
+        <aside className="hidden xl:flex flex-col gap-4 w-80 shrink-0 border-l border-line px-6 py-7 sticky top-0 self-start h-screen overflow-y-auto">
+          <p className="text-[11px] font-semibold tracking-wide uppercase text-fg-faint">
+            {activeSchool === "BZZ" ? "Overview" : "This semester"}
+          </p>
+          <RailSection />
+        </aside>
+      </div>
+
+      <BottomTabBar />
 
       {/* Mobile FAB */}
       {canAddGrade && (
         <button
           onClick={() => setAddSheetOpen(true)}
-          className="fixed bottom-6 right-4 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full flex items-center justify-center text-white text-3xl font-light shadow-xl sm:hidden cursor-pointer"
+          className="lg:hidden fixed bottom-20 right-4 z-30 w-13 h-13 bg-ink text-on-ink rounded-full flex items-center justify-center shadow-lg cursor-pointer"
+          style={{ width: 52, height: 52 }}
           aria-label="Add grade"
         >
-          +
+          <IconPlus size={22} />
         </button>
       )}
 
       {/* Mobile Add Grade Bottom Sheet */}
       {addSheetOpen && (
         <>
-          {/* Overlay */}
-          <div
-            className="fixed inset-0 bg-black/60 z-40 sm:hidden"
-            onClick={() => setAddSheetOpen(false)}
-          />
-          {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 sm:hidden bg-neutral-900 border-t border-neutral-800 rounded-t-2xl max-h-[88vh] flex flex-col">
-            {/* Handle + header */}
-            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0">
-              <div className="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 bg-neutral-700 rounded-full" />
-              <span className="text-sm font-semibold text-neutral-100">Add Grade</span>
+          <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setAddSheetOpen(false)} />
+          <div className="fixed bottom-0 inset-x-0 z-50 lg:hidden bg-surface border-t border-line rounded-t-card max-h-[88vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 pt-3 pb-2 shrink-0 relative">
+              <div className="absolute left-1/2 -translate-x-1/2 top-2 w-10 h-1 bg-line-strong rounded-full" />
+              <span className="text-sm font-semibold text-fg">Add Grade</span>
               <button
                 onClick={() => setAddSheetOpen(false)}
-                className="w-7 h-7 flex items-center justify-center rounded-full bg-neutral-800 text-neutral-400 hover:text-neutral-200 text-lg cursor-pointer"
+                className="w-7 h-7 flex items-center justify-center rounded-full bg-sunken text-fg-muted hover:text-fg cursor-pointer"
                 aria-label="Close"
               >
-                ×
+                <IconX size={16} />
               </button>
             </div>
-            {/* Scrollable form */}
             <div className="overflow-y-auto flex-1 px-1 pb-6">
               <AddGradePanel noSlider />
             </div>
@@ -357,21 +275,17 @@ function DashboardContent() {
 
       {/* Undo toast */}
       {undoEntry && (
-        <div className="fixed bottom-24 sm:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl text-sm text-neutral-200 whitespace-nowrap">
+        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-2.5 bg-surface border border-line rounded-card shadow-lg text-sm text-fg whitespace-nowrap">
           <span>{undoEntry.label}</span>
           <button
             onClick={undoLastAction}
             disabled={isSubmitting}
-            className="font-semibold text-blue-400 hover:text-blue-300 transition cursor-pointer disabled:opacity-50"
+            className="font-semibold text-fg hover:opacity-70 transition cursor-pointer disabled:opacity-50"
           >
             Undo
           </button>
-          <button
-            onClick={dismissUndo}
-            className="text-neutral-500 hover:text-neutral-300 transition cursor-pointer text-base leading-none"
-            aria-label="Dismiss"
-          >
-            ×
+          <button onClick={dismissUndo} className="text-fg-faint hover:text-fg transition cursor-pointer" aria-label="Dismiss">
+            <IconX size={14} />
           </button>
         </div>
       )}
@@ -379,10 +293,6 @@ function DashboardContent() {
   );
 }
 
-/**
- * Dashboard page component — wraps the content in DashboardProvider
- * so all children can access shared state via useDashboard().
- */
 function DashboardWrapper() {
   const searchParams = useSearchParams();
   const initialSchool: School = searchParams.get("school") === "BZZ" ? "BZZ" : "KSH";
@@ -398,8 +308,8 @@ function DashboardWrapper() {
 export default function DashboardPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-line border-t-fg" />
       </div>
     }>
       <DashboardWrapper />

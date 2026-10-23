@@ -1,11 +1,9 @@
 "use client";
 
-import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState, useEffect, useRef } from "react";
+import { Suspense, useState } from "react";
 import { DashboardProvider, useDashboard } from "../DashboardContext";
-import Btn from "../components/Btn";
 import {
   SEMESTER_SUBJECTS,
   TOTAL_SEMESTERS,
@@ -13,10 +11,11 @@ import {
   FINALS_SEMESTER,
   BZZ_NORMAL_MODULES,
   BZZ_UK_MODULES,
-  BZZ_IPA,
 } from "@/lib/semesters";
-import { getAvgColor, getGradeHex, roundToHalf } from "../utils";
+import { getAvgColor, getGradeHex, roundToHalf, subjectColorHex } from "../utils";
 import SchoolSelector from "../components/SchoolSelector";
+import Sidebar from "../components/Sidebar";
+import BottomTabBar from "../components/BottomTabBar";
 import type { School } from "../types";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -25,46 +24,33 @@ import {
   ReferenceLine,
 } from "recharts";
 
-/** Color palette for subject lines in charts */
-const SUBJECT_COLORS: Record<string, string> = {
-  German: "#ef4444",
-  French: "#3b82f6",
-  English: "#8b5cf6",
-  Math: "#f59e0b",
-  WR: "#10b981",
-  FrW: "#06b6d4",
-  GuP: "#f97316",
-  TuU: "#84cc16",
-  IDAF: "#ec4899",
-  IDPA: "#a855f7",
-};
+/* Theme-stable chart chrome: subject hues + muted grade hues read on both
+   themes; grid/axis use translucent gray; tooltip stays dark (legible on both). */
+const GRID = "rgba(128,128,128,0.16)";
+const AXIS = "rgba(128,128,128,0.4)";
+const TICK = "#8a8784";
+const PASS_LINE = "#c98a00";
+const ACCENT = "#3e63dd";
 
-/** Dark tooltip style shared across all charts */
-const DARK_TOOLTIP = {
+const CHART_TOOLTIP = {
   contentStyle: {
-    borderRadius: 8,
-    border: "1px solid #404040",
-    backgroundColor: "#171717",
-    color: "#e5e5e5",
+    borderRadius: 6,
+    border: "1px solid #3b3a36",
+    backgroundColor: "#1b1a17",
+    color: "#eeede9",
     zIndex: 9999,
   },
-  wrapperStyle: {
-    zIndex: 9999,
-  },
-  labelStyle: {
-    color: "#e5e5e5",
-    fontWeight: 600,
-    marginBottom: 4,
-  },
-  itemStyle: {
-    color: "#d4d4d4",
-  },
-  cursor: { stroke: "#525252" },
+  wrapperStyle: { zIndex: 9999 },
+  labelStyle: { color: "#eeede9", fontWeight: 600, marginBottom: 4 },
+  itemStyle: { color: "#cfccc5" },
+  cursor: { stroke: AXIS },
 };
 
-/**
- * KSH-specific statistics content (existing charts).
- */
+const cardCls = "bg-surface rounded-card border border-line p-4 sm:p-6";
+const statCardCls = "bg-surface rounded-card border border-line p-5";
+const statLabel = "text-[11px] font-semibold tracking-wide uppercase text-fg-faint mb-1";
+const heading = "text-sm sm:text-base font-medium text-fg mb-3 sm:mb-4";
+
 function KshStatsContent() {
   const [hiddenSubjects, setHiddenSubjects] = useState<Set<string>>(new Set());
   const {
@@ -77,33 +63,21 @@ function KshStatsContent() {
     getOverviewStatus,
   } = useDashboard();
 
-  // ─── Build chart data ─────────────────────────────────────────
-
   const semesterTrendData = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => {
     const sem = i + 1;
-    const avg = getSemesterAverage(sem);
-    return { semester: `Sem ${sem}`, avg, semNum: sem };
+    return { semester: `Sem ${sem}`, avg: getSemesterAverage(sem), semNum: sem };
   });
 
   const trendAvgs = semesterTrendData.map((d) => d.avg).filter((a): a is number => a !== null);
   const trendYMin = trendAvgs.length > 0 ? Math.max(1, Math.floor(Math.min(...trendAvgs) - 0.5)) : 1;
 
-  const allSubjects = Array.from(
-    new Set(
-      Object.values(SEMESTER_SUBJECTS).flat()
-        .filter((s) => s !== "IDPA")
-    )
-  );
+  const allSubjects = Array.from(new Set(Object.values(SEMESTER_SUBJECTS).flat().filter((s) => s !== "IDPA")));
   const subjectProgressData = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => {
     const sem = i + 1;
     const point: Record<string, string | number | null> = { semester: `Sem ${sem}` };
     for (const subject of allSubjects) {
       const subs = SEMESTER_SUBJECTS[sem] ?? [];
-      if (subs.includes(subject as never)) {
-        point[subject] = getSubjectAverage(sem, subject);
-      } else {
-        point[subject] = null;
-      }
+      point[subject] = subs.includes(subject as never) ? getSubjectAverage(sem, subject) : null;
     }
     return point;
   });
@@ -114,10 +88,7 @@ function KshStatsContent() {
   const subjectYMin = subjectAvgs.length > 0 ? Math.max(1, Math.floor(Math.min(...subjectAvgs) - 0.5)) : 1;
 
   const finalGradesData = OVERVIEW_SUBJECTS
-    .map((subject) => {
-      const { finalGrade } = getFinalSubjectGrade(subject);
-      return { subject, grade: finalGrade };
-    })
+    .map((subject) => ({ subject, grade: getFinalSubjectGrade(subject).finalGrade }))
     .filter((d) => d.grade !== null);
 
   const kshGrades = grades.filter((g) => !g.school || g.school === "KSH");
@@ -128,171 +99,105 @@ function KshStatsContent() {
     color: getGradeHex(v),
   }));
   for (const g of regularGrades) {
-    const rounded = roundToHalf(g.value);
-    const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
+    const bucket = distribution.find((d) => parseFloat(d.range) === roundToHalf(g.value));
     if (bucket) bucket.count++;
   }
   const distributionData = distribution.filter((d) => d.count > 0);
 
-  const radarData = OVERVIEW_SUBJECTS.map((subject) => {
-    const { finalGrade } = getFinalSubjectGrade(subject);
-    return { subject, grade: finalGrade ?? 0 };
-  });
+  const radarData = OVERVIEW_SUBJECTS.map((subject) => ({ subject, grade: getFinalSubjectGrade(subject).finalGrade ?? 0 }));
 
-  const semesterPassFail = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => {
-    const sem = i + 1;
-    const status = getSemesterStatus(sem);
-    return { semester: sem, status };
-  });
-
+  const semesterPassFail = Array.from({ length: TOTAL_SEMESTERS }, (_, i) => ({ semester: i + 1, status: getSemesterStatus(i + 1) }));
   const overviewStatus = getOverviewStatus();
 
   const finalsAvg = getFinalsAverage();
   const totalGrades = regularGrades.length;
-  const avgGrade = totalGrades > 0
-    ? (regularGrades.reduce((s, g) => s + g.value, 0) / totalGrades)
-    : 0;
+  const avgGrade = totalGrades > 0 ? regularGrades.reduce((s, g) => s + g.value, 0) / totalGrades : 0;
   const highestGrade = totalGrades > 0 ? Math.max(...regularGrades.map((g) => g.value)) : 0;
   const lowestGrade = totalGrades > 0 ? Math.min(...regularGrades.map((g) => g.value)) : 0;
 
   const gradeCountBySubject: Record<string, number> = {};
-  for (const g of regularGrades) {
-    gradeCountBySubject[g.subject] = (gradeCountBySubject[g.subject] || 0) + 1;
-  }
+  for (const g of regularGrades) gradeCountBySubject[g.subject] = (gradeCountBySubject[g.subject] || 0) + 1;
 
-  const hasData = kshGrades.length > 0;
-
-  if (!hasData) {
+  if (kshGrades.length === 0) {
     return (
       <div className="text-center py-20">
-        <p className="text-neutral-500 text-lg">No KSH grades yet. Add some grades to see your statistics!</p>
-        <Link href="/dashboard" className="mt-4 inline-block text-blue-400 hover:text-blue-300 font-medium">
-          Go to Dashboard →
-        </Link>
+        <p className="text-fg-faint text-lg">No KSH grades yet. Add some grades to see your statistics!</p>
+        <Link href="/dashboard" className="mt-4 inline-block text-fg hover:opacity-70 font-medium">Go to Dashboard →</Link>
       </div>
     );
   }
 
+  const passCell = (passed: boolean | null) =>
+    passed === null
+      ? "bg-sunken border-line text-fg-faint"
+      : passed
+      ? "bg-subject-green/10 border-subject-green/40 text-subject-green"
+      : "bg-now-tint border-now/40 text-now";
+
   return (
     <>
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Total Grades</p>
-          <p className="text-2xl font-bold text-neutral-100">{totalGrades}</p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Average Grade</p>
-          <p className={`text-2xl font-bold ${getAvgColor(avgGrade)}`}>
-            {avgGrade.toFixed(2)}
-          </p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Finals Avg</p>
-          <p className={`text-2xl font-bold ${finalsAvg !== null ? getAvgColor(finalsAvg) : "text-neutral-600"}`}>
-            {finalsAvg !== null ? finalsAvg.toFixed(2) : "—"}
-          </p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Highest Grade</p>
-          <p className={`text-2xl font-bold ${getAvgColor(highestGrade)}`}>{highestGrade}</p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Lowest Grade</p>
-          <p className={`text-2xl font-bold ${getAvgColor(lowestGrade)}`}>
-            {lowestGrade}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className={statCardCls}><p className={statLabel}>Total grades</p><p className="font-mono text-2xl text-fg">{totalGrades}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Average grade</p><p className={`font-mono text-2xl ${getAvgColor(avgGrade)}`}>{avgGrade.toFixed(2)}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Finals avg</p><p className={`font-mono text-2xl ${finalsAvg !== null ? getAvgColor(finalsAvg) : "text-fg-faint"}`}>{finalsAvg !== null ? finalsAvg.toFixed(2) : "—"}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Highest grade</p><p className={`font-mono text-2xl ${getAvgColor(highestGrade)}`}>{highestGrade}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Lowest grade</p><p className={`font-mono text-2xl ${getAvgColor(lowestGrade)}`}>{lowestGrade}</p></div>
       </div>
 
-      {/* Pass/Fail Timeline */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Semester Pass/Fail</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Semester Pass / Fail</h2>
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {semesterPassFail.map(({ semester, status }) => (
             <div key={semester} className="flex flex-col items-center gap-1">
-              <span className="text-xs text-neutral-500">Sem {semester}</span>
-              <div
-                className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
-                  status
-                    ? status.passed
-                      ? "bg-green-900/30 border-green-700 text-green-400"
-                      : "bg-red-900/30 border-red-700 text-red-400"
-                    : "bg-neutral-800 border-neutral-700 text-neutral-600"
-                }`}
-              >
+              <span className="text-[11px] text-fg-faint font-mono">Sem {semester}</span>
+              <div className={`w-14 h-14 rounded-card flex items-center justify-center border ${passCell(status ? status.passed : null)}`}>
                 {status ? (status.passed ? "✓" : "✗") : "—"}
               </div>
-              <span className={`text-xs font-medium ${status?.semAvg != null ? getAvgColor(status.semAvg) : "text-neutral-600"}`}>
+              <span className={`text-[11px] font-mono ${status?.semAvg != null ? getAvgColor(status.semAvg) : "text-fg-faint"}`}>
                 {status?.semAvg != null ? status.semAvg.toFixed(1) : "—"}
               </span>
             </div>
           ))}
-          <div className="flex flex-col items-center gap-1 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l-2 border-neutral-700">
-            <span className="text-xs text-neutral-500 font-medium">Final</span>
-            <div
-              className={`w-14 h-14 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
-                overviewStatus
-                  ? overviewStatus.passed
-                    ? "bg-green-900/30 border-green-700 text-green-400"
-                    : "bg-red-900/30 border-red-700 text-red-400"
-                  : "bg-neutral-800 border-neutral-700 text-neutral-600"
-              }`}
-            >
+          <div className="flex flex-col items-center gap-1 ml-2 sm:ml-4 pl-2 sm:pl-4 border-l border-line">
+            <span className="text-[11px] text-fg-faint font-mono">Final</span>
+            <div className={`w-14 h-14 rounded-card flex items-center justify-center border ${passCell(overviewStatus ? overviewStatus.passed : null)}`}>
               {overviewStatus ? (overviewStatus.passed ? "✓" : "✗") : "—"}
             </div>
-            {overviewStatus && (
-              <span className={`text-xs font-medium ${getAvgColor(overviewStatus.avg)}`}>
-                {overviewStatus.avg.toFixed(1)}
-              </span>
-            )}
+            {overviewStatus && <span className={`text-[11px] font-mono ${getAvgColor(overviewStatus.avg)}`}>{overviewStatus.avg.toFixed(1)}</span>}
           </div>
         </div>
       </div>
 
-      {/* Semester Average Trend */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Semester Average Trend</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Semester Average Trend</h2>
         <ResponsiveContainer width="100%" height={250}>
           <AreaChart data={semesterTrendData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
             <defs>
               <linearGradient id="avgGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                <stop offset="5%" stopColor={ACCENT} stopOpacity={0.3} />
+                <stop offset="95%" stopColor={ACCENT} stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-            <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <YAxis domain={[trendYMin, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <Tooltip
-              formatter={(value?: number) => [value?.toFixed(2) ?? "—", "Average"]}
-              {...DARK_TOOLTIP}
-            />
-            {trendYMin <= 4 && <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Pass: 4.0", position: "insideTopLeft", fontSize: 11, fill: "#eab308", offset: 6 }} />}
-            <Area
-              type="linear"
-              dataKey="avg"
-              stroke="#3b82f6"
-              strokeWidth={3}
-              fill="url(#avgGradient)"
-              dot={{ r: 5, fill: "#3b82f6", stroke: "#171717", strokeWidth: 2 }}
-              connectNulls
-            />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+            <XAxis dataKey="semester" tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+            <YAxis domain={[trendYMin, 6]} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+            <Tooltip formatter={(value?: number) => [value?.toFixed(2) ?? "—", "Average"]} {...CHART_TOOLTIP} />
+            {trendYMin <= 4 && <ReferenceLine y={4} stroke={PASS_LINE} strokeDasharray="4 4" label={{ value: "Pass: 4.0", position: "insideTopLeft", fontSize: 11, fill: PASS_LINE, offset: 6 }} />}
+            <Area type="linear" dataKey="avg" stroke={ACCENT} strokeWidth={3} fill="url(#avgGradient)" dot={{ r: 5, fill: ACCENT, stroke: "#1b1a17", strokeWidth: 2 }} connectNulls />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Subject Progress */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Subject Progress Across Semesters</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Subject Progress Across Semesters</h2>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={subjectProgressData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-            <XAxis dataKey="semester" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <YAxis domain={[subjectYMin, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-            <Tooltip {...DARK_TOOLTIP} />
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+            <XAxis dataKey="semester" tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+            <YAxis domain={[subjectYMin, 6]} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+            <Tooltip {...CHART_TOOLTIP} />
             <Legend
-              wrapperStyle={{ color: "#d4d4d4" }}
+              wrapperStyle={{ color: TICK }}
               onClick={(e) => {
                 const key = e.dataKey as string;
                 setHiddenSubjects((prev) => {
@@ -302,151 +207,93 @@ function KshStatsContent() {
                 });
               }}
               formatter={(value: string) => (
-                <span style={{ color: hiddenSubjects.has(value) ? "#525252" : "#d4d4d4", cursor: "pointer" }}>
-                  {value}
-                </span>
+                <span style={{ color: hiddenSubjects.has(value) ? "#6c6963" : TICK, cursor: "pointer" }}>{value}</span>
               )}
             />
-            {subjectYMin <= 4 && <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />}
+            {subjectYMin <= 4 && <ReferenceLine y={4} stroke={PASS_LINE} strokeDasharray="4 4" />}
             {allSubjects.map((subject) => (
-              <Line
-                key={subject}
-                type="monotone"
-                dataKey={subject}
-                stroke={SUBJECT_COLORS[subject] || "#737373"}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-                connectNulls
-                hide={hiddenSubjects.has(subject)}
-              />
+              <Line key={subject} type="monotone" dataKey={subject} stroke={subjectColorHex(subject)} strokeWidth={2} dot={{ r: 4 }} connectNulls hide={hiddenSubjects.has(subject)} />
             ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Row: Final Grades Bar + Radar */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Final Subject Grades</h2>
+        <div className={cardCls}>
+          <h2 className={heading}>Final Subject Grades</h2>
           {finalGradesData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={finalGradesData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="subject" tick={{ fontSize: 11, fill: "#a3a3a3" }} interval={0} angle={-30} textAnchor="end" height={60} stroke="#404040" />
-                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-                <Tooltip
-                  formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]}
-                  {...DARK_TOOLTIP}
-                />
-                <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                <XAxis dataKey="subject" tick={{ fontSize: 11, fill: TICK }} interval={0} angle={-30} textAnchor="end" height={60} stroke={AXIS} />
+                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+                <Tooltip formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]} {...CHART_TOOLTIP} />
+                <ReferenceLine y={4} stroke={PASS_LINE} strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
-                  {finalGradesData.map((entry, index) => (
-                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
-                  ))}
+                  {finalGradesData.map((entry, index) => <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
-          )}
+          ) : <p className="text-fg-faint text-sm text-center py-12">Not enough data yet</p>}
         </div>
 
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Subject Strengths</h2>
+        <div className={cardCls}>
+          <h2 className={heading}>Subject Strengths</h2>
           {radarData.some((d) => d.grade > 0) ? (
             <ResponsiveContainer width="100%" height={300}>
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
-                <PolarGrid stroke="#404040" />
-                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: "#d4d4d4" }} />
-                <PolarRadiusAxis domain={[0, 6]} tick={{ fontSize: 10, fill: "#a3a3a3" }} />
-                <Radar
-                  dataKey="grade"
-                  stroke="#3b82f6"
-                  fill="#3b82f6"
-                  fillOpacity={0.2}
-                  strokeWidth={2}
-                  dot={{ r: 4, fill: "#3b82f6" }}
-                />
+                <PolarGrid stroke={AXIS} />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 11, fill: TICK }} />
+                <PolarRadiusAxis domain={[0, 6]} tick={{ fontSize: 10, fill: TICK }} />
+                <Radar dataKey="grade" stroke={ACCENT} fill={ACCENT} fillOpacity={0.2} strokeWidth={2} dot={{ r: 4, fill: ACCENT }} />
               </RadarChart>
             </ResponsiveContainer>
-          ) : (
-            <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
-          )}
+          ) : <p className="text-fg-faint text-sm text-center py-12">Not enough data yet</p>}
         </div>
       </div>
 
-      {/* Grade Distribution */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grade Distribution</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Grade Distribution</h2>
         {distributionData.length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={distributionData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-              <XAxis dataKey="range" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-              <Tooltip
-                formatter={(value?: number) => [value ?? 0, "Grades"]}
-                {...DARK_TOOLTIP}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+              <XAxis dataKey="range" tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+              <Tooltip formatter={(value?: number) => [value ?? 0, "Grades"]} {...CHART_TOOLTIP} />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {distributionData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
+                {distributionData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <p className="text-neutral-500 text-sm text-center py-12">No grades yet</p>
-        )}
+        ) : <p className="text-fg-faint text-sm text-center py-12">No grades yet</p>}
       </div>
 
-      {/* Subject Grade Counts */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grades per Subject</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Grades per Subject</h2>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-          {Object.entries(gradeCountBySubject)
-            .sort((a, b) => b[1] - a[1])
-            .map(([subject, count]) => (
-              <div
-                key={subject}
-                className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center"
-              >
-                <div
-                  className="w-3 h-3 rounded-full mx-auto mb-1.5"
-                  style={{ backgroundColor: SUBJECT_COLORS[subject] || "#737373" }}
-                />
-                <p className="text-sm font-medium text-neutral-200">{subject}</p>
-                <p className="text-xs text-neutral-500">{count} grade{count !== 1 ? "s" : ""}</p>
-              </div>
-            ))}
+          {Object.entries(gradeCountBySubject).sort((a, b) => b[1] - a[1]).map(([subject, count]) => (
+            <div key={subject} className="rounded-control border border-line bg-sunken/50 p-3 text-center">
+              <div className="w-3 h-3 rounded-full mx-auto mb-1.5" style={{ backgroundColor: subjectColorHex(subject) }} />
+              <p className="text-sm font-medium text-fg">{subject}</p>
+              <p className="text-[11px] text-fg-faint">{count} grade{count !== 1 ? "s" : ""}</p>
+            </div>
+          ))}
         </div>
       </div>
     </>
   );
 }
 
-/**
- * BZZ-specific statistics content.
- */
 function BzzStatsContent() {
-  const {
-    grades,
-    getBzzModuleAverage,
-    getBzzNormalAverage,
-    getBzzUkAverage,
-    getBzzFinalAverage,
-    getBzzIpaAverage,
-  } = useDashboard();
-
+  const { grades, getBzzModuleAverage, getBzzNormalAverage, getBzzUkAverage, getBzzFinalAverage, getBzzIpaAverage } = useDashboard();
   const bzzGrades = grades.filter((g) => g.school === "BZZ");
 
   if (bzzGrades.length === 0) {
     return (
       <div className="text-center py-20">
-        <p className="text-neutral-500 text-lg">No BZZ grades yet. Add some grades to see your statistics!</p>
-        <Link href="/dashboard" className="mt-4 inline-block text-blue-400 hover:text-blue-300 font-medium">
-          Go to Dashboard →
-        </Link>
+        <p className="text-fg-faint text-lg">No BZZ grades yet. Add some grades to see your statistics!</p>
+        <Link href="/dashboard" className="mt-4 inline-block text-fg hover:opacity-70 font-medium">Go to Dashboard →</Link>
       </div>
     );
   }
@@ -456,175 +303,95 @@ function BzzStatsContent() {
   const finalAvg = getBzzFinalAverage();
   const ipaGrade = getBzzIpaAverage();
 
-  // Module grades bar chart (Normal)
-  const normalModuleData = (BZZ_NORMAL_MODULES as readonly string[])
-    .map((mod) => ({ module: mod, grade: getBzzModuleAverage(mod) }))
-    .filter((d) => d.grade !== null);
+  const normalModuleData = (BZZ_NORMAL_MODULES as readonly string[]).map((mod) => ({ module: mod, grade: getBzzModuleAverage(mod) })).filter((d) => d.grade !== null);
+  const ukModuleData = (BZZ_UK_MODULES as readonly string[]).map((mod) => ({ module: mod, grade: getBzzModuleAverage(mod) })).filter((d) => d.grade !== null);
 
-  // Module grades bar chart (ÜK)
-  const ukModuleData = (BZZ_UK_MODULES as readonly string[])
-    .map((mod) => ({ module: mod, grade: getBzzModuleAverage(mod) }))
-    .filter((d) => d.grade !== null);
-
-  // Grade distribution
-  const distribution = [6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((v) => ({
-    range: v.toFixed(1),
-    count: 0,
-    color: getGradeHex(v),
-  }));
+  const distribution = [6, 5.5, 5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1].map((v) => ({ range: v.toFixed(1), count: 0, color: getGradeHex(v) }));
   for (const g of bzzGrades) {
-    const rounded = roundToHalf(g.value);
-    const bucket = distribution.find((d) => parseFloat(d.range) === rounded);
+    const bucket = distribution.find((d) => parseFloat(d.range) === roundToHalf(g.value));
     if (bucket) bucket.count++;
   }
   const distributionData = distribution.filter((d) => d.count > 0);
 
-  // Grade count by module
   const gradeCountByModule: Record<string, number> = {};
-  for (const g of bzzGrades) {
-    gradeCountByModule[g.subject] = (gradeCountByModule[g.subject] || 0) + 1;
-  }
+  for (const g of bzzGrades) gradeCountByModule[g.subject] = (gradeCountByModule[g.subject] || 0) + 1;
 
-  const avgColor = (v: number | null) =>
-    v === null ? "text-neutral-600" : getAvgColor(v);
+  const avgColor = (v: number | null) => (v === null ? "text-fg-faint" : getAvgColor(v));
 
   return (
     <>
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Total Grades</p>
-          <p className="text-2xl font-bold text-neutral-100">{bzzGrades.length}</p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Normal Avg</p>
-          <p className={`text-2xl font-bold ${avgColor(normalAvg)}`}>
-            {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
-          </p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">ÜK Avg</p>
-          <p className={`text-2xl font-bold ${avgColor(ukAvg)}`}>
-            {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
-          </p>
-        </div>
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-5">
-          <p className="text-sm text-neutral-400 mb-1">Final Avg</p>
-          <p className={`text-2xl font-bold ${avgColor(finalAvg)}`}>
-            {finalAvg !== null ? finalAvg.toFixed(2) : "—"}
-          </p>
-        </div>
-        <div
-          className={`rounded-xl shadow-sm border p-5 ${
-            ipaGrade !== null
-              ? ipaGrade >= 4
-                ? "bg-green-900/20 border-green-800"
-                : "bg-red-900/20 border-red-800"
-              : "bg-neutral-900 border-neutral-800"
-          }`}
-        >
-          <p className="text-sm text-neutral-400 mb-1">IPA</p>
-          <p className={`text-2xl font-bold ${avgColor(ipaGrade)}`}>
-            {ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}
-          </p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div className={statCardCls}><p className={statLabel}>Total grades</p><p className="font-mono text-2xl text-fg">{bzzGrades.length}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Normal avg</p><p className={`font-mono text-2xl ${avgColor(normalAvg)}`}>{normalAvg !== null ? normalAvg.toFixed(1) : "—"}</p></div>
+        <div className={statCardCls}><p className={statLabel}>ÜK avg</p><p className={`font-mono text-2xl ${avgColor(ukAvg)}`}>{ukAvg !== null ? ukAvg.toFixed(1) : "—"}</p></div>
+        <div className={statCardCls}><p className={statLabel}>Final avg</p><p className={`font-mono text-2xl ${avgColor(finalAvg)}`}>{finalAvg !== null ? finalAvg.toFixed(2) : "—"}</p></div>
+        <div className={statCardCls}><p className={statLabel}>IPA</p><p className={`font-mono text-2xl ${avgColor(ipaGrade)}`}>{ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}</p></div>
       </div>
 
-      {/* Normal vs ÜK comparison */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Normal Module Grades */}
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Normal Module Grades</h2>
+        <div className={cardCls}>
+          <h2 className={heading}>Normal Module Grades</h2>
           {normalModuleData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={normalModuleData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="module" tick={{ fontSize: 10, fill: "#a3a3a3" }} interval={0} angle={-45} textAnchor="end" height={60} stroke="#404040" />
-                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-                <Tooltip
-                  formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]}
-                  {...DARK_TOOLTIP}
-                />
-                <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                <XAxis dataKey="module" tick={{ fontSize: 10, fill: TICK }} interval={0} angle={-45} textAnchor="end" height={60} stroke={AXIS} />
+                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+                <Tooltip formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]} {...CHART_TOOLTIP} />
+                <ReferenceLine y={4} stroke={PASS_LINE} strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
-                  {normalModuleData.map((entry, index) => (
-                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
-                  ))}
+                  {normalModuleData.map((entry, index) => <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
-          )}
+          ) : <p className="text-fg-faint text-sm text-center py-12">Not enough data yet</p>}
         </div>
 
-        {/* ÜK Module Grades */}
-        <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-          <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">ÜK Module Grades</h2>
+        <div className={cardCls}>
+          <h2 className={heading}>ÜK Module Grades</h2>
           {ukModuleData.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={ukModuleData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-                <XAxis dataKey="module" tick={{ fontSize: 11, fill: "#a3a3a3" }} interval={0} stroke="#404040" />
-                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-                <Tooltip
-                  formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]}
-                  {...DARK_TOOLTIP}
-                />
-                <ReferenceLine y={4} stroke="#eab308" strokeDasharray="4 4" />
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+                <XAxis dataKey="module" tick={{ fontSize: 11, fill: TICK }} interval={0} stroke={AXIS} />
+                <YAxis domain={[0, 6]} ticks={[1, 2, 3, 4, 5, 6]} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+                <Tooltip formatter={(value?: number) => [value?.toFixed(1) ?? "—", "Grade"]} {...CHART_TOOLTIP} />
+                <ReferenceLine y={4} stroke={PASS_LINE} strokeDasharray="4 4" />
                 <Bar dataKey="grade" radius={[6, 6, 0, 0]}>
-                  {ukModuleData.map((entry, index) => (
-                    <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />
-                  ))}
+                  {ukModuleData.map((entry, index) => <Cell key={index} fill={getGradeHex(entry.grade ?? 0)} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          ) : (
-            <p className="text-neutral-500 text-sm text-center py-12">Not enough data yet</p>
-          )}
+          ) : <p className="text-fg-faint text-sm text-center py-12">Not enough data yet</p>}
         </div>
       </div>
 
-      {/* Grade Distribution */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grade Distribution</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Grade Distribution</h2>
         {distributionData.length > 0 ? (
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={distributionData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
-              <XAxis dataKey="range" tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#a3a3a3" }} stroke="#404040" />
-              <Tooltip
-                formatter={(value?: number) => [value ?? 0, "Grades"]}
-                {...DARK_TOOLTIP}
-              />
+              <CartesianGrid strokeDasharray="3 3" stroke={GRID} />
+              <XAxis dataKey="range" tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: TICK }} stroke={AXIS} />
+              <Tooltip formatter={(value?: number) => [value ?? 0, "Grades"]} {...CHART_TOOLTIP} />
               <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-                {distributionData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
+                {distributionData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
-        ) : (
-          <p className="text-neutral-500 text-sm text-center py-12">No grades yet</p>
-        )}
+        ) : <p className="text-fg-faint text-sm text-center py-12">No grades yet</p>}
       </div>
 
-      {/* Grades per Module */}
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 p-4 sm:p-6">
-        <h2 className="text-base sm:text-lg font-semibold text-neutral-100 mb-3 sm:mb-4">Grades per Module</h2>
+      <div className={cardCls}>
+        <h2 className={heading}>Grades per Module</h2>
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {Object.entries(gradeCountByModule)
-            .sort((a, b) => b[1] - a[1])
-            .map(([mod, count]) => (
-              <div
-                key={mod}
-                className="rounded-lg border border-neutral-700 bg-neutral-800/50 p-3 text-center"
-              >
-                <p className="text-sm font-medium text-neutral-200">{mod}</p>
-                <p className="text-xs text-neutral-500">{count} grade{count !== 1 ? "s" : ""}</p>
-              </div>
-            ))}
+          {Object.entries(gradeCountByModule).sort((a, b) => b[1] - a[1]).map(([mod, count]) => (
+            <div key={mod} className="rounded-control border border-line bg-sunken/50 p-3 text-center">
+              <p className="text-sm font-medium text-fg">{mod}</p>
+              <p className="text-[11px] text-fg-faint">{count} grade{count !== 1 ? "s" : ""}</p>
+            </div>
+          ))}
         </div>
       </div>
     </>
@@ -632,121 +399,41 @@ function BzzStatsContent() {
 }
 
 function StatsContent() {
-  const { data: session } = useSession();
   const { activeSchool, loading } = useDashboard();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [menuOpen]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen bg-canvas lg:flex">
+        <Sidebar />
+        <main className="min-w-0 flex-1 flex items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-10 w-10 border-2 border-line border-t-fg" />
+        </main>
+        <BottomTabBar />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950">
-      {/* Header */}
-      <header className="bg-neutral-900 border-b border-neutral-800 sticky top-0 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Link href={`/dashboard?school=${activeSchool}`} className="text-xl font-bold text-neutral-100 hover:opacity-80 transition shrink-0">
-              Grade<span className="text-blue-500">Points</span>
-            </Link>
+    <div className="min-h-screen bg-canvas lg:flex">
+      <Sidebar />
+
+      <main className="min-w-0 flex-1 px-4 sm:px-6 lg:px-8 py-5 sm:py-7 pb-24 lg:pb-10">
+        <header className="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">Statistics</h1>
+            <p className="text-[11px] text-fg-muted mt-0.5">{activeSchool} · charts &amp; trends</p>
+          </div>
+          <div className="lg:hidden shrink-0">
             <SchoolSelector />
           </div>
-          {/* Desktop nav */}
-          <div className="hidden sm:flex items-center gap-4">
-            <Link
-              href={`/dashboard?school=${activeSchool}`}
-              className="text-sm text-neutral-400 hover:text-neutral-200 font-medium transition"
-            >
-              Dashboard
-            </Link>
-            <span className="text-sm text-blue-400 font-medium border-b border-blue-400 pb-0.5">
-              Statistics
-            </span>
-            {activeSchool === "KSH" && (
-              <Link
-                href={`/dashboard?school=KSH&tab=0`}
-                className="text-sm text-neutral-400 hover:text-amber-400 font-medium transition"
-              >
-                Overview
-              </Link>
-            )}
-            <div className="w-px h-4 bg-neutral-700" />
-            <Link
-              href="/dashboard/account"
-              className="text-xs text-neutral-500 hover:text-neutral-300 transition"
-            >
-              {session?.user?.name}
-            </Link>
-            <Btn size="sm" variant="danger" onClick={() => signOut({ callbackUrl: "/" })}>Sign out</Btn>
-          </div>
-          {/* Mobile hamburger */}
-          <div className="relative sm:hidden" ref={menuRef}>
-            <button
-              onClick={() => setMenuOpen((v) => !v)}
-              className="w-9 h-9 flex items-center justify-center rounded-lg text-neutral-300 hover:bg-neutral-800 text-xl cursor-pointer"
-              aria-label="Menu"
-            >
-              ☰
-            </button>
-            {menuOpen && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-neutral-800 border border-neutral-700 rounded-xl shadow-xl z-50 overflow-hidden">
-                <Link
-                  href={`/dashboard?school=${activeSchool}`}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-blue-400 hover:bg-neutral-700"
-                >
-                  ← Dashboard
-                </Link>
-                <div className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-100 font-medium border-t border-neutral-700 bg-neutral-700/40">
-                  Statistics
-                </div>
-                {activeSchool === "KSH" && (
-                  <Link
-                    href={`/dashboard?school=KSH&tab=0`}
-                    onClick={() => setMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-3 text-sm text-amber-400 hover:bg-neutral-700 border-t border-neutral-700"
-                  >
-                    Overview
-                  </Link>
-                )}
-                <Link
-                  href="/dashboard/account"
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center gap-2 px-4 py-3 text-sm text-neutral-300 hover:bg-neutral-700 border-t border-neutral-700"
-                >
-                  {session?.user?.name ?? "Account"}
-                </Link>
-                <button
-                  onClick={() => { setMenuOpen(false); signOut({ callbackUrl: "/" }); }}
-                  className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-400 hover:bg-neutral-700 border-t border-neutral-700 cursor-pointer"
-                >
-                  Sign out
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-6xl mx-auto px-3 sm:px-4 py-4 sm:py-8 space-y-4 sm:space-y-8">
-        {activeSchool === "KSH" ? <KshStatsContent /> : <BzzStatsContent />}
+        <div className="space-y-4 sm:space-y-6">
+          {activeSchool === "KSH" ? <KshStatsContent /> : <BzzStatsContent />}
+        </div>
       </main>
+
+      <BottomTabBar />
     </div>
   );
 }
@@ -764,8 +451,8 @@ function StatsWrapper() {
 export default function StatsPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-neutral-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      <div className="min-h-screen flex items-center justify-center bg-canvas">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-line border-t-fg" />
       </div>
     }>
       <StatsWrapper />

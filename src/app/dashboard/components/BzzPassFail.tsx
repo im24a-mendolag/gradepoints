@@ -1,135 +1,55 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useDashboard } from "../DashboardContext";
 import { getAvgColor } from "../utils";
+import { IconCheck, IconX, IconChevron } from "./Icons";
 
-/**
- * Renders the BZZ pass/fail summary showing:
- * - Normal Modules Average (rounded 0.5)
- * - ÜK Modules Average (rounded 0.5)
- * - Final Average (unrounded)
- * - IPA Grade (unrounded)
- * Pass condition: finalAvg >= 4 AND ipaGrade >= 4
- */
+function StatusIcon({ pass }: { pass: boolean | null }) {
+  if (pass === null) return <span className="text-fg-faint text-sm">—</span>;
+  return pass ? <IconCheck size={15} className="text-subject-green" /> : <IconX size={15} className="text-now" />;
+}
+
 export default function BzzPassFail() {
   const { getBzzPassFail } = useDashboard();
-  const status = getBzzPassFail();
-  const { normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass, passed } = status;
+  const { normalAvg, ukAvg, finalAvg, ipaGrade, ipaPass, passed } = getBzzPassFail();
   const [open, setOpen] = useState(false);
 
   const avgPass = finalAvg !== null ? finalAvg >= 4 : null;
   const isDecided = finalAvg !== null || ipaPass === false;
+  const headTone = !isDecided ? "text-fg-muted" : passed ? "text-subject-green" : "text-now";
+
+  const AvgRow = ({ label, value, color }: { label: string; value: ReactNode; color: string }) => (
+    <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+      <span className="text-[13px] text-fg-muted">{label}</span>
+      <span className={`text-[13px] font-mono shrink-0 ${color}`}>{value}</span>
+    </div>
+  );
+  const RuleRow = ({ pass, label, value, color }: { pass: boolean | null; label: string; value: ReactNode; color: string }) => (
+    <div className="px-4 py-2.5 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2">
+        <StatusIcon pass={pass} />
+        <span className="text-[13px] text-fg-muted">{label}</span>
+      </div>
+      <span className={`text-[13px] font-mono shrink-0 ${color}`}>{value}</span>
+    </div>
+  );
 
   return (
-    <div
-      className={`mb-6 rounded-xl shadow-sm border overflow-hidden ${
-        isDecided
-          ? passed
-            ? "border-green-800"
-            : "border-red-800"
-          : "border-neutral-800"
-      }`}
-    >
-      {/* Header */}
+    <div className="rounded-card border border-line overflow-hidden bg-surface">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`w-full flex items-center justify-between px-4 sm:px-5 py-3 text-sm font-semibold cursor-pointer ${
-          isDecided
-            ? passed
-              ? "bg-green-900/30 text-green-300"
-              : "bg-red-900/30 text-red-300"
-            : "bg-neutral-900 text-neutral-400"
-        }`}
+        className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium cursor-pointer"
       >
-        <span>{isDecided ? (passed ? "✓ " : "✗ ") : ""}Pass/Fail — BZZ</span>
-        <span className={`text-xs transition-transform ${open ? "rotate-180" : ""} sm:hidden`}>▼</span>
-        <span className="hidden sm:inline text-xs opacity-50">{open ? "▲" : "▼"}</span>
+        <span className={headTone}>Pass / Fail — BZZ</span>
+        <IconChevron size={14} className={`text-fg-faint transition-transform ${open ? "rotate-90" : ""} xl:hidden`} />
       </button>
-
-      <div className={`bg-neutral-900 divide-y divide-neutral-800 ${open ? "" : "hidden sm:block"}`}>
-        {/* Normal Modules Average */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <span className="text-xs sm:text-sm text-neutral-300">Normal Modules Avg</span>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              normalAvg !== null ? getAvgColor(normalAvg) : "text-neutral-600"
-            }`}
-          >
-            {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
-          </span>
-        </div>
-
-        {/* ÜK Modules Average */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <span className="text-xs sm:text-sm text-neutral-300">ÜK Modules Avg</span>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              ukAvg !== null ? getAvgColor(ukAvg) : "text-neutral-600"
-            }`}
-          >
-            {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
-          </span>
-        </div>
-
-        {/* Final Average (avg of normal + ÜK, unrounded) */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                avgPass !== null
-                  ? avgPass
-                    ? "text-green-400"
-                    : "text-red-400"
-                  : "text-neutral-600"
-              }`}
-            >
-              {avgPass !== null ? (avgPass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">Final Average ≥ 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              finalAvg !== null
-                ? finalAvg >= 4
-                  ? "text-green-400"
-                  : "text-red-400"
-                : "text-neutral-600"
-            }`}
-          >
-            {finalAvg !== null ? finalAvg.toFixed(2) : "—"}
-          </span>
-        </div>
-
-        {/* IPA Grade (unrounded) */}
-        <div className="px-4 sm:px-5 py-3 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-lg ${
-                ipaPass !== null
-                  ? ipaPass
-                    ? "text-green-400"
-                    : "text-red-400"
-                  : "text-neutral-600"
-              }`}
-            >
-              {ipaPass !== null ? (ipaPass ? "✓" : "✗") : "—"}
-            </span>
-            <span className="text-xs sm:text-sm text-neutral-300">IPA ≥ 4.0</span>
-          </div>
-          <span
-            className={`text-xs sm:text-sm font-medium shrink-0 ${
-              ipaGrade !== null
-                ? ipaGrade >= 4
-                  ? "text-green-400"
-                  : "text-red-400"
-                : "text-neutral-600"
-            }`}
-          >
-            {ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}
-          </span>
-        </div>
+      <div className={`divide-y divide-line border-t border-line ${open ? "" : "hidden xl:block"}`}>
+        <AvgRow label="Normal Modules avg" value={normalAvg !== null ? normalAvg.toFixed(1) : "—"} color={normalAvg !== null ? getAvgColor(normalAvg) : "text-fg-faint"} />
+        <AvgRow label="ÜK Modules avg" value={ukAvg !== null ? ukAvg.toFixed(1) : "—"} color={ukAvg !== null ? getAvgColor(ukAvg) : "text-fg-faint"} />
+        <RuleRow pass={avgPass} label="Final Average ≥ 4.0" value={finalAvg !== null ? finalAvg.toFixed(2) : "—"} color={finalAvg !== null ? (finalAvg >= 4 ? "text-subject-green" : "text-now") : "text-fg-faint"} />
+        <RuleRow pass={ipaPass} label="IPA ≥ 4.0" value={ipaGrade !== null ? ipaGrade.toFixed(2) : "—"} color={ipaGrade !== null ? (ipaGrade >= 4 ? "text-subject-green" : "text-now") : "text-fg-faint"} />
       </div>
     </div>
   );

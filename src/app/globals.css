@@ -1,23 +1,134 @@
 @import "tailwindcss";
 
+/*
+  GradePoints design tokens — ported from the "Student Calendar" (calendar-gm)
+  design system. Warm, flat, editorial: paper-like surfaces, hairline borders,
+  small radii, one ink accent, red reserved for urgency/fail, 8 subject colors,
+  and a muted grade scale. Dark is the default; light is opt-in via
+  [data-theme="light"] on <html>.
+*/
+
 :root {
-  --background: #0a0a0a;
-  --foreground: #f5f5f5;
+  color-scheme: dark;
+
+  /* backgrounds */
+  --canvas: #111110;
+  --surface: #191918;
+  --sunken: #0b0b0a;
+  --hover: #222220;
+
+  /* borders */
+  --line: #272725;
+  --line-strong: #3b3a36;
+
+  /* text */
+  --fg: #eeede9;
+  --fg-muted: #a3a099;
+  --fg-faint: #6c6963;
+  --on-solid: #ffffff;
+
+  /* accent */
+  --ink: #eeede9;
+  --on-ink: #111110;
+  --now: #ff6369;
+  --now-tint: rgba(255, 99, 105, 0.18);
+
+  /* subject colors (same in both themes) */
+  --subject-blue: #3e63dd;
+  --subject-orange: #e8590c;
+  --subject-violet: #8e4ec6;
+  --subject-teal: #0d9488;
+  --subject-green: #2f9e44;
+  --subject-amber: #c98a00;
+  --subject-pink: #d6409f;
+  --subject-brown: #9c6b44;
+  --subject-cyan: #0e9ed6;
+  --subject-indigo: #5b5bd6;
+  --subject-lime: #6ba52b;
+
+  /* muted grade scale — 4.0 is the pass pivot (amber), trends green up / red down */
+  --grade-60: #2f9e44;
+  --grade-55: #3d9456;
+  --grade-50: #5a9150;
+  --grade-45: #8a9242;
+  --grade-40: #c98a00;
+  --grade-35: #c47a1e;
+  --grade-30: #bd6a24;
+  --grade-25: #b85a2a;
+  --grade-20: #c04f3a;
+  --grade-15: #c0443f;
+  --grade-10: #e5484d;
+  --grade-none: #6c6963;
 }
 
+[data-theme="light"] {
+  color-scheme: light;
+
+  --canvas: #f6f5f1;
+  --surface: #ffffff;
+  --sunken: #efede8;
+  --hover: #e9e7e1;
+
+  --line: #e5e2db;
+  --line-strong: #cbc7be;
+
+  --fg: #1b1a17;
+  --fg-muted: #66635c;
+  --fg-faint: #9b978e;
+  --on-solid: #ffffff;
+
+  --ink: #1b1a17;
+  --on-ink: #ffffff;
+  --now: #e5484d;
+  --now-tint: rgba(229, 72, 77, 0.12);
+
+  /* subject + grade hues read well on the warm light canvas too, keep as-is */
+}
+
+/* Map runtime vars into Tailwind v4 theme tokens (inline keeps the var()
+   reference so switching data-theme updates every utility at runtime). */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-sunken: var(--sunken);
+  --color-hover: var(--hover);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+  --color-on-solid: var(--on-solid);
+
+  --color-ink: var(--ink);
+  --color-on-ink: var(--on-ink);
+  --color-now: var(--now);
+  --color-now-tint: var(--now-tint);
+
+  --color-subject-blue: var(--subject-blue);
+  --color-subject-orange: var(--subject-orange);
+  --color-subject-violet: var(--subject-violet);
+  --color-subject-teal: var(--subject-teal);
+  --color-subject-green: var(--subject-green);
+  --color-subject-amber: var(--subject-amber);
+  --color-subject-pink: var(--subject-pink);
+  --color-subject-brown: var(--subject-brown);
+
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+
+  --radius-control: 4px;
+  --radius-card: 6px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--canvas);
+  color: var(--fg);
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
   /* iOS home bar safe area */
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  -webkit-font-smoothing: antialiased;
 }
 
 /* iOS status bar safe area for sticky headers */
@@ -42,7 +153,53 @@ input[type="number"] {
   display: none;
 }
 
-/* Dark mode date input icon */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(0.7);
+/* Native date picker follows the theme via color-scheme (set above) */
+
+/*
+  Grade color classes — authored (not Tailwind utilities) so they survive
+  being referenced only through JS string concatenation in utils.ts.
+  `.grade-badge-*` = colored text + tinted fill + tinted border (for pill/badge).
+  `.grade-fg-*`    = colored text only (for averages).
+*/
+.grade-badge-60,
+.grade-badge-55,
+.grade-badge-50,
+.grade-badge-45,
+.grade-badge-40,
+.grade-badge-35,
+.grade-badge-30,
+.grade-badge-25,
+.grade-badge-20,
+.grade-badge-15,
+.grade-badge-10 {
+  background-color: color-mix(in srgb, var(--g) 14%, transparent);
+  border-color: color-mix(in srgb, var(--g) 34%, transparent);
+  color: var(--g);
 }
+.grade-fg-60,
+.grade-fg-55,
+.grade-fg-50,
+.grade-fg-45,
+.grade-fg-40,
+.grade-fg-35,
+.grade-fg-30,
+.grade-fg-25,
+.grade-fg-20,
+.grade-fg-15,
+.grade-fg-10 {
+  color: var(--g);
+}
+.grade-badge-60, .grade-fg-60 { --g: var(--grade-60); }
+.grade-badge-55, .grade-fg-55 { --g: var(--grade-55); }
+.grade-badge-50, .grade-fg-50 { --g: var(--grade-50); }
+.grade-badge-45, .grade-fg-45 { --g: var(--grade-45); }
+.grade-badge-40, .grade-fg-40 { --g: var(--grade-40); }
+.grade-badge-35, .grade-fg-35 { --g: var(--grade-35); }
+.grade-badge-30, .grade-fg-30 { --g: var(--grade-30); }
+.grade-badge-25, .grade-fg-25 { --g: var(--grade-25); }
+.grade-badge-20, .grade-fg-20 { --g: var(--grade-20); }
+.grade-badge-15, .grade-fg-15 { --g: var(--grade-15); }
+.grade-badge-10, .grade-fg-10 { --g: var(--grade-10); }
+
+/* Neutral fallback for an empty/unknown grade */
+.grade-none { color: var(--fg-faint); border-color: var(--line); }

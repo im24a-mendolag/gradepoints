@@ -4,7 +4,7 @@ import { useDashboard } from "../DashboardContext";
 import { getAvgColor } from "../utils";
 
 function avgColor(v: number | null) {
-  return v !== null ? getAvgColor(v) : "text-neutral-600";
+  return v !== null ? getAvgColor(v) : "text-fg-faint";
 }
 
 export default function BzzStatsCards() {
@@ -17,66 +17,42 @@ export default function BzzStatsCards() {
   const ipaGrade = getBzzIpaAverage();
   const passFail = getBzzPassFail();
 
+  const card = "bg-surface border border-line rounded-card px-3.5 py-3";
+  const label = "text-[11px] font-semibold tracking-wide uppercase text-fg-faint mb-1";
+  const num = "font-mono text-xl";
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 mb-3 sm:mb-5">
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Total Grades</p>
-        <p className="text-lg sm:text-xl font-bold text-neutral-100">{grades.length}</p>
+    <div className="grid grid-cols-2 xl:grid-cols-2 gap-2.5">
+      <div className={card}>
+        <p className={label}>Total grades</p>
+        <p className={`${num} text-fg`}>{grades.length}</p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Normal Avg</p>
-        <p className={`text-lg sm:text-xl font-bold ${avgColor(normalAvg)}`}>
+      <div className={card}>
+        <p className={label}>Normal avg</p>
+        <p className={`${num} ${avgColor(normalAvg)}`}>
           {normalAvg !== null ? normalAvg.toFixed(1) : "—"}
-          {normalRawAvg !== null && <span className="text-xs text-neutral-400 font-normal ml-1">({normalRawAvg.toFixed(3)})</span>}
+          {normalRawAvg !== null && <span className="text-[11px] text-fg-faint ml-1">({normalRawAvg.toFixed(3)})</span>}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">ÜK Avg</p>
-        <p className={`text-lg sm:text-xl font-bold ${avgColor(ukAvg)}`}>
+      <div className={card}>
+        <p className={label}>ÜK avg</p>
+        <p className={`${num} ${avgColor(ukAvg)}`}>
           {ukAvg !== null ? ukAvg.toFixed(1) : "—"}
-          {ukRawAvg !== null && <span className="text-xs text-neutral-400 font-normal ml-1">({ukRawAvg.toFixed(3)})</span>}
+          {ukRawAvg !== null && <span className="text-[11px] text-fg-faint ml-1">({ukRawAvg.toFixed(3)})</span>}
         </p>
       </div>
-      <div className="bg-neutral-900 rounded-xl shadow-sm border border-neutral-800 px-3 py-2.5 sm:p-4">
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Final Avg</p>
-        <p className={`text-lg sm:text-xl font-bold ${avgColor(finalAvg)}`}>
-          {finalAvg !== null ? finalAvg.toFixed(2) : "—"}
-        </p>
+      <div className={card}>
+        <p className={label}>Final avg</p>
+        <p className={`${num} ${avgColor(finalAvg)}`}>{finalAvg !== null ? finalAvg.toFixed(2) : "—"}</p>
       </div>
-      <div
-        className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
-          ipaGrade !== null
-            ? ipaGrade >= 4
-              ? "bg-green-900/20 border-green-800"
-              : "bg-red-900/20 border-red-800"
-            : "bg-neutral-900 border-neutral-800"
-        }`}
-      >
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">IPA</p>
-        <p className={`text-lg sm:text-xl font-bold ${avgColor(ipaGrade)}`}>
-          {ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}
-        </p>
+      <div className={card}>
+        <p className={label}>IPA</p>
+        <p className={`${num} ${avgColor(ipaGrade)}`}>{ipaGrade !== null ? ipaGrade.toFixed(2) : "—"}</p>
       </div>
-      <div
-        className={`rounded-xl shadow-sm border px-3 py-2.5 sm:p-4 ${
-          passFail.finalAvg !== null
-            ? passFail.passed
-              ? "bg-green-900/20 border-green-800"
-              : "bg-red-900/20 border-red-800"
-            : "bg-neutral-900 border-neutral-800"
-        }`}
-      >
-        <p className="text-[10px] sm:text-xs text-neutral-400 mb-0.5">Status</p>
-        <p
-          className={`text-lg sm:text-xl font-bold ${
-            passFail.finalAvg !== null
-              ? passFail.passed
-                ? "text-green-400"
-                : "text-red-400"
-              : "text-neutral-600"
-          }`}
-        >
-          {passFail.finalAvg !== null ? (passFail.passed ? "✓ Passed" : "✗ Failed") : "—"}
+      <div className={card}>
+        <p className={label}>Status</p>
+        <p className={`${num} ${passFail.finalAvg !== null ? (passFail.passed ? "text-subject-green" : "text-now") : "text-fg-faint"}`}>
+          {passFail.finalAvg !== null ? (passFail.passed ? "Passed" : "Failed") : "—"}
         </p>
       </div>
     </div>

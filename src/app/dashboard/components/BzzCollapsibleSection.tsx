@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { IconChevron } from "./Icons";
 
 export default function BzzCollapsibleSection({
   title,
@@ -20,18 +21,15 @@ export default function BzzCollapsibleSection({
         aria-label={open ? `Collapse ${title}` : `Expand ${title}`}
         className="flex items-center gap-2 mb-3 cursor-pointer group"
       >
-        <h2 className="text-lg font-semibold text-neutral-100 group-hover:text-neutral-300 transition">
+        <h2 className="text-[11px] font-semibold tracking-wide uppercase text-fg-faint group-hover:text-fg transition">
           {title}
         </h2>
-        <span
-          className={`text-neutral-500 group-hover:text-neutral-300 transition-transform inline-block ${
-            open ? "rotate-90" : ""
-          }`}
-        >
-          ▶
-        </span>
+        <IconChevron
+          size={13}
+          className={`text-fg-faint group-hover:text-fg transition-transform ${open ? "rotate-90" : ""}`}
+        />
       </button>
-      {open && <div className="space-y-4">{children}</div>}
+      {open && <div className="space-y-2.5">{children}</div>}
     </div>
   );
 }
