@@ -60,23 +60,18 @@ export function makeKshComputations(
     return result;
   };
 
+  // Rounded mean of the first grade recorded for each finals entry (e.g. oral + written).
+  const finalsEntriesAverage = (entries: string[]): number | null => {
+    const vals = entries
+      .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
+      .filter((v): v is number => v !== null);
+    if (vals.length === 0) return null;
+    return roundToHalf(vals.reduce((a, b) => a + b, 0) / vals.length);
+  };
+
   const getFinalsAverage = (): number | null => {
-    const groups = [
-      { entries: ["German (Oral)", "German (Written)"] },
-      { entries: ["French (Oral)", "French (Written)"] },
-      { entries: ["English (Oral)", "English (Written)"] },
-      { entries: ["Math (Written)"] },
-      { entries: ["WR (Written)"] },
-      { entries: ["FrW (Written)"] },
-    ];
-    const groupAvgs = groups
-      .map(({ entries }) => {
-        const vals = entries
-          .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
-          .filter((v): v is number => v !== null);
-        if (vals.length === 0) return null;
-        return roundToHalf(vals.reduce((a, b) => a + b, 0) / vals.length);
-      })
+    const groupAvgs = Object.values(FINALS_ENTRIES)
+      .map(finalsEntriesAverage)
       .filter((a): a is number => a !== null);
     if (groupAvgs.length === 0) return null;
     return roundToHalf(groupAvgs.reduce((a, b) => a + b, 0) / groupAvgs.length);
@@ -119,11 +114,7 @@ export function makeKshComputations(
   const getFinalsExamGrade = (subject: string): number | null => {
     const entries = FINALS_ENTRIES[subject];
     if (!entries) return null;
-    const vals = entries
-      .map((e) => { const g = getGradesForSubject(FINALS_SEMESTER, e); return g.length > 0 ? g[0].value : null; })
-      .filter((v): v is number => v !== null);
-    if (vals.length === 0) return null;
-    return roundToHalf(vals.reduce((a, b) => a + b, 0) / vals.length);
+    return finalsEntriesAverage(entries);
   };
 
   const getSemestersForSubject = (subject: string): number[] => {

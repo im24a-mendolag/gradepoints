@@ -1,5 +1,8 @@
-import "dotenv/config";
+import { config } from "dotenv";
 import path from "node:path";
+
+// Same precedence as Next.js: .env.local (dev branch) wins over .env.
+config({ path: [".env.local", ".env"], quiet: true });
 import { defineConfig } from "prisma/config";
 
 export default defineConfig({

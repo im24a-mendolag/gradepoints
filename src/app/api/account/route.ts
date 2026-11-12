@@ -1,98 +1,78 @@
 import { NextResponse } from "next/server";
 import bcryptjs from "bcryptjs";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { badRequest, requireUser } from "@/lib/api";
+
+type User = NonNullable<Awaited<ReturnType<typeof prisma.user.findUnique>>>;
+type Updates = { name?: string; password?: string };
+
+const userNotFound = () => NextResponse.json({ error: "User not found" }, { status: 404 });
+
+function nameUpdate(name: unknown): Updates | string {
+  if (name === undefined) return {};
+  if (typeof name !== "string" || name.trim().length === 0) return "Name cannot be empty";
+  return { name: name.trim() };
+}
+
+async function passwordUpdate(
+  user: User,
+  currentPassword: string | undefined,
+  newPassword: string | undefined,
+): Promise<Updates | NextResponse> {
+  if (!currentPassword && !newPassword) return {};
+  if (!currentPassword || !newPassword) {
+    return badRequest("Both current password and new password are required");
+  }
+  if (newPassword.length < 6) return badRequest("New password must be at least 6 characters");
+
+  if (!(await bcryptjs.compare(currentPassword, user.password))) {
+    return NextResponse.json({ error: "Current password is incorrect" }, { status: 403 });
+  }
+  return { password: await bcryptjs.hash(newPassword, 12) };
+}
 
 export async function PUT(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { userId, error } = await requireUser();
+  if (error) return error;
 
   const { name, currentPassword, newPassword } = await request.json();
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return userNotFound();
 
-  const updates: { name?: string; password?: string } = {};
+  const nameResult = nameUpdate(name);
+  if (typeof nameResult === "string") return badRequest(nameResult);
 
-  if (name !== undefined) {
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
-      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
-    }
-    updates.name = name.trim();
-  }
+  const passwordResult = await passwordUpdate(user, currentPassword, newPassword);
+  if (passwordResult instanceof NextResponse) return passwordResult;
 
-  if (currentPassword || newPassword) {
-    if (!currentPassword || !newPassword) {
-      return NextResponse.json(
-        { error: "Both current password and new password are required" },
-        { status: 400 },
-      );
-    }
-    if (newPassword.length < 6) {
-      return NextResponse.json(
-        { error: "New password must be at least 6 characters" },
-        { status: 400 },
-      );
-    }
+  const updates = { ...nameResult, ...passwordResult };
+  if (Object.keys(updates).length === 0) return badRequest("Nothing to update");
 
-    const passwordMatch = await bcryptjs.compare(currentPassword, user.password);
-    if (!passwordMatch) {
-      return NextResponse.json({ error: "Current password is incorrect" }, { status: 403 });
-    }
-
-    updates.password = await bcryptjs.hash(newPassword, 12);
-  }
-
-  if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
-  }
-
-  await prisma.user.update({
-    where: { id: session.user.id },
-    data: updates,
-  });
+  await prisma.user.update({ where: { id: userId }, data: updates });
 
   return NextResponse.json({ message: "Account updated successfully" });
 }
 
 export async function DELETE(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { userId, error } = await requireUser();
+  if (error) return error;
 
   const { password } = await request.json();
-  if (!password) {
-    return NextResponse.json({ error: "Password is required to delete your account" }, { status: 400 });
-  }
+  if (!password) return badRequest("Password is required to delete your account");
 
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
-  }
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return userNotFound();
 
-  const passwordMatch = await bcryptjs.compare(password, user.password);
-  if (!passwordMatch) {
+  if (!(await bcryptjs.compare(password, user.password))) {
     return NextResponse.json({ error: "Password is incorrect" }, { status: 403 });
   }
 
   // Clean up verification tokens for this email
-  await prisma.verificationToken.deleteMany({
-    where: { email: user.email },
-  });
+  await prisma.verificationToken.deleteMany({ where: { email: user.email } });
 
   // Cascade-deletes grades and adjustments
-  await prisma.user.delete({
-    where: { id: session.user.id },
-  });
+  await prisma.user.delete({ where: { id: userId } });
 
   return NextResponse.json({ message: "Account deleted successfully" });
 }

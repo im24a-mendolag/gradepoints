@@ -1,16 +1,6 @@
-import { config } from "dotenv";
-config();
+import { prisma, runScript } from "./script-client";
 
-import { PrismaClient } from "@prisma/client";
-import { PrismaNeonHttp } from "@prisma/adapter-neon";
-
-const adapter = new PrismaNeonHttp(process.env.DATABASE_URL!, {
-  arrayMode: false,
-  fullResults: true,
-});
-const prisma = new PrismaClient({ adapter });
-
-async function main() {
+runScript(async () => {
   const result = await prisma.$executeRaw`
     UPDATE "Grade"
     SET
@@ -21,13 +11,4 @@ async function main() {
       OR weight != ROUND(weight::numeric, 3)
   `;
   console.log(`Updated ${result} grade(s).`);
-}
-
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+});

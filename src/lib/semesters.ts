@@ -1,4 +1,4 @@
-export const SUBJECTS = [
+const SUBJECTS = [
   "German",
   "French",
   "English",
@@ -41,9 +41,6 @@ export const FINALS_ENTRIES: Record<string, string[]> = {
   FrW: ["FrW (Written)"],
 };
 
-// All subjects that appear across any semester
-export const ALL_SUBJECTS = SUBJECTS as readonly string[];
-
 // IDPA acts as the "final" for IDAF in the overview
 export const IDPA_FINAL_FOR_IDAF = {
   subject: "IDAF",     // The subject that IDPA is the final for
@@ -54,14 +51,8 @@ export const IDPA_FINAL_FOR_IDAF = {
 // Subjects to show in the Overview tab (IDPA is excluded since it's consumed by IDAF)
 export const OVERVIEW_SUBJECTS = SUBJECTS.filter((s) => s !== "IDPA") as readonly string[];
 
-// Subjects that have finals exams
-export const FINALS_SUBJECTS = ["German", "French", "English", "Math", "WR", "FrW"] as const;
-
-// Subjects where the final is split into oral and written
-export const FINALS_ORAL_WRITTEN = ["German", "French", "English"] as const;
-
 // All valid finals subject keys (used for storage)
-export const FINALS_SUBJECT_KEYS = [
+const FINALS_SUBJECT_KEYS = [
   "German (Oral)", "German (Written)",
   "French (Oral)", "French (Written)",
   "English (Oral)", "English (Written)",
@@ -135,21 +126,15 @@ export const BZZ_MODULE_NAMES: Record<string, string> = {
   "IPA": "Individuelle Praktische Arbeit",
 };
 
-export const BZZ_ALL_MODULES = [
+const BZZ_ALL_MODULES = [
   ...BZZ_NORMAL_MODULES,
   ...BZZ_UK_MODULES,
   BZZ_IPA,
 ] as const;
 
-export type BzzModule = (typeof BZZ_ALL_MODULES)[number];
-
-export function isBzzModule(subject: string): boolean {
-  return (BZZ_ALL_MODULES as readonly string[]).includes(subject);
-}
-
 // ─── Shared helpers ─────────────────────────────────────────────
 
-export function getSubjectsForSemester(semester: number): string[] {
+function getSubjectsForSemester(semester: number): string[] {
   if (semester === FINALS_SEMESTER) {
     return [...FINALS_SUBJECT_KEYS];
   }

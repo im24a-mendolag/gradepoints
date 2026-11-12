@@ -35,16 +35,6 @@ const KSH_SUBJECT_NAMES = {
   PrWr:    'Projekt Wirtschaft',
 };
 
-// From src/lib/semesters.ts SEMESTER_SUBJECTS
-const SEMESTER_SUBJECTS = {
-  1: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'GuP'],
-  2: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'GuP'],
-  3: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'GuP', 'TuU', 'IDAF', 'PrWr'],
-  4: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'GuP', 'TuU', 'IDAF', 'PrWr'],
-  5: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'TuU'],
-  6: ['German', 'French', 'English', 'Math', 'WR', 'FrW', 'TuU', 'IDPA'],
-};
-
 // ── DOM scraper (injected into school page via executeScript) ─────────────────
 // Must be self-contained — no references to any variable outside this function.
 // Targets the Kendo UI TreeGrid used by intranet.tam.ch/ksh/gradebook.
@@ -64,71 +54,63 @@ function scrapePageGrades() {
     return el ? el.textContent.trim() : '';
   }
 
+  const stripArrows = (t) => t.replace(/[◄►◀▶]/g, '').trim();
+
   // Semester label: lives in the grid header bar above the outer grid
-  let semesterLabel = null;
-  const headerBar = document.querySelector('.gb-grid-header, .functions-header');
-  if (headerBar) {
-    const text = headerBar.textContent.replace(/[◄►◀▶]/g, '').trim();
-    if (/semester/i.test(text) && text.length < 80) semesterLabel = text;
-  }
-  if (!semesterLabel) {
+  function findSemesterLabel() {
+    const headerBar = document.querySelector('.gb-grid-header, .functions-header');
+    if (headerBar) {
+      const text = stripArrows(headerBar.textContent);
+      if (/semester/i.test(text) && text.length < 80) return text;
+    }
     // Fallback: scan all text nodes
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node;
     while ((node = walker.nextNode())) {
       const t = node.textContent.trim();
-      if (/semester/i.test(t) && t.length > 5 && t.length < 80) {
-        semesterLabel = t.replace(/[◄►◀▶]/g, '').trim();
-        break;
-      }
+      if (/semester/i.test(t) && t.length > 5 && t.length < 80) return stripArrows(t);
     }
+    return null;
   }
 
-  const subjects = [];
+  // Classifies one grade row: a dated, weighted grade, a Bonus/Malus line, or nothing
+  // (Schnitt etc. rows without date+weight are skipped).
+  function parseGradeRow(row) {
+    const title     = cellText(row, 'title');
+    const value     = parseNum(cellText(row, 'value'));
+    const weightStr = cellText(row, 'gradeWeight');
+    const isoDate   = parseDate(cellText(row, 'date'));
+    const weightN   = parseNum(weightStr);
+    const hasDate   = isoDate !== null;
+    const hasWeight = weightStr !== '' && !isNaN(weightN);
+
+    if (hasDate && hasWeight) {
+      return !isNaN(value) && value >= 1 && value <= 6
+        ? { grade: { title, value, date: isoDate, weight: weightN } }
+        : null;
+    }
+    if (!hasDate && !hasWeight && /bonus|malus/i.test(title) && !isNaN(value)) {
+      return { bonus: { title, value } };
+    }
+    return null;
+  }
 
   // Each subject is a k-master-row; its grades live in the immediately following k-detail-row.
-  const masterRows = document.querySelectorAll('tr.k-master-row');
-
-  for (const masterRow of masterRows) {
+  function parseSubject(masterRow) {
     const subjectRaw = cellText(masterRow, 'courseName');
-    if (!subjectRaw) continue;
-
     const detailRow = masterRow.nextElementSibling;
-    if (!detailRow || !detailRow.classList.contains('k-detail-row')) continue;
-
-    const grades  = [];
-    const bonuses = [];
+    if (!subjectRaw || !detailRow || !detailRow.classList.contains('k-detail-row')) return null;
 
     // Grade rows are tr[data-uid] inside the nested grid within the detail row
-    const gradeRows = detailRow.querySelectorAll('tr[data-uid]');
-
-    for (const row of gradeRows) {
-      const title     = cellText(row, 'title');
-      const valueStr  = cellText(row, 'value');
-      const dateStr   = cellText(row, 'date');
-      const weightStr = cellText(row, 'gradeWeight');
-
-      const isoDate  = parseDate(dateStr);
-      const weightN  = parseNum(weightStr);
-      const hasDate  = isoDate !== null;
-      const hasWeight = weightStr !== '' && !isNaN(weightN);
-
-      if (hasDate && hasWeight) {
-        const value = parseNum(valueStr);
-        if (!isNaN(value) && value >= 1 && value <= 6) {
-          grades.push({ title, value, date: isoDate, weight: weightN });
-        }
-      } else if (!hasDate && !hasWeight && /bonus|malus/i.test(title)) {
-        const value = parseNum(valueStr);
-        if (!isNaN(value)) bonuses.push({ title, value });
-      }
-      // Rows without date+weight and no Bonus/Malus (Schnitt etc.) are skipped
-    }
-
-    if (grades.length > 0 || bonuses.length > 0) {
-      subjects.push({ subjectRaw, grades, bonuses });
-    }
+    const parsed = Array.from(detailRow.querySelectorAll('tr[data-uid]'), parseGradeRow).filter(Boolean);
+    const grades  = parsed.filter(r => r.grade).map(r => r.grade);
+    const bonuses = parsed.filter(r => r.bonus).map(r => r.bonus);
+    return grades.length > 0 || bonuses.length > 0 ? { subjectRaw, grades, bonuses } : null;
   }
+
+  const semesterLabel = findSemesterLabel();
+  const masterRows = document.querySelectorAll('tr.k-master-row');
+  const subjects = Array.from(masterRows, parseSubject).filter(Boolean);
 
   if (subjects.length === 0) {
     return {
@@ -235,7 +217,7 @@ async function captureGrades() {
       func: scrapePageGrades,
     });
     result = injectionResult?.result;
-  } catch (err) {
+  } catch {
     showError('Could not read the page. Make sure you are on the Notenbuch page and try again.');
     return;
   }
@@ -308,123 +290,89 @@ function renderSubjectCards() {
   }
 }
 
-function makeSubjectCard(subject) {
-  const card = document.createElement('div');
-  card.className = 'subject-card';
+// Creates an element with an optional class and text content.
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
 
-  // ─ Header row ─
-  const header = document.createElement('div');
-  header.className = 'subject-header';
+function subjectSelect(subject) {
+  const sel = el('select', 'subject-select');
+  const blankOpt = el('option', '', '— choose subject —');
+  blankOpt.value = '';
+  sel.appendChild(blankOpt);
+  for (const [k, v] of Object.entries(KSH_SUBJECT_NAMES)) {
+    const opt = el('option', '', `${k} – ${v}`);
+    opt.value = k;
+    sel.appendChild(opt);
+  }
+  sel.addEventListener('change', e => {
+    subject.gpKey = e.target.value || null;
+    updateImportButtons();
+  });
+  return sel;
+}
 
-  const nameCol = document.createElement('div');
-  nameCol.className = 'subject-name-col';
+function nameColumn(subject) {
+  const nameCol = el('div', 'subject-name-col');
 
-  if (subject.gpKey) {
-    const keySpan = document.createElement('span');
-    keySpan.className = 'gp-key';
-    keySpan.textContent = subject.gpKey;
-
-    const displaySpan = document.createElement('span');
-    displaySpan.className = 'gp-display';
-    displaySpan.textContent = KSH_SUBJECT_NAMES[subject.gpKey] || '';
-
-    nameCol.appendChild(keySpan);
-    nameCol.appendChild(displaySpan);
-
-    if (subject.sourceNames.length > 1) {
-      const note = document.createElement('span');
-      note.className = 'merged-note';
-      note.textContent = `merged: ${subject.sourceNames.join(', ')}`;
-      nameCol.appendChild(note);
-    }
-  } else {
+  if (!subject.gpKey) {
     // No auto-match — show raw name + manual dropdown
-    const rawSpan = document.createElement('span');
-    rawSpan.className = 'raw-name';
-    rawSpan.textContent = subject.subjectRaw;
+    const rawSpan = el('span', 'raw-name', subject.subjectRaw);
     rawSpan.title = subject.subjectRaw;
-    nameCol.appendChild(rawSpan);
-
-    const sel = document.createElement('select');
-    sel.className = 'subject-select';
-    const blankOpt = document.createElement('option');
-    blankOpt.value = '';
-    blankOpt.textContent = '— choose subject —';
-    sel.appendChild(blankOpt);
-    for (const [k, v] of Object.entries(KSH_SUBJECT_NAMES)) {
-      const opt = document.createElement('option');
-      opt.value = k;
-      opt.textContent = `${k} – ${v}`;
-      sel.appendChild(opt);
-    }
-    sel.addEventListener('change', e => {
-      subject.gpKey = e.target.value || null;
-      updateImportButtons();
-    });
-    nameCol.appendChild(sel);
+    nameCol.append(rawSpan, subjectSelect(subject));
+    return nameCol;
   }
 
-  // Import button for this subject
-  const btn = document.createElement('button');
-  btn.className = 'btn-import';
-  const gradeCount = subject.grades.length;
-  const hasBonus   = subject.bonuses.length > 0;
-  btn.textContent  = `Import ${gradeCount}${hasBonus ? '+adj' : ''}`;
-  btn.disabled     = true;
+  nameCol.append(
+    el('span', 'gp-key', subject.gpKey),
+    el('span', 'gp-display', KSH_SUBJECT_NAMES[subject.gpKey] || ''),
+  );
+  if (subject.sourceNames.length > 1) {
+    nameCol.appendChild(el('span', 'merged-note', `merged: ${subject.sourceNames.join(', ')}`));
+  }
+  return nameCol;
+}
+
+function importButton(subject) {
+  const hasBonus = subject.bonuses.length > 0;
+  const btn = el('button', 'btn-import', `Import ${subject.grades.length}${hasBonus ? '+adj' : ''}`);
+  btn.disabled = true;
   btn.addEventListener('click', () => importSubject(subject, btn));
   subject._btn = btn; // keep reference for status updates
+  return btn;
+}
 
-  header.appendChild(nameCol);
-  header.appendChild(btn);
+function gradeRow(rowClass, title, value, weight, date) {
+  const row = el('div', rowClass);
+  const titleSpan = el('span', 'grade-title', title || '—');
+  titleSpan.title = title;
+  row.append(titleSpan, el('span', 'grade-value', value), el('span', 'grade-weight', weight), el('span', 'grade-date', date));
+  return row;
+}
+
+function gradesList(subject) {
+  const list = el('div', 'grades-list');
+  for (const g of subject.grades) {
+    list.appendChild(gradeRow('grade-row', g.title, g.value, `×${g.weight}`, g.date));
+  }
+  for (const b of subject.bonuses) {
+    list.appendChild(gradeRow('grade-row bonus-row', b.title, `${b.value >= 0 ? '+' : ''}${b.value}`, 'adj'));
+  }
+  return list;
+}
+
+function makeSubjectCard(subject) {
+  const card = el('div', 'subject-card');
+  const header = el('div', 'subject-header');
+  header.append(nameColumn(subject), importButton(subject));
   card.appendChild(header);
 
-  // ─ Grades list ─
   if (subject.grades.length > 0 || subject.bonuses.length > 0) {
-    const list = document.createElement('div');
-    list.className = 'grades-list';
-
-    for (const g of subject.grades) {
-      const row = document.createElement('div');
-      row.className = 'grade-row';
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'grade-title';
-      titleSpan.title = g.title;
-      titleSpan.textContent = g.title || '—';
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'grade-value';
-      valueSpan.textContent = g.value;
-      const weightSpan = document.createElement('span');
-      weightSpan.className = 'grade-weight';
-      weightSpan.textContent = `×${g.weight}`;
-      const dateSpan = document.createElement('span');
-      dateSpan.className = 'grade-date';
-      dateSpan.textContent = g.date;
-      row.append(titleSpan, valueSpan, weightSpan, dateSpan);
-      list.appendChild(row);
-    }
-
-    for (const b of subject.bonuses) {
-      const row = document.createElement('div');
-      row.className = 'grade-row bonus-row';
-      const titleSpan = document.createElement('span');
-      titleSpan.className = 'grade-title';
-      titleSpan.title = b.title;
-      titleSpan.textContent = b.title;
-      const valueSpan = document.createElement('span');
-      valueSpan.className = 'grade-value';
-      valueSpan.textContent = `${b.value >= 0 ? '+' : ''}${b.value}`;
-      const weightSpan = document.createElement('span');
-      weightSpan.className = 'grade-weight';
-      weightSpan.textContent = 'adj';
-      const dateSpan = document.createElement('span');
-      dateSpan.className = 'grade-date';
-      row.append(titleSpan, valueSpan, weightSpan, dateSpan);
-      list.appendChild(row);
-    }
-
-    card.appendChild(list);
+    card.appendChild(gradesList(subject));
   }
-
   return card;
 }
 
@@ -451,10 +399,6 @@ async function importAll() {
   btn.textContent = '✓ All imported';
 }
 
-function escHtml(str) {
-  return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
 // ── Import ───────────────────────────────────────────────────────────────────
 
 async function postWithRetry(url, options, btn) {
@@ -468,6 +412,21 @@ async function postWithRetry(url, options, btn) {
   return res;
 }
 
+// POSTs JSON to a GradePoints API path; throws with the API's error message on failure.
+async function postToGp(path, payload, btn, errPrefix = '') {
+  const res = await postWithRetry(`${GP_BASE}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(payload),
+  }, btn);
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error || `${errPrefix}HTTP ${res.status}`);
+  }
+  return res;
+}
+
 async function importSubject(subject, btn) {
   if (!selectedSemester || !subject.gpKey) return;
 
@@ -477,46 +436,26 @@ async function importSubject(subject, btn) {
 
   try {
     for (const grade of subject.grades) {
-      const res = await postWithRetry(`${GP_BASE}/api/grades`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          value:       grade.value,
-          weight:      grade.weight,
-          description: grade.title,
-          date:        grade.date,
-          semester:    sem,
-          subject:     subject.gpKey,
-          school:      'KSH',
-        }),
+      await postToGp('/api/grades', {
+        value:       grade.value,
+        weight:      grade.weight,
+        description: grade.title,
+        date:        grade.date,
+        semester:    sem,
+        subject:     subject.gpKey,
+        school:      'KSH',
       }, btn);
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `HTTP ${res.status}`);
-      }
     }
 
     // Import bonus/malus as an adjustment (summed)
-    if (subject.bonuses.length > 0) {
-      const totalAdj = subject.bonuses.reduce((sum, b) => sum + b.value, 0);
-      if (totalAdj !== 0) {
-        const res = await postWithRetry(`${GP_BASE}/api/adjustments`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            value:   totalAdj,
-            semester: sem,
-            subject: subject.gpKey,
-            school:  'KSH',
-          }),
-        }, btn);
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body.error || `Adjustment failed: HTTP ${res.status}`);
-        }
-      }
+    const totalAdj = subject.bonuses.reduce((sum, b) => sum + b.value, 0);
+    if (totalAdj !== 0) {
+      await postToGp('/api/adjustments', {
+        value:    totalAdj,
+        semester: sem,
+        subject:  subject.gpKey,
+        school:   'KSH',
+      }, btn, 'Adjustment failed: ');
     }
 
     subject.imported = true;

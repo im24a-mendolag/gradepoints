@@ -1,16 +1,14 @@
 "use client";
 
-import { createContext, useContext, useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import {
   FINALS_SEMESTER,
   OVERVIEW_TAB,
   BZZ_SEMESTER,
-  TOTAL_SEMESTERS,
 } from "@/lib/semesters";
-import { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
-import { makeKshComputations } from "./lib/kshComputations";
-import { makeBzzComputations } from "./lib/bzzComputations";
-import { toDateInputString } from "./utils";
+import { Grade, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
+import { useAddForm, useAutoSelectSemester, useEditForm, useGradeData, useSchoolComputations, useSubmitting, useUndo } from "./lib/dashboardHooks";
+import { adjustmentsApi, apiError, gradeFields, gradesApi, recreateBody } from "./lib/gradesApi";
 
 // ─── Context shape ──────────────────────────────────────────────
 
@@ -146,35 +144,35 @@ export function useDashboard(): DashboardContextType {
 
 // ─── Provider ───────────────────────────────────────────────────
 
+/** First tab to show for a school. */
+const firstSemester = (school: School) => (school === "KSH" ? 1 : BZZ_SEMESTER);
+
+/** Regular semester tabs (not Overview / Finals) are remembered as the last one visited. */
+const isRegularSemester = (sem: number) => sem !== OVERVIEW_TAB && sem !== FINALS_SEMESTER;
+
+/** Semester "Dashboard" returns to: a deep-linked regular tab (?tab=3), else the school's first. */
+const initialRegularSemester = (school: School, deepLinked?: number) =>
+  deepLinked !== undefined && isRegularSemester(deepLinked) ? deepLinked : firstSemester(school);
+
+/** Parses a number input, treating blank/invalid as 0. */
+const parseOrZero = (raw: string) => {
+  const val = parseFloat(raw);
+  return isNaN(val) ? 0 : val;
+};
+
 export function DashboardProvider({ children, initialSchool = "KSH", initialSemester }: { children: ReactNode; initialSchool?: School; initialSemester?: number }) {
   // ── Core state ──
-  const [grades, setGrades] = useState<Grade[]>([]);
-  const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeSemester, setActiveSemester] = useState(initialSemester ?? (initialSchool === "KSH" ? 1 : BZZ_SEMESTER));
-  const [lastRegularSemester, setLastRegularSemester] = useState(initialSchool === "KSH" ? 1 : BZZ_SEMESTER);
+  const { grades, adjustments, loading, fetchGrades, fetchAdjustments } = useGradeData();
+  const [activeSemester, setActiveSemester] = useState(initialSemester ?? firstSemester(initialSchool));
+  const [lastRegularSemester, setLastRegularSemester] = useState(initialRegularSemester(initialSchool, initialSemester));
   const [activeSchool, setActiveSchoolState] = useState<School>(initialSchool);
-  const [error, setError] = useState<string | null>(null);
+  const { isSubmitting, error, setError, submitting } = useSubmitting();
 
-  // ── Add-grade form ──
-  const [gradeValue, setGradeValue] = useState("");
-  const [gradeWeight, setGradeWeight] = useState("1");
-  const [gradeDescription, setGradeDescription] = useState("");
-  const [gradeDate, setGradeDate] = useState(toDateInputString());
-
-  // Persists add-form state per school so switching KSH↔BZZ doesn't discard typed input.
-  const savedForm = useRef<Record<School, { gradeValue: string; gradeWeight: string; gradeDescription: string; gradeDate: string }>>({
-    KSH: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: toDateInputString() },
-    BZZ: { gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: toDateInputString() },
-  });
-
-  // ── Edit-grade form ──
-  const [editingGrade, setEditingGrade] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-  const [editWeight, setEditWeight] = useState("1");
-  const [editDescription, setEditDescription] = useState("");
-  const [editDate, setEditDate] = useState("");
+  // ── Forms ──
+  const addForm = useAddForm();
+  const { gradeValue, gradeWeight, gradeDescription, gradeDate, resetAddForm } = addForm;
+  const editForm = useEditForm();
+  const { setEditingGrade, editValue, editWeight, editDescription, editDate } = editForm;
 
   // ── UI state ──
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -182,123 +180,23 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const [adjustmentInput, setAdjustmentInput] = useState("");
   const [finalsInputs, setFinalsInputs] = useState<Record<string, string>>({});
 
-  // ── Undo ──
-  const [undoAction, setUndoAction] = useState<{ label: string; perform: () => Promise<void> } | null>(null);
-  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { undoEntry, pushUndo, undoLastAction, dismissUndo } = useUndo(submitting);
 
-  useEffect(() => () => { if (undoTimer.current) clearTimeout(undoTimer.current); }, []);
+  useAutoSelectSemester({ loading, grades, initialSemester, initialSchool }, (latest) => {
+    setActiveSemester(latest);
+    setLastRegularSemester(latest);
+  });
 
-  const pushUndo = (label: string, perform: () => Promise<void>) => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndoAction({ label, perform });
-    undoTimer.current = setTimeout(() => setUndoAction(null), 8000);
-  };
-
-  const undoLastAction = async () => {
-    if (!undoAction) return;
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    const action = undoAction;
-    setUndoAction(null);
-    setIsSubmitting(true);
-    try {
-      await action.perform();
-    } catch {
-      setError("Failed to undo. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const dismissUndo = () => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-    setUndoAction(null);
-  };
-
-  // ─── Data fetching ────────────────────────────────────────────
-
-  const fetchGrades = useCallback(async () => {
-    try {
-      const res = await fetch("/api/grades");
-      if (res.ok) setGrades(await res.json());
-    } catch (err) {
-      console.error("Failed to fetch grades", err);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const fetchAdjustments = useCallback(async () => {
-    try {
-      const res = await fetch("/api/adjustments");
-      if (res.ok) setAdjustments(await res.json());
-    } catch (err) {
-      console.error("Failed to fetch adjustments", err);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchGrades();
-    fetchAdjustments();
-  }, [fetchGrades, fetchAdjustments]);
-
-  // Once grades load, auto-select the latest KSH semester that has a grade —
-  // unless a tab was deep-linked (?tab=) or the user has already navigated.
-  const didAutoSelect = useRef(false);
-  useEffect(() => {
-    if (didAutoSelect.current) return;
-    if (initialSemester !== undefined) { didAutoSelect.current = true; return; }
-    if (loading) return;
-    didAutoSelect.current = true;
-    if (initialSchool === "KSH") {
-      const semesters = grades
-        .filter((g) => (!g.school || g.school === "KSH") && g.semester >= 1 && g.semester <= TOTAL_SEMESTERS)
-        .map((g) => g.semester);
-      if (semesters.length > 0) {
-        const latest = Math.max(...semesters);
-        setActiveSemester(latest);
-        setLastRegularSemester(latest);
-      }
-    }
-  }, [loading, grades, initialSemester, initialSchool]);
-
-  // ── School-filtered data (memoized — only recompute when source arrays change) ──
-  const kshGrades = useMemo(() => grades.filter((g) => !g.school || g.school === "KSH"), [grades]);
-  const kshAdjustments = useMemo(() => adjustments.filter((a) => !a.school || a.school === "KSH"), [adjustments]);
-  const bzzGrades = useMemo(() => grades.filter((g) => g.school === "BZZ"), [grades]);
-  const bzzAdjustments = useMemo(() => adjustments.filter((a) => a.school === "BZZ"), [adjustments]);
-
-  // ── Computation factories (memoized — only recompute when data or finalsInputs change) ──
-  const ksh = useMemo(
-    () => makeKshComputations(kshGrades, kshAdjustments, finalsInputs),
-    [kshGrades, kshAdjustments, finalsInputs]
-  );
-
-  const bzz = useMemo(
-    () => makeBzzComputations(bzzGrades, bzzAdjustments),
-    [bzzGrades, bzzAdjustments]
-  );
+  const { ksh, bzz } = useSchoolComputations(grades, adjustments, finalsInputs);
 
   /** Switches school, saving/restoring the add-form state per school. */
   const setActiveSchool = (school: School) => {
-    // Save current school's add-form state before switching
-    savedForm.current[activeSchool] = { gradeValue, gradeWeight, gradeDescription, gradeDate };
-
-    // Restore the new school's previously saved add-form state
-    const { gradeValue: v, gradeWeight: w, gradeDescription: d, gradeDate: dt } = savedForm.current[school];
-    setGradeValue(v);
-    setGradeWeight(w);
-    setGradeDescription(d);
-    setGradeDate(dt);
-
+    addForm.swapSchool(activeSchool, school);
     setActiveSchoolState(school);
-    setActiveSemester(school === "KSH" ? 1 : BZZ_SEMESTER);
-    setEditingGrade(null);
+    setActiveSemester(firstSemester(school));
+    editForm.resetEditForm();
     setEditingAdjustment(null);
     setExpandedSubjects(new Set());
-    setEditValue("");
-    setEditWeight("1");
-    setEditDescription("");
-    setEditDate("");
   };
 
   // ─── CRUD actions ─────────────────────────────────────────────
@@ -307,35 +205,19 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     const parsedValue = parseFloat(gradeValue);
     const parsedWeight = parseFloat(gradeWeight);
     if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
-    setError(null);
-    setIsSubmitting(true);
     const body = { value: parsedValue, weight: parsedWeight, description: gradeDescription, date: gradeDate, ...bodyExtras };
-    try {
-      const res = await fetch("/api/grades", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (res.ok) {
-        const created: Grade = await res.json();
-        setGradeValue("");
-        setGradeWeight("1");
-        setGradeDescription("");
-        setGradeDate(toDateInputString());
-        setExpandedSubjects((prev) => new Set(prev).add(expandKey));
-        pushUndo("Grade added", async () => {
-          await fetch(`/api/grades/${created.id}`, { method: "DELETE" });
-          await fetchGrades();
-        });
+    await submitting("Failed to add grade. Please try again.", async () => {
+      const res = await gradesApi.create(body);
+      if (!res.ok) return setError(await apiError(res, "Failed to add grade"));
+      const created: Grade = await res.json();
+      resetAddForm();
+      setExpandedSubjects((prev) => new Set(prev).add(expandKey));
+      pushUndo("Grade added", async () => {
+        await gradesApi.remove(created.id);
         await fetchGrades();
-      } else {
-        setError((await res.json()).error || "Failed to add grade");
-      }
-    } catch {
-      setError("Failed to add grade. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      });
+      await fetchGrades();
+    });
   };
 
   const addGrade = (subject: string) =>
@@ -343,38 +225,16 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
 
   const deleteGrade = async (id: string) => {
     const snapshot = grades.find((g) => g.id === id);
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
-      if (res.ok) {
+    await submitting("Failed to delete grade. Please try again.", async () => {
+      const res = await gradesApi.remove(id);
+      if (!res.ok) return setError(await apiError(res, "Failed to delete grade"));
+      await fetchGrades();
+      if (!snapshot) return;
+      pushUndo("Grade deleted", async () => {
+        await gradesApi.create(recreateBody(snapshot));
         await fetchGrades();
-        if (snapshot) {
-          pushUndo("Grade deleted", async () => {
-            await fetch("/api/grades", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                value: snapshot.value,
-                weight: snapshot.weight,
-                description: snapshot.description,
-                date: toDateInputString(snapshot.date),
-                semester: snapshot.semester,
-                subject: snapshot.subject,
-                ...(snapshot.school !== "KSH" ? { school: snapshot.school } : {}),
-              }),
-            });
-            await fetchGrades();
-          });
-        }
-      } else {
-        setError((await res.json()).error || "Failed to delete grade");
-      }
-    } catch {
-      setError("Failed to delete grade. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      });
+    });
   };
 
   const updateGrade = async (id: string) => {
@@ -385,78 +245,40 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
       return;
     }
     const snapshot = grades.find((g) => g.id === id);
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const res = await fetch(`/api/grades/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          value: parsedValue,
-          weight: parsedWeight,
-          description: editDescription,
-          date: editDate,
-        }),
+    await submitting("Failed to update grade. Please try again.", async () => {
+      const res = await gradesApi.update(id, {
+        value: parsedValue,
+        weight: parsedWeight,
+        description: editDescription,
+        date: editDate,
       });
-      if (res.ok) {
-        setEditingGrade(null);
+      if (!res.ok) return setError(await apiError(res, "Failed to update grade"));
+      setEditingGrade(null);
+      await fetchGrades();
+      if (!snapshot) return;
+      pushUndo("Grade updated", async () => {
+        await gradesApi.update(id, gradeFields(snapshot));
         await fetchGrades();
-        if (snapshot) {
-          pushUndo("Grade updated", async () => {
-            await fetch(`/api/grades/${id}`, {
-              method: "PUT",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                value: snapshot.value,
-                weight: snapshot.weight,
-                description: snapshot.description,
-                date: toDateInputString(snapshot.date),
-              }),
-            });
-            await fetchGrades();
-          });
-        }
-      } else {
-        setError((await res.json()).error || "Failed to update grade");
-      }
-    } catch {
-      setError("Failed to update grade. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+      });
+    });
   };
 
   const saveFinalsGrade = async (subject: string, value: string) => {
     if (!value) return;
     const numVal = parseFloat(value);
     if (isNaN(numVal) || numVal < 1 || numVal > 6) return;
-    setError(null);
-    setIsSubmitting(true);
 
-    const existing = ksh.getGradesForSubject(FINALS_SEMESTER, subject);
-    try {
-      if (existing.length > 0) {
-        const res = await fetch(`/api/grades/${existing[0].id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: numVal }),
-        });
-        if (!res.ok) { setError((await res.json()).error || "Failed to update finals grade"); return; }
-      } else {
-        const res = await fetch("/api/grades", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value: numVal, weight: 1, description: "", semester: FINALS_SEMESTER, subject }),
-        });
-        if (!res.ok) { setError((await res.json()).error || "Failed to add finals grade"); return; }
+    const existing = ksh.getGradesForSubject(FINALS_SEMESTER, subject)[0];
+    await submitting("Failed to save finals grade. Please try again.", async () => {
+      const res = existing
+        ? await gradesApi.update(existing.id, { value: numVal })
+        : await gradesApi.create({ value: numVal, weight: 1, description: "", semester: FINALS_SEMESTER, subject });
+      if (!res.ok) {
+        return setError(await apiError(res, existing ? "Failed to update finals grade" : "Failed to add finals grade"));
       }
       await fetchGrades();
       setFinalsInputs((prev) => { const next = { ...prev }; delete next[subject]; return next; });
-    } catch {
-      setError("Failed to save finals grade. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   const deleteFinalsGradeAction = async (subject: string) => {
@@ -464,29 +286,17 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     if (existing.length > 0) await deleteGrade(existing[0].id);
   };
 
-  const _saveAdjustment = async (semester: number, subject: string, value: number, school: School) => {
-    setError(null);
-    try {
+  const _saveAdjustment = (semester: number, subject: string, value: number, school: School) =>
+    submitting("Failed to save adjustment. Please try again.", async () => {
       if (value === 0) {
-        const res = await fetch("/api/adjustments", {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ semester, subject, school }),
-        });
-        if (!res.ok) { setError("Failed to delete adjustment"); return; }
+        const res = await adjustmentsApi.remove({ semester, subject, school });
+        if (!res.ok) return setError("Failed to delete adjustment");
       } else {
-        const res = await fetch("/api/adjustments", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ value, semester, subject, school }),
-        });
-        if (!res.ok) { setError((await res.json()).error || "Failed to save adjustment"); return; }
+        const res = await adjustmentsApi.save({ value, semester, subject, school });
+        if (!res.ok) return setError(await apiError(res, "Failed to save adjustment"));
       }
       await fetchAdjustments();
-    } catch {
-      setError("Failed to save adjustment. Please try again.");
-    }
-  };
+    }, { busy: false });
 
   const saveAdjustmentAction = (semester: number, subject: string, value: number) =>
     _saveAdjustment(semester, subject, value, "KSH");
@@ -497,101 +307,44 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const saveBzzAdjustment = (mod: string, value: number) =>
     _saveAdjustment(BZZ_SEMESTER, mod, value, "BZZ");
 
-  const bulkImportGrades = async (subject: string, entries: BulkGradeEntry[]) => {
-    setError(null);
-    const isBzz = activeSchool === "BZZ";
-    const createdIds: string[] = [];
-    try {
+  const bulkImportGrades = (subject: string, entries: BulkGradeEntry[]) => {
+    const target = activeSchool === "BZZ"
+      ? { semester: BZZ_SEMESTER, subject, school: "BZZ" }
+      : { semester: activeSemester, subject };
+    return submitting("Failed to import grades. Please try again.", async () => {
+      const createdIds: string[] = [];
       for (const entry of entries) {
-        const res = await fetch("/api/grades", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            value: entry.value,
-            weight: entry.weight,
-            description: entry.description,
-            date: entry.date,
-            semester: isBzz ? BZZ_SEMESTER : activeSemester,
-            subject,
-            ...(isBzz ? { school: "BZZ" } : {}),
-          }),
-        });
+        const res = await gradesApi.create({ ...entry, ...target });
         if (!res.ok) {
-          setError((await res.json()).error || "Failed to import a grade");
+          setError(await apiError(res, "Failed to import a grade"));
           break;
         }
         const created: Grade = await res.json();
         createdIds.push(created.id);
       }
       await fetchGrades();
-      if (createdIds.length > 0) {
-        pushUndo(
-          `Pasted ${createdIds.length} grade${createdIds.length !== 1 ? "s" : ""}`,
-          async () => {
-            await Promise.all(createdIds.map((id) => fetch(`/api/grades/${id}`, { method: "DELETE" })));
-            await fetchGrades();
-          }
-        );
-      }
-    } catch {
-      setError("Failed to import grades. Please try again.");
-    }
+      if (createdIds.length === 0) return;
+      pushUndo(
+        `Pasted ${createdIds.length} grade${createdIds.length !== 1 ? "s" : ""}`,
+        async () => {
+          await Promise.all(createdIds.map((id) => gradesApi.remove(id)));
+          await fetchGrades();
+        }
+      );
+    }, { busy: false });
   };
 
   const clearSemesterGrades = async (semester: number) => {
     const toDelete = grades.filter((g) => g.semester === semester && g.school !== "BZZ");
     if (toDelete.length === 0) return;
-    setError(null);
-    setIsSubmitting(true);
-    try {
-      const deleteWithRetry = async (id: string) => {
-        const res = await fetch(`/api/grades/${id}`, { method: "DELETE" });
-        if (res.status === 429) {
-          const wait = parseInt(res.headers.get("Retry-After") ?? "60", 10);
-          await new Promise((r) => setTimeout(r, wait * 1000));
-          await fetch(`/api/grades/${id}`, { method: "DELETE" });
-        }
-      };
-      for (const g of toDelete) await deleteWithRetry(g.id);
+    await submitting("Failed to clear semester grades. Please try again.", async () => {
+      for (const g of toDelete) await gradesApi.removeWithRetry(g.id);
       await fetchGrades();
       pushUndo(`Cleared semester ${semester} (${toDelete.length} grades)`, async () => {
-        for (const g of toDelete) {
-          const res = await fetch("/api/grades", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              value: g.value,
-              weight: g.weight,
-              description: g.description,
-              date: toDateInputString(g.date),
-              semester: g.semester,
-              subject: g.subject,
-            }),
-          });
-          if (res.status === 429) {
-            const wait = parseInt(res.headers.get("Retry-After") ?? "60", 10);
-            await new Promise((r) => setTimeout(r, wait * 1000));
-            await fetch("/api/grades", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                value: g.value,
-                weight: g.weight,
-                description: g.description,
-                date: toDateInputString(g.date),
-                semester: g.semester,
-                subject: g.subject,
-              }),
-            });
-          }
-        }
+        for (const g of toDelete) await gradesApi.createWithRetry(recreateBody(g));
         await fetchGrades();
       });
-    } catch {
-      setError("Failed to clear semester grades. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    });
   };
 
   // ─── UI actions ───────────────────────────────────────────────
@@ -599,17 +352,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const selectSemester = (sem: number) => {
     setActiveSemester(sem);
     setEditingGrade(null);
-    if (sem !== OVERVIEW_TAB && sem !== FINALS_SEMESTER) {
-      setLastRegularSemester(sem);
-    }
-  };
-
-  const startEditing = (grade: Grade) => {
-    setEditingGrade(grade.id);
-    setEditValue(grade.value.toString());
-    setEditWeight(grade.weight.toString());
-    setEditDescription(grade.description);
-    setEditDate(toDateInputString(grade.date));
+    if (isRegularSemester(sem)) setLastRegularSemester(sem);
   };
 
   const cancelEditing = () => setEditingGrade(null);
@@ -632,8 +375,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
   const cancelEditingAdjustment = () => setEditingAdjustment(null);
 
   const handleSaveAdjustment = (semester: number, subject: string) => {
-    const val = parseFloat(adjustmentInput);
-    saveAdjustmentAction(semester, subject, isNaN(val) ? 0 : val);
+    saveAdjustmentAction(semester, subject, parseOrZero(adjustmentInput));
     setEditingAdjustment(null);
   };
 
@@ -641,7 +383,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     setEditingGrade(`finals-${entry}`);
     setFinalsInputs((prev) => ({
       ...prev,
-      [entry]: currentGrade ? currentGrade.value.toString() : "",
+      [entry]: currentGrade?.value.toString() ?? "",
     }));
   };
 
@@ -667,13 +409,10 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     error,
     loading,
     isSubmitting,
-    editingGrade,
+    ...addForm,
+    ...editForm,
     expandedSubjects,
     editingAdjustment,
-    gradeValue, gradeWeight, gradeDescription, gradeDate,
-    setGradeValue, setGradeWeight, setGradeDescription, setGradeDate,
-    editValue, editWeight, editDescription, editDate,
-    setEditValue, setEditWeight, setEditDescription, setEditDate,
     adjustmentInput, setAdjustmentInput,
     finalsInputs,
     selectSemester,
@@ -682,7 +421,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     saveFinalsGrade,
     deleteFinalsGrade: deleteFinalsGradeAction,
     saveAdjustment: saveAdjustmentAction,
-    startEditing, cancelEditing,
+    cancelEditing,
     toggleExpand,
     startEditingAdjustment, cancelEditingAdjustment, handleSaveAdjustment,
     startEditingFinals, cancelEditingFinals, handleDeleteFinalsEntry, onFinalsInputChange,
@@ -693,7 +432,7 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
     addBzzGrade, saveBzzAdjustment,
     bulkImportGrades,
     clearSemesterGrades,
-    undoEntry: undoAction ? { label: undoAction.label } : null,
+    undoEntry,
     undoLastAction,
     dismissUndo,
   };

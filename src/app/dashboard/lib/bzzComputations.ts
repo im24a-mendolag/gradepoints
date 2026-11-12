@@ -36,13 +36,16 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
     return result;
   };
 
-  const getBzzNormalRawAverage = (): number | null => {
-    const avgs = (BZZ_NORMAL_MODULES as readonly string[])
+  // Mean of the rounded module averages across a module group.
+  const getGroupRawAverage = (modules: readonly string[]): number | null => {
+    const avgs = modules
       .map((m) => getBzzModuleAverage(m))
       .filter((a): a is number => a !== null);
     if (avgs.length === 0) return null;
     return avgs.reduce((a, b) => a + b, 0) / avgs.length;
   };
+
+  const getBzzNormalRawAverage = (): number | null => getGroupRawAverage(BZZ_NORMAL_MODULES);
 
   const getBzzNormalAverage = (): number | null => {
     const raw = getBzzNormalRawAverage();
@@ -50,13 +53,7 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
     return roundToHalf(raw);
   };
 
-  const getBzzUkRawAverage = (): number | null => {
-    const avgs = (BZZ_UK_MODULES as readonly string[])
-      .map((m) => getBzzModuleAverage(m))
-      .filter((a): a is number => a !== null);
-    if (avgs.length === 0) return null;
-    return avgs.reduce((a, b) => a + b, 0) / avgs.length;
-  };
+  const getBzzUkRawAverage = (): number | null => getGroupRawAverage(BZZ_UK_MODULES);
 
   const getBzzUkAverage = (): number | null => {
     const raw = getBzzUkRawAverage();

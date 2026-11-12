@@ -1,67 +1,44 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { checkRateLimit } from "@/lib/rateLimit";
+import { badRequest, requireUser, schoolFilter } from "@/lib/api";
 
 export async function GET(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const school = searchParams.get("school"); // optional filter
-
-  const where: { userId: string; school?: string } = {
-    userId: session.user.id,
-  };
-  if (school) {
-    where.school = school;
-  }
+  const { userId, error } = await requireUser();
+  if (error) return error;
 
   const adjustments = await prisma.adjustment.findMany({
-    where,
+    where: { userId, ...schoolFilter(request) },
   });
 
   return NextResponse.json(adjustments);
 }
 
+/** Composite unique key for a user's adjustment in one semester/subject/school. */
+function adjustmentKey(userId: string, semester: number, subject: string, school: string) {
+  return { userId_semester_subject_school: { userId, semester, subject, school } };
+}
+
 export async function POST(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!await checkRateLimit(session.user.id)) {
-    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
-  }
+  const { userId, error } = await requireUser({ rateLimit: true });
+  if (error) return error;
 
   const { value, semester, subject, school } = await request.json();
   const schoolValue = school || "KSH";
 
   if (value === undefined || value === null || !semester || !subject) {
-    return NextResponse.json(
-      { error: "Value, semester, and subject are required" },
-      { status: 400 }
-    );
+    return badRequest("Value, semester, and subject are required");
   }
 
   // Upsert: create or update the adjustment for this user/semester/subject/school
   const adjustment = await prisma.adjustment.upsert({
-    where: {
-      userId_semester_subject_school: {
-        userId: session.user.id,
-        semester,
-        subject,
-        school: schoolValue,
-      },
-    },
+    where: adjustmentKey(userId, semester, subject, schoolValue),
     update: { value: parseFloat(value) },
     create: {
       value: parseFloat(value),
       semester,
       subject,
       school: schoolValue,
-      userId: session.user.id,
+      userId,
     },
   });
 
@@ -69,34 +46,18 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  if (!await checkRateLimit(session.user.id)) {
-    return NextResponse.json({ error: "Too many requests, slow down" }, { status: 429 });
-  }
+  const { userId, error } = await requireUser({ rateLimit: true });
+  if (error) return error;
 
   const { semester, subject, school } = await request.json();
-  const schoolValue = school || "KSH";
 
   if (!semester || !subject) {
-    return NextResponse.json(
-      { error: "Semester and subject are required" },
-      { status: 400 }
-    );
+    return badRequest("Semester and subject are required");
   }
 
   try {
     await prisma.adjustment.delete({
-      where: {
-        userId_semester_subject_school: {
-          userId: session.user.id,
-          semester,
-          subject,
-          school: schoolValue,
-        },
-      },
+      where: adjustmentKey(userId, semester, subject, school || "KSH"),
     });
     return NextResponse.json({ success: true });
   } catch {
