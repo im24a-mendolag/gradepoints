@@ -19,6 +19,8 @@ jobs:
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for fallow's hotspot / churn analysis
 
       - uses: actions/setup-node@v4
         with:
@@ -33,8 +35,10 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test
-        run: npm test
+      # Writes coverage/coverage-final.json, which fallow picks up automatically to score
+      # complexity against real test coverage (without it, fallow only estimates).
+      - name: Test (with coverage)
+        run: npm run coverage
 
       - name: Code health (fallow)
-        run: npx -y fallow@3.42.0
+        run: npx fallow
