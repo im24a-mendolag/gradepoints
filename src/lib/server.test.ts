@@ -59,6 +59,12 @@ describe("api helpers", () => {
     [{ description: "x".repeat(501) }, "Description must be a string under 500 characters"],
     [{ date: "not a date" }, "Invalid date"],
     [{ date: "1990-01-01" }, "Invalid date"],
+    [{ percent: 30 }, null],
+    [{ percent: "100" }, null],
+    [{ percent: null }, null],
+    [{ percent: 0 }, "Percent must be greater than 0 and at most 100"],
+    [{ percent: 101 }, "Percent must be greater than 0 and at most 100"],
+    [{ percent: "x" }, "Percent must be greater than 0 and at most 100"],
   ])("validateGradeFields(%j) → %s", (fields, expected) => {
     expect(validateGradeFields(fields)).toBe(expected);
   });

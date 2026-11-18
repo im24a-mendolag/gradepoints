@@ -168,3 +168,35 @@ describe("DashboardPage (BZZ)", () => {
     await screen.findByRole("heading", { level: 1 });
   });
 });
+
+describe("DashboardPage: percent grades", () => {
+  const pctGrades = () => [
+    grade({ id: "p1", subject: "Math", value: 4, semester: 1, percent: 60, description: "Final exam" }),
+    grade({ id: "p2", subject: "Math", value: 6, semester: 1, percent: 50 }),
+  ];
+
+  it("shows percentages, warns above 100% and switches a grade back to weight", async () => {
+    const user = userEvent.setup();
+    const { db } = await renderPage({ params: "tab=1", grades: pctGrades() });
+    expect(within(card("Math")).getByText("110% > 100%")).toBeTruthy();
+
+    await user.click(within(card("Math")).getAllByRole("button")[0]);
+    expect(within(card("Math")).getByText("60%")).toBeTruthy();
+
+    await user.click(within(card("Math")).getAllByRole("button", { name: "Edit" })[0]);
+    expect((within(card("Math")).getByLabelText("Percent of subject grade") as HTMLInputElement).value).toBe("60");
+    await user.click(within(card("Math")).getByRole("button", { name: "Weight" }));
+    await user.click(within(card("Math")).getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(db.grades.find((g) => g.id === "p1")!.percent).toBeNull());
+  });
+
+  it("rejects an empty percentage when saving an edit", async () => {
+    const user = userEvent.setup();
+    await renderPage({ params: "tab=1", grades: pctGrades() });
+    await user.click(within(card("Math")).getAllByRole("button")[0]);
+    await user.click(within(card("Math")).getAllByRole("button", { name: "Edit" })[0]);
+    await user.clear(within(card("Math")).getByLabelText("Percent of subject grade"));
+    await user.click(within(card("Math")).getByRole("button", { name: "Save" }));
+    expect(await screen.findByText("Percent must be greater than 0 and at most 100")).toBeTruthy();
+  });
+});

@@ -71,6 +71,17 @@ describe("/api/grades", () => {
     expect(prisma.grade.create.mock.calls[1][0].data).toMatchObject({ weight: 0.5, school: "BZZ", description: "LB1" });
   });
 
+  it("stores percent-of-subject grades and rejects invalid percentages", async () => {
+    prisma.grade.create.mockImplementation(async ({ data }) => ({ id: "new", ...data }));
+    await grades.POST(req({ value: 5, percent: "30.12345", semester: 1, subject: "Math" }));
+    expect(prisma.grade.create.mock.calls[0][0].data).toMatchObject({ percent: 30.123, weight: 1 });
+
+    await grades.POST(req({ value: 5, semester: 1, subject: "Math" }));
+    expect(prisma.grade.create.mock.calls[1][0].data.percent).toBeNull();
+
+    expect((await grades.POST(req({ value: 5, percent: 0, semester: 1, subject: "Math" }))).status).toBe(400);
+  });
+
   it("rate limits writes", async () => {
     prisma.$queryRaw.mockResolvedValue([{ count: BigInt(100) }]);
     expect((await grades.POST(req({}))).status).toBe(429);
@@ -97,6 +108,16 @@ describe("/api/grades/[id]", () => {
     authMock.mockResolvedValue(null);
     expect((await gradeById.PUT(req({}), params("g1"))).status).toBe(401);
     expect((await gradeById.DELETE(req(), params("g1"))).status).toBe(401);
+  });
+
+  it("sets and clears a grade's percentage", async () => {
+    prisma.grade.findFirst.mockResolvedValue({ id: "g1" });
+    prisma.grade.update.mockResolvedValue({ id: "g1" });
+    await gradeById.PUT(req({ percent: 40 }), params("g1"));
+    expect(prisma.grade.update.mock.calls[0][0].data).toEqual({ percent: 40 });
+    await gradeById.PUT(req({ percent: null, weight: 1 }), params("g1"));
+    expect(prisma.grade.update.mock.calls[1][0].data).toEqual({ percent: null, weight: 1 });
+    expect((await gradeById.PUT(req({ percent: 120 }), params("g1"))).status).toBe(400);
   });
 
   it("deletes an owned grade", async () => {

@@ -8,6 +8,9 @@ import {
 } from "@/lib/semesters";
 import type { Grade, Adjustment, SemesterStatus, OverviewStatus, FinalSubjectGrade } from "../types";
 import { roundToHalf, roundTo1dp } from "../utils";
+import { gradeAverage } from "./gradeAverage";
+
+const clampGrade = (n: number) => Math.min(6, Math.max(1, n));
 
 export function makeKshComputations(
   kshGrades: Grade[],
@@ -30,13 +33,8 @@ export function makeKshComputations(
   const getRawSubjectAverage = (semester: number, subject: string): number | null => {
     const key = `${semester}|${subject}`;
     if (rawCache.has(key)) return rawCache.get(key)!;
-    const subjectGrades = getGradesForSubject(semester, subject).filter((g) => g.weight > 0);
-    let result: number | null = null;
-    if (subjectGrades.length > 0) {
-      const totalWeight = subjectGrades.reduce((acc, g) => acc + g.weight, 0);
-      const weightedSum = subjectGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-      result = Math.min(6, Math.max(1, weightedSum / totalWeight + getAdjustment(semester, subject)));
-    }
+    const avg = gradeAverage(getGradesForSubject(semester, subject));
+    const result = avg === null ? null : clampGrade(avg + getAdjustment(semester, subject));
     rawCache.set(key, result);
     return result;
   };

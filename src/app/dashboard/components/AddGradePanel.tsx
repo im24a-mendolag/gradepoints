@@ -13,7 +13,8 @@ import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import type { Grade } from "../types";
 import { getGradeColor, blockNonNumericKeys, formatWeight, roundToHalf } from "../utils";
 import Btn from "./Btn";
-import { GradePicker, WeightPicker, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
+import { GradePicker, CountingPicker, FieldHeader, ModeToggle, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
+import { countingFields, gradeAverage, neededGrade, type WeightMode } from "../lib/gradeAverage";
 
 const fieldLabel = "block text-[11px] font-medium text-fg-muted mb-1.5";
 const textInput =
@@ -101,19 +102,14 @@ function GradeScaleBar({ currentAvg, needed }: { currentAvg: number | null; need
 }
 
 /**
- * Current weighted average of `grades`, and the grade needed on one more grade of
- * `weight` so the average rounds (to the half grade) to `target`.
+ * Current average of `grades`, and the grade needed on one more grade (counted like
+ * `next`) so the average rounds (to the half grade) to `target`.
  */
-function targetCalc(grades: Grade[], target: number, weight: number) {
-  const active = grades.filter((g) => g.weight > 0);
-  const weightedSum = active.reduce((acc, g) => acc + g.value * g.weight, 0);
-  const totalWeight = active.reduce((acc, g) => acc + g.weight, 0);
-  const currentAvg = active.length > 0 ? weightedSum / totalWeight : null;
-
+function targetCalc(grades: Grade[], target: number, next: { weight: number; percent: number | null } | null) {
+  const currentAvg = gradeAverage(grades);
   const isHalfGrade = !isNaN(target) && Math.abs(target * 2 - Math.round(target * 2)) < 0.001;
-  if (!isHalfGrade || isNaN(weight) || weight <= 0) return { currentAvg, needed: null };
-  const roundedMin = target - 0.25;
-  return { currentAvg, needed: (roundedMin * (totalWeight + weight) - weightedSum) / weight };
+  if (!isHalfGrade || !next) return { currentAvg, needed: null };
+  return { currentAvg, needed: neededGrade(grades, next, target - 0.25) };
 }
 
 // ─── Paste parsing ──────────────────────────────────────────────
@@ -127,13 +123,23 @@ function parseSwissDate(raw: string | undefined) {
 
 const parseDecimal = (raw: string | undefined) => parseFloat(raw?.trim().replace(",", ".") ?? "");
 
+/** Weight column: "0.5" → weight, "30%" → percent of the subject's grade; default weight 1. */
+function parsePastedWeight(raw: string | undefined): { weight: number; percent: number | null } {
+  if (raw?.trim().endsWith("%")) {
+    const percent = parseDecimal(raw.trim().slice(0, -1));
+    // An out-of-range percentage falls back to the default weight rather than becoming e.g. weight 250.
+    return percent > 0 && percent <= 100 ? { weight: 1, percent } : { weight: 1, percent: null };
+  }
+  const weight = parseDecimal(raw);
+  return { weight: isNaN(weight) ? 1 : weight, percent: null };
+}
+
 function parsePastedLine(line: string): BulkGradeEntry[] {
   const fields = line.split("\t");
   if (fields.length < 2) return [];
   const value = parseDecimal(fields[1]);
   if (isNaN(value) || value < 1 || value > 6) return [];
-  const weight = parseDecimal(fields[3]);
-  return [{ description: fields[0].trim(), value, date: parseSwissDate(fields[2]), weight: isNaN(weight) ? 1 : weight }];
+  return [{ description: fields[0].trim(), value, date: parseSwissDate(fields[2]), ...parsePastedWeight(fields[3]) }];
 }
 
 function parsePastedGrades(text: string): BulkGradeEntry[] {
@@ -220,20 +226,33 @@ function PointsInput({ myPoints, totalPoints, onChange }: { myPoints: string; to
   );
 }
 
-const modeBtn = (active: boolean) =>
-  `px-2.5 py-1 rounded-control transition cursor-pointer ${active ? "bg-ink text-on-ink" : "text-fg-muted hover:text-fg"}`;
+type InputMode = "grade" | "points";
+const INPUT_MODES: { value: InputMode; label: string }[] = [
+  { value: "grade", label: "1–6" },
+  { value: "points", label: "Points" },
+];
 
 function AddTab({ subject, noSlider, active }: { subject: string; noSlider?: boolean; active: boolean }) {
   const {
     gradeValue, setGradeValue,
+    gradeMode, setGradeMode,
     gradeWeight, setGradeWeight,
+    gradePercent, setGradePercent,
     gradeDescription, setGradeDescription,
     gradeDate, setGradeDate,
     isSubmitting,
   } = useDashboard();
   const ops = useSubjectOps();
-  const [inputMode, setInputMode] = useState<"grade" | "points">("grade");
+  const [inputMode, setInputMode] = useState<InputMode>("grade");
   const [points, setPoints] = useState({ my: "", total: "" });
+
+  const switchInputMode = (mode: InputMode) => {
+    setInputMode(mode);
+    if (mode === "points") {
+      setPoints({ my: "", total: "" });
+      setGradeValue("");
+    }
+  };
 
   const setPointsAndGrade = (my: string, total: string) => {
     setPoints({ my, total });
@@ -241,7 +260,8 @@ function AddTab({ subject, noSlider, active }: { subject: string; noSlider?: boo
   };
 
   const parsedValue = parseFloat(gradeValue);
-  const isAddDisabled = !subject || !gradeValue || parsedValue < 1 || parsedValue > 6;
+  const countsValid = countingFields(gradeMode, gradeWeight, gradePercent) !== null;
+  const isAddDisabled = !subject || !gradeValue || parsedValue < 1 || parsedValue > 6 || !countsValid;
 
   const handleAdd = async () => {
     if (!subject || !gradeValue) return;
@@ -252,22 +272,22 @@ function AddTab({ subject, noSlider, active }: { subject: string; noSlider?: boo
   return (
     <TabPane active={active} className="space-y-3">
       <AdjustmentInput key={subject} subject={subject} />
-      <div className="flex rounded-control bg-sunken p-0.5 text-xs w-fit">
-        <button type="button" onClick={() => setInputMode("grade")} className={modeBtn(inputMode === "grade")}>Grade</button>
-        <button type="button" onClick={() => { setInputMode("points"); setPoints({ my: "", total: "" }); setGradeValue(""); }} className={modeBtn(inputMode === "points")}>Points</button>
-      </div>
       <div>
-        <label className={fieldLabel}>Grade</label>
+        <FieldHeader label="Grade">
+          <ModeToggle options={INPUT_MODES} value={inputMode} onChange={switchInputMode} />
+        </FieldHeader>
         {inputMode === "grade" ? (
           <GradePicker value={gradeValue} onChange={setGradeValue} noSlider={noSlider} />
         ) : (
           <PointsInput myPoints={points.my} totalPoints={points.total} onChange={setPointsAndGrade} />
         )}
       </div>
-      <div>
-        <label className={fieldLabel}>Weight</label>
-        <WeightPicker value={gradeWeight} onChange={setGradeWeight} noSlider={noSlider} />
-      </div>
+      <CountingPicker
+        mode={gradeMode} onModeChange={setGradeMode}
+        weight={gradeWeight} onWeightChange={setGradeWeight}
+        percent={gradePercent} onPercentChange={setGradePercent}
+        noSlider={noSlider}
+      />
       <div className="flex gap-3">
         <div className="flex-1">
           <label className={fieldLabel}>Description (optional)</label>
@@ -307,14 +327,14 @@ function PasteTab({ subject, active }: { subject: string; active: boolean }) {
 
   return (
     <TabPane active={active} className="flex flex-col gap-3">
-      <p className="text-xs text-fg-muted">Paste tab-separated grades (Name, Grade, Date DD.MM.YYYY, Weight)</p>
+      <p className="text-xs text-fg-muted">Paste tab-separated grades (Name, Grade, Date DD.MM.YYYY, Weight or e.g. 30%)</p>
       <textarea value={pasteText} onChange={(e) => setPasteText(e.target.value)} className={`flex-1 min-h-0 w-full resize-none font-mono ${textInput}`} placeholder={"Prüfung 1\t4.4\t15.09.2025\t1\nPolitik-Podcast\t4.7\t24.09.2025\t1"} />
       {parsedGrades.length > 0 && (
         <div className="space-y-1">
           {parsedGrades.map((g, i) => (
             <div key={i} className="flex items-center gap-2 text-xs text-fg-muted">
               <span className={`inline-flex items-center justify-center w-7 h-7 rounded-control font-mono border shrink-0 ${getGradeColor(g.value)}`}>{g.value}</span>
-              <span className="text-fg-faint font-mono">×{formatWeight(g.weight)}</span>
+              <span className="text-fg-faint font-mono">{g.percent != null ? `${formatWeight(g.percent)}%` : `×${formatWeight(g.weight)}`}</span>
               <span className="truncate">{g.description || <em className="text-fg-faint">no description</em>}</span>
               <span className="text-fg-faint ml-auto shrink-0 font-mono">{g.date}</span>
             </div>
@@ -331,12 +351,14 @@ function PasteTab({ subject, active }: { subject: string; active: boolean }) {
 function TargetTab({ subject, noSlider, active }: { subject: string; noSlider?: boolean; active: boolean }) {
   const ops = useSubjectOps();
   const [targetAvg, setTargetAvg] = useState("4");
+  const [targetMode, setTargetMode] = useState<WeightMode>("weight");
   const [targetWeight, setTargetWeight] = useState("1");
+  const [targetPercent, setTargetPercent] = useState("");
 
   const { currentAvg, needed } = targetCalc(
     subject ? ops.grades(subject) : [],
     parseFloat(targetAvg),
-    parseFloat(targetWeight),
+    countingFields(targetMode, targetWeight, targetPercent),
   );
 
   const snapTarget = (raw: string) => {
@@ -369,8 +391,13 @@ function TargetTab({ subject, noSlider, active }: { subject: string; noSlider?: 
         </div>
       </div>
       <div>
-        <label className={fieldLabel}>Weight of grade</label>
-        <WeightPicker value={targetWeight} onChange={setTargetWeight} noSlider={noSlider} />
+        <CountingPicker
+          label="Weight of grade"
+          mode={targetMode} onModeChange={setTargetMode}
+          weight={targetWeight} onWeightChange={setTargetWeight}
+          percent={targetPercent} onPercentChange={setTargetPercent}
+          noSlider={noSlider}
+        />
       </div>
       <div>
         <label className={fieldLabel}>Overview</label>

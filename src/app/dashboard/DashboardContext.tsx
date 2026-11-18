@@ -7,6 +7,7 @@ import {
   BZZ_SEMESTER,
 } from "@/lib/semesters";
 import { Grade, SemesterStatus, OverviewStatus, FinalSubjectGrade, School, BzzPassFailStatus } from "./types";
+import { countingFields, type WeightMode } from "./lib/gradeAverage";
 import { useAddForm, useAutoSelectSemester, useEditForm, useGradeData, useSchoolComputations, useSubmitting, useUndo } from "./lib/dashboardHooks";
 import { adjustmentsApi, apiError, gradeFields, gradesApi, recreateBody } from "./lib/gradesApi";
 
@@ -30,21 +31,29 @@ interface DashboardContextType {
 
   // ── Grade form (add) ──
   gradeValue: string;
+  gradeMode: WeightMode;
   gradeWeight: string;
+  gradePercent: string;
   gradeDescription: string;
   gradeDate: string;
   setGradeValue: (v: string) => void;
+  setGradeMode: (v: WeightMode) => void;
   setGradeWeight: (v: string) => void;
+  setGradePercent: (v: string) => void;
   setGradeDescription: (v: string) => void;
   setGradeDate: (v: string) => void;
 
   // ── Grade form (edit) ──
   editValue: string;
+  editMode: WeightMode;
   editWeight: string;
+  editPercent: string;
   editDescription: string;
   editDate: string;
   setEditValue: (v: string) => void;
+  setEditMode: (v: WeightMode) => void;
   setEditWeight: (v: string) => void;
+  setEditPercent: (v: string) => void;
   setEditDescription: (v: string) => void;
   setEditDate: (v: string) => void;
 
@@ -130,6 +139,8 @@ interface DashboardContextType {
 export interface BulkGradeEntry {
   value: number;
   weight: number;
+  /** Share of the subject's grade (e.g. pasted "30%"); null/undefined for weight-based grades. */
+  percent?: number | null;
   description: string;
   date: string; // YYYY-MM-DD
 }
@@ -170,9 +181,9 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
 
   // ── Forms ──
   const addForm = useAddForm();
-  const { gradeValue, gradeWeight, gradeDescription, gradeDate, resetAddForm } = addForm;
+  const { gradeValue, gradeMode, gradeWeight, gradePercent, gradeDescription, gradeDate, resetAddForm } = addForm;
   const editForm = useEditForm();
-  const { setEditingGrade, editValue, editWeight, editDescription, editDate } = editForm;
+  const { setEditingGrade, editValue, editMode, editWeight, editPercent, editDescription, editDate } = editForm;
 
   // ── UI state ──
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -203,9 +214,9 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
 
   const _addGrade = async (bodyExtras: object, expandKey: string) => {
     const parsedValue = parseFloat(gradeValue);
-    const parsedWeight = parseFloat(gradeWeight);
-    if (!gradeValue || isNaN(parsedValue) || isNaN(parsedWeight)) return;
-    const body = { value: parsedValue, weight: parsedWeight, description: gradeDescription, date: gradeDate, ...bodyExtras };
+    const counting = countingFields(gradeMode, gradeWeight, gradePercent);
+    if (!gradeValue || isNaN(parsedValue) || !counting) return;
+    const body = { value: parsedValue, ...counting, description: gradeDescription, date: gradeDate, ...bodyExtras };
     await submitting("Failed to add grade. Please try again.", async () => {
       const res = await gradesApi.create(body);
       if (!res.ok) return setError(await apiError(res, "Failed to add grade"));
@@ -239,16 +250,16 @@ export function DashboardProvider({ children, initialSchool = "KSH", initialSeme
 
   const updateGrade = async (id: string) => {
     const parsedValue = parseFloat(editValue);
-    const parsedWeight = parseFloat(editWeight);
-    if (isNaN(parsedValue) || isNaN(parsedWeight)) {
-      setError("Grade value and weight must be valid numbers");
+    const counting = countingFields(editMode, editWeight, editPercent);
+    if (isNaN(parsedValue) || !counting) {
+      setError(editMode === "percent" ? "Percent must be greater than 0 and at most 100" : "Grade value and weight must be valid numbers");
       return;
     }
     const snapshot = grades.find((g) => g.id === id);
     await submitting("Failed to update grade. Please try again.", async () => {
       const res = await gradesApi.update(id, {
         value: parsedValue,
-        weight: parsedWeight,
+        ...counting,
         description: editDescription,
         date: editDate,
       });

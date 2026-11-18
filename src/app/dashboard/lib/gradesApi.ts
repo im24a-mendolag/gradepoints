@@ -48,6 +48,7 @@ export function gradeFields(g: Grade) {
   return {
     value: g.value,
     weight: g.weight,
+    percent: g.percent ?? null,
     description: g.description,
     date: toDateInputString(g.date),
   };

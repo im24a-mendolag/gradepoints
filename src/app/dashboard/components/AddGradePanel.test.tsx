@@ -35,7 +35,7 @@ describe("AddGradePanel", () => {
     expect(screen.getByText("= 5.500")).toBeTruthy();
     await user.click(screen.getByRole("button", { name: "Add Grade" }));
     await waitFor(() => expect(db.grades[0]).toMatchObject({ subject: "German", value: 5.5 }));
-    await user.click(screen.getByRole("button", { name: "Grade" }));
+    await user.click(screen.getByRole("button", { name: "1–6" }));
   });
 
   it("saves a bonus/malus adjustment for the selected subject", async () => {
@@ -116,5 +116,50 @@ describe("AddGradePanel", () => {
     await user.type(input, "x");
     expect((screen.getByPlaceholderText("±0.0") as HTMLInputElement).disabled).toBe(true);
     fireEvent.blur(input);
+  });
+});
+
+describe("AddGradePanel: percent of subject", () => {
+  it("adds a grade that counts a fixed percentage of the subject", async () => {
+    const user = userEvent.setup();
+    const { db } = await renderDashboard(<AddGradePanel />, { semester: 1 });
+    await pickSubject(user, "math", /^Math – /);
+    await user.type(screen.getAllByPlaceholderText("1–6")[0], "4.5");
+
+    await user.click(screen.getAllByRole("button", { name: "% of subject" })[0]);
+    const add = screen.getByRole("button", { name: "Add Grade" }) as HTMLButtonElement;
+    expect(add.disabled).toBe(true); // no percentage yet
+    const percent = screen.getAllByLabelText("Percent of subject grade")[0];
+    await user.type(percent, "30");
+    expect(screen.getAllByText("30%").length).toBeGreaterThan(0);
+    await user.click(add);
+
+    await waitFor(() => expect(db.grades).toHaveLength(1));
+    expect(db.grades[0]).toMatchObject({ subject: "Math", value: 4.5, percent: 30, weight: 1 });
+  });
+
+  it("reads a % in the pasted weight column", async () => {
+    const user = userEvent.setup();
+    const { db } = await renderDashboard(<AddGradePanel />, { semester: 1 });
+    await user.click(screen.getByRole("button", { name: "Paste" }));
+    await pickSubject(user, "Math", /^Math – /);
+    fireEvent.change(document.querySelector("textarea")!, {
+      target: { value: "Exam\t4\t01.12.2025\t30%\nQuiz\t5\t02.12.2025\t0,5\nOdd\t5\t02.12.2025\t250%" },
+    });
+    expect(screen.getAllByText("30%").length).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Import 3 grades" }));
+    await waitFor(() => expect(db.grades).toHaveLength(3));
+    expect(db.grades.map((g) => [g.percent ?? null, g.weight])).toEqual([[30, 1], [null, 0.5], [null, 1]]);
+  });
+
+  it("targets with a percent-of-subject next grade", async () => {
+    const user = userEvent.setup();
+    await renderDashboard(<AddGradePanel />, { semester: 1, grades: [grade({ subject: "Math", value: 5 })] });
+    await user.click(screen.getByRole("button", { name: "Target" }));
+    await pickSubject(user, "Math", /^Math – /);
+    await user.click(screen.getAllByRole("button", { name: "% of subject" }).at(-1)!);
+    await user.type(screen.getAllByLabelText("Percent of subject grade").at(-1)!, "50");
+    // 0.5·x + 0.5·5 ≥ 3.75 → x = 2.5
+    expect(screen.getByText("2.50")).toBeTruthy();
   });
 });

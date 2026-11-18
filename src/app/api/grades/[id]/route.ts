@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { badRequest, requireUser, round3, validateGradeFields } from "@/lib/api";
+import { badRequest, percentValue, requireUser, round3, validateGradeFields } from "@/lib/api";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,9 +17,9 @@ export async function PUT(request: Request, { params }: Params) {
   if (error) return error;
 
   const { id } = await params;
-  const { value, weight, description, date } = await request.json();
+  const { value, weight, percent, description, date } = await request.json();
 
-  const validationError = validateGradeFields({ value, weight, description, date });
+  const validationError = validateGradeFields({ value, weight, percent, description, date });
   if (validationError) return badRequest(validationError);
 
   if (!(await ownsGrade(id, userId))) return notFound();
@@ -29,6 +29,7 @@ export async function PUT(request: Request, { params }: Params) {
     data: {
       ...(value !== undefined && { value: round3(value) }),
       ...(weight !== undefined && { weight: round3(weight) }),
+      ...(percent !== undefined && { percent: percentValue(percent) }),
       ...(description !== undefined && { description }),
       ...(date !== undefined && { date: new Date(date) }),
     },
