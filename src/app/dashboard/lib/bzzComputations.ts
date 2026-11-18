@@ -1,6 +1,9 @@
 import { BZZ_SEMESTER, BZZ_NORMAL_MODULES, BZZ_UK_MODULES, BZZ_IPA } from "@/lib/semesters";
 import type { Grade, Adjustment, BzzPassFailStatus } from "../types";
 import { roundToHalf } from "../utils";
+import { gradeAverage } from "./gradeAverage";
+
+const clampGrade = (n: number) => Math.min(6, Math.max(1, n));
 
 export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustment[]) {
   // Per-factory caches — valid for the lifetime of this memoized factory instance.
@@ -17,13 +20,8 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
 
   const getBzzModuleRawAverage = (mod: string): number | null => {
     if (rawCache.has(mod)) return rawCache.get(mod)!;
-    const modGrades = getBzzModuleGrades(mod).filter((g) => g.weight > 0);
-    let result: number | null = null;
-    if (modGrades.length > 0) {
-      const totalWeight = modGrades.reduce((acc, g) => acc + g.weight, 0);
-      const weightedSum = modGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-      result = Math.min(6, Math.max(1, weightedSum / totalWeight + getBzzModuleAdjustment(mod)));
-    }
+    const avg = gradeAverage(getBzzModuleGrades(mod));
+    const result = avg === null ? null : clampGrade(avg + getBzzModuleAdjustment(mod));
     rawCache.set(mod, result);
     return result;
   };
@@ -69,13 +67,8 @@ export function makeBzzComputations(bzzGrades: Grade[], bzzAdjustments: Adjustme
     return (normalAvg + ukAvg) / 2;
   };
 
-  const getBzzIpaAverage = (): number | null => {
-    const ipaGrades = getBzzModuleGrades(BZZ_IPA).filter((g) => g.weight > 0);
-    if (ipaGrades.length === 0) return null;
-    const totalWeight = ipaGrades.reduce((acc, g) => acc + g.weight, 0);
-    const weightedSum = ipaGrades.reduce((acc, g) => acc + g.value * g.weight, 0);
-    return Math.min(6, Math.max(1, weightedSum / totalWeight + getBzzModuleAdjustment(BZZ_IPA)));
-  };
+  // The IPA is a module too, but its grade is shown unrounded.
+  const getBzzIpaAverage = (): number | null => getBzzModuleRawAverage(BZZ_IPA);
 
   const getBzzPassFail = (): BzzPassFailStatus => {
     const normalAvg = getBzzNormalAverage();

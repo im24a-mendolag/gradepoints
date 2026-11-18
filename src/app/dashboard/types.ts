@@ -4,6 +4,8 @@ export interface Grade {
   id: string;
   value: number;
   weight: number;
+  /** Fixed share (0–100) of the subject's grade; when set, `weight` is ignored. */
+  percent?: number | null;
   description: string;
   date: string;
   semester: number;

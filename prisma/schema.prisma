@@ -54,6 +54,8 @@ model Grade {
   id          String   @id @default(cuid())
   value       Float
   weight      Float    @default(1)
+  /// Fixed share (0–100) of the subject's grade; when set, `weight` is ignored.
+  percent     Float?
   description String   @default("")
   date        DateTime @default(now())
   semester    Int

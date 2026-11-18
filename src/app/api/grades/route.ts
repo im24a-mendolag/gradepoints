@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidSubjectForSemester, isValidBzzSubject } from "@/lib/semesters";
-import { badRequest, requireUser, round3, schoolFilter, validateGradeFields } from "@/lib/api";
+import { badRequest, percentValue, requireUser, round3, schoolFilter, validateGradeFields } from "@/lib/api";
 
 export async function GET(request: Request) {
   const { userId, error } = await requireUser();
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   const { userId, error } = await requireUser({ rateLimit: true });
   if (error) return error;
 
-  const { value, weight, description, date, semester, subject, school } = await request.json();
+  const { value, weight, percent, description, date, semester, subject, school } = await request.json();
   const schoolValue = school || "KSH";
 
   if (value === undefined || value === null || !semester || !subject) {
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const validationError =
-    validateGradeFields({ value, weight, description, date }) ??
+    validateGradeFields({ value, weight, percent, description, date }) ??
     subjectError(schoolValue, semester, subject);
   if (validationError) return badRequest(validationError);
 
@@ -52,6 +52,7 @@ export async function POST(request: Request) {
     data: {
       value: round3(value),
       weight: weight !== undefined ? round3(weight) : 1,
+      percent: percentValue(percent),
       description: description || "",
       date: date ? new Date(date) : new Date(),
       semester,

@@ -1,6 +1,8 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { getGradeColor, blockNonNumericKeys, formatWeight } from "../utils";
+import type { WeightMode } from "../lib/gradeAverage";
 
 export function calcGradeFromPoints(my: string, total: string): string {
   const m = parseFloat(my);
@@ -147,6 +149,117 @@ export function WeightPicker({ value, onChange, noSlider }: { value: string; onC
         />
       </div>
       {isZero && <p className="mt-1.5 text-xs text-subject-amber">Weight 0 — this grade won&apos;t count toward averages</p>}
+    </div>
+  );
+}
+
+const toggleBtn = (active: boolean) =>
+  `px-2.5 py-1 rounded-control transition cursor-pointer ${active ? "bg-ink text-on-ink" : "text-fg-muted hover:text-fg"}`;
+
+/** Field label on the left with its mode toggle (if any) on the right, above the input. */
+export function FieldHeader({ label, children }: { label: string; children?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-2 mb-1.5">
+      <span className="text-[11px] font-medium text-fg-muted">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+/** Small two-or-more-way toggle (e.g. 1–6 / Points, Weight / % of subject). */
+export function ModeToggle<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="flex rounded-control bg-sunken p-0.5 text-xs w-fit">
+      {options.map((o) => (
+        <button key={o.value} type="button" onClick={() => onChange(o.value)} className={toggleBtn(value === o.value)}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const PERCENT_LABELS = [0, 25, 50, 75, 100];
+
+/** Percentage (0–100] of the subject's grade, as badge + slider + number input. */
+function PercentPicker({ value, onChange, noSlider }: { value: string; onChange: (v: string) => void; noSlider?: boolean }) {
+  const parsed = parseFloat(value);
+  const valid = parsed > 0 && parsed <= 100;
+  const h = noSlider ? "h-11 text-base" : "h-9 text-sm";
+
+  return (
+    <div className="flex items-center gap-3">
+      <span className={`inline-flex items-center justify-center w-14 ${h} rounded-control font-mono border shrink-0 ${valid ? neutralBadge : emptyBadge}`}>
+        {valid ? `${formatWeight(parsed)}%` : "—"}
+      </span>
+      {!noSlider && (
+        <div className="flex-1 pb-1">
+          <SliderLabels labels={PERCENT_LABELS} min={0} max={100} />
+          <input
+            type="range" min="0" max="100" step="5" value={valid ? parsed : 0}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full h-2 rounded-control cursor-pointer accent-fg bg-line"
+          />
+        </div>
+      )}
+      <input
+        type="number" min="0" max="100" step="any" value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => blockNonNumericKeys(e)}
+        className={`${noSlider ? "flex-1 px-3" : "w-16 px-2"} ${h} ${numInput}`}
+        placeholder="%"
+        aria-label="Percent of subject grade"
+      />
+    </div>
+  );
+}
+
+const COUNTING_MODES: { value: WeightMode; label: string }[] = [
+  { value: "weight", label: "Weight" },
+  { value: "percent", label: "% of subject" },
+];
+
+/** How a grade counts: relative weight, or a fixed % of the subject's grade. */
+export function CountingPicker({
+  label = "Weight",
+  mode,
+  onModeChange,
+  weight,
+  onWeightChange,
+  percent,
+  onPercentChange,
+  noSlider,
+}: {
+  label?: string;
+  mode: WeightMode;
+  onModeChange: (m: WeightMode) => void;
+  weight: string;
+  onWeightChange: (v: string) => void;
+  percent: string;
+  onPercentChange: (v: string) => void;
+  noSlider?: boolean;
+}) {
+  return (
+    <div>
+      <FieldHeader label={label}>
+        <ModeToggle options={COUNTING_MODES} value={mode} onChange={onModeChange} />
+      </FieldHeader>
+      {mode === "weight" ? (
+        <WeightPicker value={weight} onChange={onWeightChange} noSlider={noSlider} />
+      ) : (
+        <>
+          <PercentPicker value={percent} onChange={onPercentChange} noSlider={noSlider} />
+          <p className="mt-1.5 text-xs text-fg-faint">Counts this share of the subject&apos;s grade; weighted grades share the rest.</p>
+        </>
+      )}
     </div>
   );
 }

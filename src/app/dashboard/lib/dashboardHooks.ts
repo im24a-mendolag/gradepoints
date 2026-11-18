@@ -6,6 +6,7 @@ import type { Adjustment, Grade, School } from "../types";
 import { toDateInputString } from "../utils";
 import { makeKshComputations } from "./kshComputations";
 import { makeBzzComputations } from "./bzzComputations";
+import { isPercentGrade, type WeightMode } from "./gradeAverage";
 
 const isKsh = (item: { school?: School }) => !item.school || item.school === "KSH";
 const isBzz = (item: { school?: School }) => item.school === "BZZ";
@@ -142,21 +143,37 @@ export function useUndo(run: (failMsg: string, fn: () => Promise<void>) => Promi
   };
 }
 
-type AddFormState = { gradeValue: string; gradeWeight: string; gradeDescription: string; gradeDate: string };
+type AddFormState = {
+  gradeValue: string;
+  gradeMode: WeightMode;
+  gradeWeight: string;
+  gradePercent: string;
+  gradeDescription: string;
+  gradeDate: string;
+};
 
-const emptyAddForm = (): AddFormState => ({ gradeValue: "", gradeWeight: "1", gradeDescription: "", gradeDate: toDateInputString() });
+const emptyAddForm = (): AddFormState => ({
+  gradeValue: "",
+  gradeMode: "weight",
+  gradeWeight: "1",
+  gradePercent: "",
+  gradeDescription: "",
+  gradeDate: toDateInputString(),
+});
 
 /** The add-grade form, kept per school so switching KSH↔BZZ doesn't discard typed input. */
 export function useAddForm() {
   const [form, setForm] = useState<AddFormState>(emptyAddForm);
   const saved = useRef<Record<School, AddFormState>>({ KSH: emptyAddForm(), BZZ: emptyAddForm() });
 
-  const setter = (key: keyof AddFormState) => (v: string) => setForm((f) => ({ ...f, [key]: v }));
+  const setter = <K extends keyof AddFormState>(key: K) => (v: AddFormState[K]) => setForm((f) => ({ ...f, [key]: v }));
 
   return {
     ...form,
     setGradeValue: setter("gradeValue"),
+    setGradeMode: setter("gradeMode"),
     setGradeWeight: setter("gradeWeight"),
+    setGradePercent: setter("gradePercent"),
     setGradeDescription: setter("gradeDescription"),
     setGradeDate: setter("gradeDate"),
     resetAddForm: () => setForm(emptyAddForm()),
@@ -172,14 +189,18 @@ export function useAddForm() {
 export function useEditForm() {
   const [editingGrade, setEditingGrade] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  const [editMode, setEditMode] = useState<WeightMode>("weight");
   const [editWeight, setEditWeight] = useState("1");
+  const [editPercent, setEditPercent] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editDate, setEditDate] = useState("");
 
   const startEditing = (grade: Grade) => {
     setEditingGrade(grade.id);
     setEditValue(grade.value.toString());
+    setEditMode(isPercentGrade(grade) ? "percent" : "weight");
     setEditWeight(grade.weight.toString());
+    setEditPercent(grade.percent?.toString() ?? "");
     setEditDescription(grade.description);
     setEditDate(toDateInputString(grade.date));
   };
@@ -187,7 +208,9 @@ export function useEditForm() {
   const resetEditForm = () => {
     setEditingGrade(null);
     setEditValue("");
+    setEditMode("weight");
     setEditWeight("1");
+    setEditPercent("");
     setEditDescription("");
     setEditDate("");
   };
@@ -195,7 +218,9 @@ export function useEditForm() {
   return {
     editingGrade, setEditingGrade,
     editValue, setEditValue,
+    editMode, setEditMode,
     editWeight, setEditWeight,
+    editPercent, setEditPercent,
     editDescription, setEditDescription,
     editDate, setEditDate,
     startEditing,
