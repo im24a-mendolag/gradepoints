@@ -200,3 +200,26 @@ describe("DashboardPage: percent grades", () => {
     expect(await screen.findByText("Percent must be greater than 0 and at most 100")).toBeTruthy();
   });
 });
+
+describe("DashboardPage: edit form matches the add form", () => {
+  it("offers the same fields, including grade from points", async () => {
+    const user = userEvent.setup();
+    const { db } = await renderPage({ params: "tab=1" });
+    await user.click(within(card("Math")).getAllByRole("button")[0]);
+    await user.click(within(card("Math")).getAllByRole("button", { name: "Edit" })[0]);
+    const edit = within(card("Math"));
+
+    for (const name of ["1–6", "Points", "Weight", "% of subject", "Save", "Cancel"]) {
+      expect(edit.getByRole("button", { name })).toBeTruthy();
+    }
+    expect(edit.getByText("Description (optional)")).toBeTruthy();
+    expect(edit.getByText("Date")).toBeTruthy();
+    expect(edit.getAllByRole("slider")).toHaveLength(2); // grade + weight, like the add panel
+
+    await user.click(edit.getByRole("button", { name: "Points" }));
+    await user.type(edit.getByPlaceholderText("My pts"), "9");
+    await user.type(edit.getByPlaceholderText("Max pts"), "10");
+    await user.type(edit.getByPlaceholderText("e.g. Midterm exam"), "{Enter}");
+    await waitFor(() => expect(db.grades.find((g) => g.id === "m1")!.value).toBe(5.5));
+  });
+});

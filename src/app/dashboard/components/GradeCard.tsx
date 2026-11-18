@@ -7,7 +7,7 @@ import { isPercentGrade, percentTotal } from "../lib/gradeAverage";
 import Btn from "./Btn";
 import Chip from "./Chip";
 import { IconChevron } from "./Icons";
-import { CountingPicker, FieldHeader, GradePicker } from "./GradePickers";
+import GradeFormFields from "./GradeFormFields";
 
 interface GradeCardProps {
   title: string;
@@ -19,8 +19,6 @@ interface GradeCardProps {
   adj: number;
 }
 
-const inputCls =
-  "px-3 py-1.5 rounded-control border border-line bg-sunken focus:ring-2 focus:ring-line-strong focus:border-transparent outline-none text-sm text-fg";
 
 /** "30%" for percent grades, "×1" for weighted ones. */
 const countsLabel = (g: Pick<Grade, "weight" | "percent">) =>
@@ -71,50 +69,21 @@ function CardHeader({ title, subtitle, expandKey, grades, avg, rawAvg, adj }: Gr
 }
 
 function GradeEditForm({ grade }: { grade: Grade }) {
-  const {
-    cancelEditing,
-    editValue, setEditValue,
-    editMode, setEditMode,
-    editWeight, setEditWeight,
-    editPercent, setEditPercent,
-    editDescription, setEditDescription,
-    editDate, setEditDate,
-    updateGrade,
-    isSubmitting,
-  } = useDashboard();
+  const d = useDashboard();
+  const save = () => d.updateGrade(grade.id);
 
   return (
     <div className="space-y-3 py-1">
-      <div>
-        <FieldHeader label="Grade" />
-        <GradePicker value={editValue} onChange={setEditValue} noSlider />
-      </div>
-      <CountingPicker
-        mode={editMode} onModeChange={setEditMode}
-        weight={editWeight} onWeightChange={setEditWeight}
-        percent={editPercent} onPercentChange={setEditPercent}
-        noSlider
+      <GradeFormFields
+        values={{ value: d.editValue, mode: d.editMode, weight: d.editWeight, percent: d.editPercent, description: d.editDescription, date: d.editDate }}
+        set={{ setValue: d.setEditValue, setMode: d.setEditMode, setWeight: d.setEditWeight, setPercent: d.setEditPercent, setDescription: d.setEditDescription, setDate: d.setEditDate }}
+        onSubmit={save}
       />
-      <div className="flex flex-col sm:flex-row gap-2">
-        <input
-          type="text"
-          value={editDescription}
-          onChange={(e) => setEditDescription(e.target.value)}
-          className={`flex-1 ${inputCls}`}
-          placeholder="Description"
-        />
-        <input
-          type="date"
-          value={editDate}
-          onChange={(e) => setEditDate(e.target.value)}
-          className={`w-full sm:w-auto ${inputCls}`}
-        />
-      </div>
       <div className="flex gap-2">
-        <Btn size="sm" variant="primary" disabled={isSubmitting} onClick={() => updateGrade(grade.id)}>
-          {isSubmitting ? "Saving…" : "Save"}
+        <Btn size="sm" variant="primary" disabled={d.isSubmitting} onClick={save}>
+          {d.isSubmitting ? "Saving…" : "Save"}
         </Btn>
-        <Btn size="sm" disabled={isSubmitting} onClick={cancelEditing}>Cancel</Btn>
+        <Btn size="sm" disabled={d.isSubmitting} onClick={d.cancelEditing}>Cancel</Btn>
       </div>
     </div>
   );

@@ -13,12 +13,11 @@ import { useDashboard, type BulkGradeEntry } from "../DashboardContext";
 import type { Grade } from "../types";
 import { getGradeColor, blockNonNumericKeys, formatWeight, roundToHalf } from "../utils";
 import Btn from "./Btn";
-import { GradePicker, CountingPicker, FieldHeader, ModeToggle, SliderLabels, GRADE_LABELS, calcGradeFromPoints } from "./GradePickers";
+import { CountingPicker, SliderLabels, GRADE_LABELS } from "./GradePickers";
+import GradeFormFields, { textInput } from "./GradeFormFields";
 import { countingFields, gradeAverage, neededGrade, type WeightMode } from "../lib/gradeAverage";
 
 const fieldLabel = "block text-[11px] font-medium text-fg-muted mb-1.5";
-const textInput =
-  "px-3 py-2 rounded-control border border-line bg-sunken text-sm text-fg outline-none focus:ring-2 focus:ring-line-strong focus:border-transparent";
 
 function SubjectCombobox({ options, value, onChange, getLabel }: { options: string[]; value: string; onChange: (v: string) => void; getLabel: (v: string) => string }) {
   const [query, setQuery] = useState("");
@@ -213,93 +212,34 @@ function AdjustmentInput({ subject }: { subject: string }) {
   );
 }
 
-function PointsInput({ myPoints, totalPoints, onChange }: { myPoints: string; totalPoints: string; onChange: (my: string, total: string) => void }) {
-  const { gradeValue } = useDashboard();
-  const cls = `w-24 h-9 text-center ${textInput}`;
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <input type="number" min="0" step="any" value={myPoints} onChange={(e) => onChange(e.target.value, totalPoints)} onKeyDown={(e) => blockNonNumericKeys(e)} className={cls} placeholder="My pts" />
-      <span className="text-fg-faint text-sm">/</span>
-      <input type="number" min="0" step="any" value={totalPoints} onChange={(e) => onChange(myPoints, e.target.value)} onKeyDown={(e) => blockNonNumericKeys(e)} className={cls} placeholder="Max pts" />
-      {gradeValue && <span className={`inline-flex items-center justify-center px-3 h-9 rounded-control font-mono text-sm border ${getGradeColor(parseFloat(gradeValue))}`}>= {parseFloat(gradeValue).toFixed(3)}</span>}
-    </div>
-  );
-}
-
-type InputMode = "grade" | "points";
-const INPUT_MODES: { value: InputMode; label: string }[] = [
-  { value: "grade", label: "1–6" },
-  { value: "points", label: "Points" },
-];
-
 function AddTab({ subject, noSlider, active }: { subject: string; noSlider?: boolean; active: boolean }) {
-  const {
-    gradeValue, setGradeValue,
-    gradeMode, setGradeMode,
-    gradeWeight, setGradeWeight,
-    gradePercent, setGradePercent,
-    gradeDescription, setGradeDescription,
-    gradeDate, setGradeDate,
-    isSubmitting,
-  } = useDashboard();
+  const d = useDashboard();
   const ops = useSubjectOps();
-  const [inputMode, setInputMode] = useState<InputMode>("grade");
-  const [points, setPoints] = useState({ my: "", total: "" });
+  // Bumped after each add so the fields remount and clear points input.
+  const [formKey, setFormKey] = useState(0);
 
-  const switchInputMode = (mode: InputMode) => {
-    setInputMode(mode);
-    if (mode === "points") {
-      setPoints({ my: "", total: "" });
-      setGradeValue("");
-    }
-  };
-
-  const setPointsAndGrade = (my: string, total: string) => {
-    setPoints({ my, total });
-    setGradeValue(calcGradeFromPoints(my, total));
-  };
-
-  const parsedValue = parseFloat(gradeValue);
-  const countsValid = countingFields(gradeMode, gradeWeight, gradePercent) !== null;
-  const isAddDisabled = !subject || !gradeValue || parsedValue < 1 || parsedValue > 6 || !countsValid;
+  const parsedValue = parseFloat(d.gradeValue);
+  const countsValid = countingFields(d.gradeMode, d.gradeWeight, d.gradePercent) !== null;
+  const isAddDisabled = !subject || !d.gradeValue || parsedValue < 1 || parsedValue > 6 || !countsValid;
 
   const handleAdd = async () => {
-    if (!subject || !gradeValue) return;
+    if (isAddDisabled) return;
     await ops.add(subject);
-    setPoints({ my: "", total: "" });
+    setFormKey((k) => k + 1);
   };
 
   return (
     <TabPane active={active} className="space-y-3">
       <AdjustmentInput key={subject} subject={subject} />
-      <div>
-        <FieldHeader label="Grade">
-          <ModeToggle options={INPUT_MODES} value={inputMode} onChange={switchInputMode} />
-        </FieldHeader>
-        {inputMode === "grade" ? (
-          <GradePicker value={gradeValue} onChange={setGradeValue} noSlider={noSlider} />
-        ) : (
-          <PointsInput myPoints={points.my} totalPoints={points.total} onChange={setPointsAndGrade} />
-        )}
-      </div>
-      <CountingPicker
-        mode={gradeMode} onModeChange={setGradeMode}
-        weight={gradeWeight} onWeightChange={setGradeWeight}
-        percent={gradePercent} onPercentChange={setGradePercent}
+      <GradeFormFields
+        key={formKey}
+        values={{ value: d.gradeValue, mode: d.gradeMode, weight: d.gradeWeight, percent: d.gradePercent, description: d.gradeDescription, date: d.gradeDate }}
+        set={{ setValue: d.setGradeValue, setMode: d.setGradeMode, setWeight: d.setGradeWeight, setPercent: d.setGradePercent, setDescription: d.setGradeDescription, setDate: d.setGradeDate }}
         noSlider={noSlider}
+        onSubmit={handleAdd}
       />
-      <div className="flex gap-3">
-        <div className="flex-1">
-          <label className={fieldLabel}>Description (optional)</label>
-          <input type="text" value={gradeDescription} onChange={(e) => setGradeDescription(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !isAddDisabled) handleAdd(); }} className={`w-full ${textInput}`} placeholder="e.g. Midterm exam" />
-        </div>
-        <div>
-          <label className={fieldLabel}>Date</label>
-          <input type="date" value={gradeDate} onChange={(e) => setGradeDate(e.target.value)} className={`${textInput} font-mono`} />
-        </div>
-      </div>
-      <Btn variant="primary" disabled={isAddDisabled || isSubmitting} onClick={handleAdd}>
-        {isSubmitting ? "Adding…" : "Add Grade"}
+      <Btn variant="primary" disabled={isAddDisabled || d.isSubmitting} onClick={handleAdd}>
+        {d.isSubmitting ? "Adding…" : "Add Grade"}
       </Btn>
     </TabPane>
   );
